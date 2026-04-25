@@ -1,0 +1,6 @@
+{
+  "name": "مزرعة الفراخ السعيدة",
+  "description": "Smart management app for poultry fattening farms. Supports Cobb, Ross, and Avian strains with daily feed, water, medication, and ventilation tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
