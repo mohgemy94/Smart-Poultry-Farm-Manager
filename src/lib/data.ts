@@ -133,24 +133,85 @@ export const CLIMATE_FACTORS = {
 export const MEDICATIONS = [
   // Phase 1: Hatching and Reception (Days 1-7)
   { 
-    name: 'محلول معالجة الجفاف + فيتامين سي', 
-    unit: 'جرام/لتر',
+    name: 'محلول معالجة جفاف', 
+    unit: 'سم³/لتر',
     doseValue: 1,
     description: 'استعادة التوازن الأسموزي للخلايا بعد إجهاد النقل.', 
     category: 'تأسيس',
-    timing: '8 ساعات (عند الوصول)',
+    timing: '6 ساعات',
     mixing: 'يمكن خلطه مع الفيتامينات',
-    sequence: 'يُتبع بمضاد حيوي إذا لزم الأمر',
-    usageType: 'وقائي/ضروري',
-    recommendedHours: 8,
+    sequence: 'الجرعة الأولى عند الوصول',
+    usageType: 'ضروري',
+    recommendedHours: 6,
     benefits: 'يعوض السوائل المفقودة ويمنع الجفاف المبكر.',
     targetDays: [1],
     climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص']
   },
   { 
+    name: 'فيتامين أد3هـ (جرعة أولى)', 
+    unit: 'سم³/لتر', 
+    doseValue: 1,
+    description: 'دعم الأغشية المخاطية وتأسيس الهيكل العظمي.', 
+    category: 'فيتامينات',
+    timing: '6 ساعات',
+    mixing: 'لا يخلط مع المضادات الحيوية',
+    sequence: 'الجرعة الثانية في اليوم الأول',
+    usageType: 'ضروري',
+    recommendedHours: 6,
+    benefits: 'بناء الهيكل العظمي وقوة التحمل.',
+    targetDays: [1],
+    climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص']
+  },
+  { 
+    name: 'ماء نقي (راحة أولى)', 
+    unit: 'لتر', 
+    doseValue: 0,
+    description: 'فترة راحة للجهاز الهضمي بعد الفيتامينات.', 
+    category: 'راحة',
+    timing: 'ساعة واحدة',
+    mixing: 'ماء فقط',
+    sequence: 'بين الفيتامينات والمضاد الحيوي',
+    usageType: 'ضروري',
+    recommendedHours: 1,
+    benefits: 'تحسين امتصاص العلاج القادم.',
+    targetDays: [1],
+    climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص']
+  },
+  { 
+    name: 'مضاد حيوي (جرعة أولى)', 
+    unit: 'جرام/لتر', 
+    doseValue: 1,
+    description: 'القضاء على الميكوبلازما والسالمونيلا إن وجدت.', 
+    category: 'وقائي',
+    timing: '6 ساعات',
+    mixing: 'منفرداً',
+    sequence: 'الجرعة الثالثة في اليوم الأول',
+    usageType: 'وقائي/ضروري',
+    recommendedHours: 6,
+    benefits: 'درع حماية ضد العدوى البكتيرية الموروثة.',
+    targetDays: [1],
+    climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص'],
+    isAntibiotic: true
+  },
+  { 
+    name: 'ماء نقي (راحة ثانية)', 
+    unit: 'لتر', 
+    doseValue: 0,
+    description: 'فترة راحة بعد المضاد الحيوي.', 
+    category: 'راحة',
+    timing: 'ساعة واحدة',
+    mixing: 'ماء فقط',
+    sequence: 'ختام اليوم الأول',
+    usageType: 'ضروري',
+    recommendedHours: 1,
+    benefits: 'تنشيط الكلى.',
+    targetDays: [1],
+    climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص']
+  },
+  { 
     name: 'مضاد حيوي (تنفسي + معوي)', 
-    unit: 'سم/لتر', 
-    doseValue: 1, // Depending on concentration
+    unit: 'جرام/لتر', 
+    doseValue: 1, 
     description: 'القضاء على الميكوبلازما والسالمونيلا إن وجدت.', 
     category: 'وقائي',
     timing: '12 ساعة',
@@ -159,13 +220,13 @@ export const MEDICATIONS = [
     usageType: 'وقائي/ضروري',
     recommendedHours: 12,
     benefits: 'درع حماية ضد العدوى البكتيرية الموروثة.',
-    targetDays: [1, 2, 3],
+    targetDays: [2, 3],
     climates: ['شتاء', 'صيف', 'معتدل', 'برد قارص'],
     isAntibiotic: true
   },
   { 
     name: 'فيتامين أد3هـ', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'دعم الأغشية المخاطية وتأسيس الهيكل العظمي.', 
     category: 'فيتامينات',
@@ -180,7 +241,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'أملاح معدنية (فوسفور، كالسيوم)', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1.5,
     description: 'منع الكساح وتطوير العظام لتحمل الوزن المستقبلي.', 
     category: 'فيتامينات',
@@ -195,7 +256,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'منشط كبد + غسيل كلوي', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'تنظيف الكلى من بقايا المضادات الحيوية قبل التحصين.', 
     category: 'داعم',
@@ -227,7 +288,7 @@ export const MEDICATIONS = [
   // Phase 2: Immunity Building and Growth (Days 8-14)
   { 
     name: 'رافع مناعة (بيتا جلوكان) + فيتامين سي', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'تقليل رد الفعل الناجم عن تحصين اليوم السابع.', 
     category: 'وقائي',
@@ -242,7 +303,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'فيتامين هـ سيلينيوم', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'مضاد أكسدة قوي، يحمي الخلايا ويرفع الحيوية.', 
     category: 'فيتامينات',
@@ -272,7 +333,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'مضاد كلوستريديا (أموكسيسيلين)', 
-    unit: 'سم/لتر', 
+    unit: 'جرام/لتر', 
     doseValue: 1,
     description: 'التهاب الأمعاء النخري ينشط في هذا العمر.', 
     category: 'وقائي',
@@ -290,7 +351,7 @@ export const MEDICATIONS = [
   // Phase 3: Metabolic Stress and Feed Change (Days 15-24)
   { 
     name: 'مضاد سموم فطرية (بيولوجي)', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'حماية الكبد عند تغيير العلف من بادي لنامي.', 
     category: 'وقائي',
@@ -320,7 +381,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'غسيل كلوي + منشط كبد', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'دعم الكلى والكبد لهضم البروتين العالي.', 
     category: 'داعم',
@@ -335,7 +396,7 @@ export const MEDICATIONS = [
   },
   { 
     name: 'أحماض عضوية (Organic Acids)', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'خفض قلوية الأمعاء (pH) لمنع نمو البكتيريا الضارة.', 
     category: 'داعم',
@@ -352,7 +413,7 @@ export const MEDICATIONS = [
   // Phase 4: Final Fattening and Withdrawal Period (Days 25-35)
   { 
     name: 'مضاد سموم + غسيل كلوي', 
-    unit: 'سم/لتر', 
+    unit: 'سم³/لتر', 
     doseValue: 1,
     description: 'الحفاظ على لون الكبد فاتحاً وصحياً استعداداً للبيع.', 
     category: 'داعم',

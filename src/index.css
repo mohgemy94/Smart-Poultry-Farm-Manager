@@ -8,6 +8,14 @@
   --color-bento-border: rgba(255, 255, 255, 0.1);
 }
 
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @layer base {
   body {
     @apply bg-bento-bg text-slate-50 antialiased;

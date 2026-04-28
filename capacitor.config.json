@@ -1,6 +1,0 @@
-{
-  "appId": "com.farmers.app",
-  "appName": "Farmers",
-  "webDir": "dist",
-  "bundledWebRuntime": false
-}
