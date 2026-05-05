@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
   BarChart2, 
   Settings, 
@@ -11,6 +11,7 @@ import {
   Wind, 
   Activity, 
   ChevronRight, 
+  ChevronLeft,
   ChevronDown,
   ChevronUp,
   Thermometer, 
@@ -44,7 +45,8 @@ import {
   Layout,
   Edit3,
   Check,
-  Bird
+  Bird,
+  Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -69,9 +71,19 @@ import {
   DailyData 
 } from '@/src/lib/data';
 import { cn } from '@/src/lib/utils';
+import { 
+  auth, 
+  googleProvider, 
+  facebookProvider, 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut 
+} from '@/src/lib/firebase';
 
 // --- Types ---
-type Screen = 'landing' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management';
+type Screen = 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management';
 
 // --- Utils ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -99,7 +111,40 @@ const EMERGENCY_DEFAULTS = [
   { name: 'غسيل كلوي + منشط كبد', keywords: ['غسيل', 'كلى', 'كلوي', 'رينال'], duration: '12', dose: '1', unit: 'سم³/لتر' },
 ];
 
-interface Bill { id: string; label: string; amount: number | string; startDay: number | string; endDay: number | string; }
+const CUSTOM_MED_LIST = [
+  { name: 'محلول معالجة جفاف', dose: 5, unit: 'جرام/لتر', duration: 8 },
+  { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 12 },
+  { name: 'أحماض أمينية', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 8 },
+  { name: 'فيتامين أد3هـ (AD3E)', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'فيتامين هـ + سيلينيوم (E+Se)', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'فيتامين ب.ك كولين (B-K)', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'غسيل كلوي + منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 12 },
+  { name: 'غسيل كلوي', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'مضاد حيوي (معوي+تنفسي)', dose: 1, unit: 'جرام/لتر', duration: 12 },
+  { name: 'مضاد كوكسيديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
+  { name: 'مضاد كلوستريديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
+  { name: 'تحصين جمبورو', dose: 1, unit: 'سم³/لتر', duration: 4 },
+  { name: 'تحصين هيتشنر ب1+أي بي (Hitchner B1+IB)', dose: 1, unit: 'سم³/لتر', duration: 4 },
+  { name: 'تحصين لاسوتا', dose: 1, unit: 'سم³/لتر', duration: 4 },
+  { name: 'مضاد سموم فطرية', dose: 1, unit: 'سم³/لتر', duration: 12 },
+  { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8 },
+  { name: 'مثبت لقاح (حليب)', dose: 1, unit: 'جرام/لتر', duration: 2 },
+  { name: 'مياه فقط', dose: 0, unit: 'لتر', duration: 8 },
+];
+
+interface Bill { id: string; label: string; amount: number | string; startDay: number | string; endDay: number | string; entryDate: string; }
+
+interface FeedBill {
+  id: string;
+  company: string;
+  weight: number | string;
+  amount: number | string;
+  quantity: number | string;
+  proteinPercentage: number | string;
+  entryDate: string;
+}
 
 interface AppState {
   id: string;
@@ -143,6 +188,7 @@ interface AppState {
   batteryWidth: number | string;
   batteryTiers: number | string;
   externalEquipment: boolean;
+  batteryTierCounts?: (number | string)[];
   // Finance
   chickPrice: number | string;
   feedPrice: number | string;
@@ -154,6 +200,7 @@ interface AppState {
     amount: number | string, 
     price: number | string, 
     weight: number | string,
+    date?: string,
     customerName?: string,
     customerPhone?: string,
     amountPaid?: number | string
@@ -162,6 +209,9 @@ interface AppState {
   waterBills: Bill[];
   medicationBills: Bill[];
   otherBills: Bill[];
+  feedBillsBady: FeedBill[];
+  feedBillsNamy: FeedBill[];
+  feedBillsNahy: FeedBill[];
   targetCycleDays: number | string;
   lastPriceUpdateAt?: string;
   isManualPriceMode?: boolean;
@@ -173,26 +223,37 @@ interface AppState {
   cycleName?: string;
   startDate?: string;
   isManualOverride?: boolean;
+  manualWeight?: number | string;
+  isManualWeight?: boolean;
+  weightLogs?: Record<string, number | string>;
   createdAt?: string;
   version?: number;
+  medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number }>;
 }
 
 // --- Components ---
+const Logo = ({ className, size = 24, iconSize = 16 }: { className?: string, size?: number, iconSize?: number }) => (
+  <div className={cn("rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5 flex-shrink-0 relative overflow-hidden", className)} style={{ width: size, height: size }}>
+    <div className="absolute inset-0 bg-white/10 blur-xl opacity-50" />
+    <Bird size={iconSize} className="text-white relative z-10 drop-shadow-lg" />
+  </div>
+);
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
   id?: string;
+  onClick?: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ children, className, id }) => (
-  <div id={id} className={cn("bento-card", className)}>
+const Card: React.FC<CardProps> = ({ children, className, id, onClick }) => (
+  <div id={id} className={cn("bento-card", className)} onClick={onClick}>
     {children}
   </div>
 );
 
-const Stat = ({ label, value, unit, icon: Icon, color, subLabel, subValue }: { label: string, value: string | number, unit?: React.ReactNode, icon?: any, color?: string, subLabel?: string, subValue?: string | number }) => (
-  <Card className="flex flex-col gap-1 hover:border-white/20">
+const Stat = ({ label, value, unit, icon: Icon, color, subLabel, subValue, onClick }: { label: string, value: string | number, unit?: React.ReactNode, icon?: any, color?: string, subLabel?: string, subValue?: string | number, onClick?: () => void }) => (
+  <Card className={cn("flex flex-col gap-1 hover:border-white/20 transition-all", onClick && "cursor-pointer active:scale-95")} onClick={onClick}>
     <div className="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
       {Icon && <Icon size={14} className={color} />}
       {label}
@@ -249,6 +310,7 @@ const INITIAL_STATE: AppState = {
   batteryLength: 0.6,
   batteryWidth: 0.5,
   batteryTiers: 3,
+  batteryTierCounts: [50, 50, 50],
   externalEquipment: true,
   lastPriceUpdateAt: '',
   isManualPriceMode: false,
@@ -257,33 +319,41 @@ const INITIAL_STATE: AppState = {
   sellingPrice: 75,
   mortalityBills: [],
   salesRecords: [],
-  electricityBills: [{ id: 'default-elec', label: 'كهرباء وسكن', amount: 1500, startDay: 1, endDay: 35 }],
+  electricityBills: [{ id: 'default-elec', label: 'كهرباء وسكن', amount: 1500, startDay: 35, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }],
   waterBills: [],
   medicationBills: [],
   otherBills: [],
+  feedBillsBady: [],
+  feedBillsNamy: [],
+  feedBillsNahy: [],
   targetCycleDays: 35,
   dailyLogs: [],
   otherExpenses: [],
   cycleName: '',
   startDate: new Date().toISOString().split('T')[0],
   isManualOverride: false,
+  manualWeight: 0,
+  isManualWeight: false,
+  weightLogs: {},
   createdAt: '',
-  version: 4
+  version: 5,
+  medDataOverrides: {}
 };
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>(() => {
     const saved = localStorage.getItem('poultry_app_screen');
     if (saved === 'setup' || !saved) return 'landing';
-    return 'landing'; // Always start on landing as requested
+    return (saved as Screen) || 'landing';
   });
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [flipDirection, setFlipDirection] = useState(0);
 
   const [isAutoSave, setIsAutoSave] = useState(() => {
     const saved = localStorage.getItem('poultry_app_autosave');
     return saved === null ? true : saved === 'true';
   });
-
-  const [isDriveLoading, setIsDriveLoading] = useState(false);
 
   const [selectedComparisonIds, setSelectedComparisonIds] = useState<string[]>([]);
   const [isComparing, setIsComparing] = useState(false);
@@ -304,8 +374,14 @@ export default function App() {
   const [allCycles, setAllCycles] = useState<AppState[]>(() => {
     const saved = localStorage.getItem('poultry_app_all_cycles');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed[0]?.version === 4) return parsed;
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0]?.version || 0) >= 4) {
+          return parsed.map(c => ({ ...INITIAL_STATE, ...c, version: 5 }));
+        }
+      } catch (e) {
+        console.error("Error parsing cycles", e);
+      }
     }
     return [{ ...INITIAL_STATE, id: 'cycle-1' }];
   });
@@ -315,7 +391,9 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.version === 4) return { ...INITIAL_STATE, ...parsed };
+        if ((parsed.version || 0) >= 4) {
+          return { ...INITIAL_STATE, ...parsed, version: 5 };
+        }
       } catch (e) {
         console.error("Error parsing state", e);
       }
@@ -329,9 +407,26 @@ export default function App() {
   const [deleteStep, setDeleteStep] = useState(0); // 0: none, 1: warning, 2: final confirm
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
+  const [selectedMedInfo, setSelectedMedInfo] = useState<{ title: string, text: string } | null>(null);
+
   // --- Auto-hide Nav Logic ---
   const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // --- Day Navigation Logic ---
+  const goToNextDay = () => {
+    setFlipDirection(1);
+    setState(prev => ({ ...prev, age: Math.min(prev.age + 1, 60), isManualOverride: true }));
+    setIsNavVisible(true);
+  };
+
+  const goToPrevDay = () => {
+    setFlipDirection(-1);
+    setState(prev => ({ ...prev, age: Math.max(prev.age - 1, 1), isManualOverride: true }));
+    setIsNavVisible(true);
+  };
 
   const fetchChickenPrice = async (force = false) => {
     // Only fetch if not manual mode or if forced
@@ -339,12 +434,12 @@ export default function App() {
 
     setIsFetchingPrice(true);
     try {
-      // جلب السعر الرسمي من بورصة الدواجن (سعر المزرعة) من رابط: https://www.biltafsil.com/poultry/chickens/
-      // يتم البحث عن جملة "سعر الفراخ البيضاء اليوم هو [رقم] جنيه مصري" واستخراج السعر الرسمي للمزرعة
-      await new Promise(r => setTimeout(r, 2000));
+      // جلب السعر الحقيقي من السيرفر الذي يقوم بسحب البيانات من موقع بالتفصيل
+      const response = await fetch('/api/poultry-price');
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
       
-      // السعر الرسمي المذكور في الموقع لسعر المزرعة (بورصة الدواجن)
-      const officialFarmPrice = 85; 
+      const officialFarmPrice = data.price || 85; 
       
       const now = new Date();
       const formattedDate = now.toLocaleString('ar-EG', {
@@ -364,15 +459,15 @@ export default function App() {
         isManualPriceMode: false
       }));
     } catch (error) {
-      console.error("Failed to fetch poultry price from Biltafsil.com", error);
+      console.error("Failed to fetch poultry price from backend API", error);
     } finally {
       setIsFetchingPrice(false);
     }
   };
 
   useEffect(() => {
-    // Initial fetch on mount if it's the first time or if price is very old
-    if (!state.lastPriceUpdateAt && !state.isManualPriceMode) {
+    // جلب السعر عند كل دخول للتطبيق
+    if (!state.isManualPriceMode) {
       fetchChickenPrice();
     }
   }, []);
@@ -579,7 +674,10 @@ export default function App() {
     link.href = url;
     // Filename reflecting the app name clearly
     link.download = `برنامج_إدارة_الدواجن_نسخة_احتياطية_${timestamp}.json`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const importBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -609,132 +707,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const uploadToDrive = async () => {
-    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
-    if (!CLIENT_ID) {
-      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
-      return;
-    }
-    
-    setIsDriveLoading(true);
-    try {
-      // @ts-ignore
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: async (response: any) => {
-          if (response.error) {
-            setIsDriveLoading(false);
-            alert('تم إلغاء العملية أو حدث خطأ في التصريح');
-            return;
-          }
-          
-          if (response.access_token) {
-            const accessToken = response.access_token;
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = `برنامج_إدارة_الدواجن_نسخة_احتياطية_${timestamp}.json`;
-            const metadata = { name: filename, mimeType: 'application/json' };
-            
-            const backupData = {
-              app: 'poultry_manager',
-              version: 4,
-              activeCycle: state,
-              archive: allCycles,
-              settings: { isAutoSave }
-            };
-            
-            const fileContent = JSON.stringify(backupData);
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([fileContent], { type: 'application/json' }));
-
-            try {
-              const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${accessToken}` },
-                body: form,
-              });
-
-              if (res.ok) alert('تم الرفع الكامل إلى Google Drive بنجاح');
-              else alert('فشل الرفع: تأكد من صلاحيات التطبيق');
-            } catch (err) {
-              alert('خطأ في الاتصال بالسيرفر أثناء الرفع');
-            } finally {
-              setIsDriveLoading(false);
-            }
-          }
-        },
-      });
-      client.requestAccessToken();
-    } catch (e) {
-      setIsDriveLoading(false);
-      alert('تأكد من تحميل مكتبة Google Identity Services');
-    }
-  };
-
-  const restoreFromDrive = async () => {
-    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
-    if (!CLIENT_ID) {
-      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
-      return;
-    }
-
-    setIsDriveLoading(true);
-    try {
-      // @ts-ignore
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: async (response: any) => {
-          if (response.access_token) {
-            const accessToken = response.access_token;
-            try {
-              // Search for backup files
-              const searchRes = await fetch(
-                `https://www.googleapis.com/drive/v3/files?q=name contains 'برنامج_إدارة_الدواجن_نسخة_احتياطية' and trashed = false&orderBy=createdTime desc&pageSize=1`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              
-              const searchData = await searchRes.json();
-              if (searchData.files && searchData.files.length > 0) {
-                const fileId = searchData.files[0].id;
-                const fileName = searchData.files[0].name;
-                
-                if (confirm(`هل تريد استعادة أحدث نسخة تم العثور عليها (${fileName})؟ سيتم استبدال البيانات الحالية.`)) {
-                  const fileRes = await fetch(
-                    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-                    { headers: { Authorization: `Bearer ${accessToken}` } }
-                  );
-                  const backup = await fileRes.json();
-                  
-                  if (backup.app === 'poultry_manager' && backup.activeCycle) {
-                    setState(backup.activeCycle);
-                    if (backup.archive) setAllCycles(backup.archive);
-                    if (backup.settings) setIsAutoSave(backup.settings.isAutoSave ?? true);
-                    alert('تم استعادة البيانات من السحاب بنجاح');
-                  } else {
-                    alert('الملف المختار ليس ملف نسخة احتياطية صالح لهذا البرنامج');
-                  }
-                }
-              } else {
-                alert('لم يتم العثور على أي نسخ احتياطية في حسابك');
-              }
-            } catch (err) {
-              alert('حدث خطأ أثناء البحث أو تحميل النسخة الاحتياطية');
-            } finally {
-              setIsDriveLoading(false);
-            }
-          } else {
-            setIsDriveLoading(false);
-          }
-        },
-      });
-      client.requestAccessToken();
-    } catch (e) {
-      setIsDriveLoading(false);
-      alert('خطأ في تهيئة الاتصال بـ Google');
-    }
-  };
+  // Removed Google Drive Backup Logic to make room for Firebase Auth
 
   useEffect(() => {
     if (isAutoSave) {
@@ -745,12 +718,75 @@ export default function App() {
     localStorage.setItem('poultry_app_autosave', String(isAutoSave));
   }, [allCycles, state, screen, isAutoSave]);
 
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      setScreen('landing');
+    } catch (error: any) {
+      alert(`حدث خطأ أثناء تسجيل الدخول بجوجل: ${error.message}`);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      await signInWithPopup(auth, facebookProvider);
+      setScreen('landing');
+    } catch (error: any) {
+      alert(`حدث خطأ أثناء تسجيل الدخول بفيسبوك: ${error.message}`);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = (e.target as any).email.value;
+    const password = (e.target as any).password.value;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      setScreen('landing');
+    } catch (error: any) {
+      alert(`حدث خطأ أثناء تسجيل الدخول: ${error.message}`);
+    }
+  };
+
+  const handleEmailRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = (e.target as any).email.value;
+    const password = (e.target as any).password.value;
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setScreen('landing');
+    } catch (error: any) {
+      alert(`حدث خطأ أثناء إنشاء الحساب: ${error.message}`);
+    }
+  };
+  const [openMedDropdown, setOpenMedDropdown] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // --- Age Tracking Logic ---
   useEffect(() => {
     if (!state.startDate || state.isManualOverride) return;
 
     const start = new Date(state.startDate);
-    const today = new Date();
+    const today = new Date(currentTime); // Use the live currentTime
     
     // Normalize to midnight for calculation
     start.setHours(0, 0, 0, 0);
@@ -761,9 +797,9 @@ export default function App() {
 
     if (diffDays !== toNum(state.age)) {
       setState(prev => ({ ...prev, age: diffDays }));
-      // Notification is handled in a separate effect to avoid infinite loops or state issues
+      // Notification is handled in a separate effect
     }
-  }, [state.startDate, state.isManualOverride]);
+  }, [state.startDate, state.isManualOverride, currentTime.toDateString()]);
 
   // Show notification when age updates
   const [lastNotifiedAge, setLastNotifiedAge] = useState<number | null>(null);
@@ -792,15 +828,57 @@ export default function App() {
     }));
   }, [state.externalTemp]);
 
-  const [currentTime, setCurrentTime] = React.useState(new Date());
-  const [openMedDropdown, setOpenMedDropdown] = React.useState<string | null>(null);
+  const dailyStats = useMemo(() => {
+    const currentAge = toNum(state.age);
+    const standardStats = getDailyStats(state.strain, currentAge);
+    
+    const weightLogs = state.weightLogs || {};
+    const manualWeight = toNum(weightLogs[String(currentAge)]);
 
-  React.useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    // If we have an exact entry for TODAY, that is our "Actual" weight
+    if (manualWeight > 0) {
+      return { 
+        ...standardStats, 
+        weight: manualWeight,
+        standardWeight: standardStats.weight,
+        isScientific: false,
+        status: manualWeight >= standardStats.weight ? 'excellent' : 'behind'
+      };
+    }
 
-  const dailyStats = useMemo(() => getDailyStats(state.strain, toNum(state.age)), [state.strain, state.age]);
+    // Find previous manual entries to calculate a performance factor
+    const manualDays = Object.keys(weightLogs)
+      .map(Number)
+      .filter(day => day > 0 && toNum(weightLogs[String(day)]) > 0)
+      .sort((a, b) => a - b);
+
+    if (manualDays.length > 0) {
+      const pastManualDays = manualDays.filter(day => day < currentAge);
+      if (pastManualDays.length > 0) {
+        const lastManualDay = Math.max(...pastManualDays);
+        const lastManualWeight = toNum(weightLogs[String(lastManualDay)]);
+        const standardWeightAtThatDay = getDailyStats(state.strain, lastManualDay).weight;
+        
+        const performanceFactor = lastManualWeight / standardWeightAtThatDay;
+        const projectedWeight = Math.round(standardStats.weight * performanceFactor);
+        
+        return { 
+          ...standardStats, 
+          weight: projectedWeight,
+          standardWeight: standardStats.weight,
+          isProjected: true,
+          status: projectedWeight >= standardStats.weight ? 'excellent' : 'behind'
+        };
+      }
+    }
+    
+    // Default: Pure Scientific Standard
+    return { 
+      ...standardStats, 
+      standardWeight: standardStats.weight,
+      isScientific: true 
+    };
+  }, [state.strain, state.age, state.weightLogs]);
 
   // --- Mortality Calculation Helpers ---
   const allBills = useMemo(() => [
@@ -827,8 +905,8 @@ export default function App() {
   const calculateMortalityOverhead = (ageAtDeath: number) => {
     let birdShare = 0;
     allBills.forEach(bill => {
-      const bStart = Math.max(1, toNum(bill.startDay));
-      const bEnd = Math.max(bStart, toNum(bill.endDay));
+      const bStart = Math.max(1, toNum(bill.endDay));
+      const bEnd = Math.max(bStart, toNum(bill.startDay));
       const overlapStart = Math.max(1, bStart);
       const overlapEnd = Math.min(ageAtDeath, bEnd);
       if (overlapEnd >= overlapStart) {
@@ -842,39 +920,58 @@ export default function App() {
 
   // --- Financial Summary ---
   const finances = useMemo(() => {
+    // 1. Inputs & Census
     const birdsDied = state.mortalityBills.reduce((acc, m) => acc + toNum(m.count), 0);
     const birdsAlive = Math.max(0, toNum(state.totalChicks) - birdsDied);
+    const birdsBought = toNum(state.totalChicks);
     
-    // Feed Calculation
+    // 2. Direct Costs (COGS Components)
+    const totalChickPurchaseCost = birdsBought * toNum(state.chickPrice);
+    
+    // Precision Feed Calculation
     const feedConsumedDead = state.mortalityBills.reduce((acc, m) => 
       acc + (toNum(m.count) * getDailyStats(state.strain, toNum(m.ageAtDeath)).cumFeed), 0);
     const feedConsumedAlive = birdsAlive * dailyStats.cumFeed;
     const totalFeedKg = (feedConsumedAlive + feedConsumedDead) / 1000;
-    const totalFeedCost = totalFeedKg * toNum(state.feedPrice);
+    const modelFeedCost = totalFeedKg * toNum(state.feedPrice);
+
+    // Manual Feed Bills (Actual Purchases)
+    const manualFeedBillSum = [
+      ...(state.feedBillsBady || []),
+      ...(state.feedBillsNamy || []),
+      ...(state.feedBillsNahy || [])
+    ].reduce((acc, b) => acc + (toNum(b.amount) * toNum(b.quantity || 1)), 0);
+
+    const totalFeedCost = manualFeedBillSum > 0 ? manualFeedBillSum : modelFeedCost;
     
-    // Bill Calculation
+    // 3. Operating Expenses (OpEx)
     const generalBillSum = allBills.reduce((acc, b) => acc + toNum(b.amount), 0);
     
-    // Purchase Cost
-    const totalChickPurchaseCost = toNum(state.totalChicks) * toNum(state.chickPrice);
-    
-    // Total Investment (Direct Spending)
+    // 4. Total Expenditure (Total Cash Outflow)
     const totalSpending = totalChickPurchaseCost + totalFeedCost + generalBillSum;
     
-    // Sales Revenue
+    // 5. Revenue Analysis
     const actualSalesRevenue = state.salesRecords.reduce((acc, s) => acc + toNum(s.amount), 0);
     const totalWeightSoldKg = state.salesRecords.reduce((acc, s) => acc + toNum(s.weight), 0);
     
-    // Estimate Birds Sold (since records might not have count)
+    // Inventory Valuation (Pro-forma)
     const avgWeightKg = dailyStats.weight / 1000 || 1;
-    const birdsSold = totalWeightSoldKg / avgWeightKg;
-    const remainingBirds = Math.max(0, birdsAlive - birdsSold);
-    const estimatedRemainingRevenue = (remainingBirds * avgWeightKg) * toNum(state.sellingPrice);
+    const birdsSoldEstimate = totalWeightSoldKg / (avgWeightKg || 1);
+    const birdsRemaining = Math.max(0, birdsAlive - birdsSoldEstimate);
+    const estimatedRemainingRevenue = (birdsRemaining * avgWeightKg) * toNum(state.sellingPrice);
     
-    const totalRevenue = actualSalesRevenue + estimatedRemainingRevenue;
-    const netProfit = totalRevenue - totalSpending;
+    const totalRevenueProjected = actualSalesRevenue + estimatedRemainingRevenue;
     
-    // Mortality Detailed Loss (Chick Price + Feed Consumed + Allocated Bills)
+    // 6. Net Performance
+    const netProfit = totalRevenueProjected - totalSpending;
+    const roiPercentage = totalSpending > 0 ? (netProfit / totalSpending) * 100 : 0;
+    
+    // 7. Sensitivity & Unit Economics
+    const totalYieldKg = totalWeightSoldKg + (birdsRemaining * avgWeightKg);
+    const costPerKg = totalYieldKg > 0 ? totalSpending / totalYieldKg : 0;
+    const breakEvenPrice = costPerKg; // The inflection point for profitability
+
+    // 8. Mortality Sunk-Cost Analysis (for internal audit)
     const mortalityLossTotal = state.mortalityBills.reduce((acc, mort) => {
       const age = toNum(mort.ageAtDeath);
       const stats = getDailyStats(state.strain, age);
@@ -886,8 +983,11 @@ export default function App() {
 
     return {
       totalSpending,
-      totalRevenue,
+      totalRevenue: totalRevenueProjected,
       netProfit,
+      roiPercentage,
+      costPerKg,
+      breakEvenPrice,
       mortalityLossTotal,
       birdsAlive,
       birdsDied,
@@ -896,9 +996,10 @@ export default function App() {
       totalChickPurchaseCost,
       actualSalesRevenue,
       estimatedRemainingRevenue,
-      avgWeightAtDeath: birdsDied > 0 ? (feedConsumedDead / birdsDied) : 0
+      totalYieldKg,
+      avgWeightAtDeath: birdsDied > 0 ? (feedConsumedDead / (birdsDied * 1000)) : 0
     };
-  }, [state.mortalityBills, state.totalChicks, state.strain, dailyStats.cumFeed, dailyStats.weight, state.feedPrice, state.chickPrice, state.sellingPrice, state.salesRecords, allBills]);
+  }, [state.mortalityBills, state.totalChicks, state.strain, dailyStats.cumFeed, dailyStats.weight, state.feedPrice, state.chickPrice, state.sellingPrice, state.salesRecords, allBills, calculateMortalityOverhead]);
   const climateInfo = CLIMATE_FACTORS[state.climate];
 
   // Derived Calculations
@@ -909,72 +1010,357 @@ export default function App() {
   
   const targetTemp = getTargetTemperature(toNum(state.age));
 
-  const dailyMeds = useMemo(() => {
-    const meds = MEDICATIONS.filter((m: any) => m.targetDays.includes(toNum(state.age)) && m.climates.includes(state.climate));
-    const totalHoursOccupied = meds.reduce((acc, m) => acc + m.recommendedHours, 0);
+  const formatArabicTime = (date: Date, referenceDate?: Date) => {
+    const h = date.getHours();
+    const m = date.getMinutes().toString().padStart(2, '0');
+    const period = h >= 12 ? 'م' : 'ص';
+    const displayH = h % 12 || 12;
     
+    let suffix = "";
+    if (referenceDate) {
+      // Check if it's a different calendar day
+      const d1 = new Date(referenceDate);
+      d1.setHours(0, 0, 0, 0);
+      const d2 = new Date(date);
+      d2.setHours(0, 0, 0, 0);
+      
+      if (d2.getTime() > d1.getTime()) {
+        suffix = " (اليوم التالي)";
+      }
+    }
+    
+    return `${displayH}:${m} ${period}${suffix}`;
+  };
+
+  const calculateNextStartTime = (endTime: Date, prevMed: any, nextMed: any) => {
+    if (!endTime || !prevMed || !nextMed) return null;
+
+    let gapHours = 0;
+    let gapText = "";
+    let gapType = "none";
+    
+    // Rule 1: No gap between rest/water/lighting meds, OR if prev med is an Antibiotic (bridging requested)
+    if (prevMed.category === 'راحة' || nextMed.category === 'راحة' || 
+        prevMed.category === 'إضاءة' || nextMed.category === 'إضاءة' ||
+        prevMed.isAntibiotic || // User requested linking antibiotic to next dose
+        (prevMed.name && prevMed.name.includes('ماء نقي')) || 
+        (nextMed.name && nextMed.name.includes('ماء نقي'))) {
+      gapHours = 0;
+    } else {
+      gapHours = 2; // Updated to 2h gap as per broiler program spec
+      gapText = "ساعتان راحة (ماء نقي)";
+      gapType = "rest";
+    }
+
+    const nextDate = new Date(endTime);
+    nextDate.setHours(nextDate.getHours() + gapHours);
+    
+    return {
+      nextDate,
+      nextStartTimeStr: formatArabicTime(nextDate, endTime),
+      gapText,
+      gapType,
+      gapDuration: gapHours
+    };
+  };
+
+  const getNextTime = (startTime: string, med: any, nextMed: any) => {
+    if (!startTime || !nextMed) return null;
+    const [h, m] = startTime.split(':').map(Number);
+    const startDate = new Date();
+    startDate.setHours(h, m, 0, 0);
+    
+    const durationHours = med.recommendedHours || med.duration || 0;
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + durationHours);
+    
+    const nextInfo = calculateNextStartTime(endDate, med, nextMed);
+    if (!nextInfo) return null;
+
+    return { 
+      endTimeStr: formatArabicTime(endDate, startDate), 
+      nextStartTimeStr: formatArabicTime(nextInfo.nextDate, startDate), 
+      label: nextMed.category === 'تحصين' ? "موعد بدء التحصين" : "موعد الجرعة التالية",
+      gapText: nextInfo.gapText, 
+      gapType: nextInfo.gapType, 
+      gapDuration: nextInfo.gapDuration,
+      isNextDay: nextInfo.nextDate.getDate() !== startDate.getDate()
+    };
+  };
+
+  const getCategoryColorClasses = (category: string) => {
+    switch (category) {
+      case 'وقائي':
+      case 'تأسيس':
+        return {
+          border: 'border-s-amber-500',
+          bg: 'bg-amber-600/10',
+          text: 'text-amber-400',
+          dot: 'bg-amber-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+        };
+      case 'فيتامينات':
+        return {
+          border: 'border-s-emerald-500',
+          bg: 'bg-emerald-600/10',
+          text: 'text-emerald-400',
+          dot: 'bg-emerald-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+        };
+      case 'داعم':
+        return {
+          border: 'border-s-blue-500',
+          bg: 'bg-blue-600/10',
+          text: 'text-blue-400',
+          dot: 'bg-blue-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+        };
+      case 'تحصين':
+        return {
+          border: 'border-s-purple-500',
+          bg: 'bg-purple-600/10',
+          text: 'text-purple-400',
+          dot: 'bg-purple-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+        };
+      case 'كلوي/كبد':
+        return {
+          border: 'border-s-rose-500',
+          bg: 'bg-rose-600/10',
+          text: 'text-rose-400',
+          dot: 'bg-rose-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+        };
+      case 'سموم':
+        return {
+          border: 'border-s-red-500',
+          bg: 'bg-red-600/10',
+          text: 'text-red-400',
+          dot: 'bg-red-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+        };
+      case 'راحة':
+        return {
+          border: 'border-s-slate-500',
+          bg: 'bg-slate-600/10',
+          text: 'text-slate-400',
+          dot: 'bg-slate-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(100,116,139,0.5)]'
+        };
+      default:
+        return {
+          border: 'border-s-blue-500',
+          bg: 'bg-blue-600/10',
+          text: 'text-blue-400',
+          dot: 'bg-blue-500',
+          dotShadow: 'shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+        };
+    }
+  };
+
+  const prevDayMeds = useMemo(() => {
+    if (toNum(state.age) <= 1) return [];
+    
+    // Calculate dailyMeds logic for the previous day
+    const prevAge = toNum(state.age) - 1;
+    const rawMeds = MEDICATIONS.filter((m: any) => m.targetDays.includes(prevAge) && m.climates.includes(state.climate));
+    
+    // Scientific Sorting
+    const categoryWeights: Record<string, number> = {
+      'تأسيس': 1,
+      'فيتامينات': 2,
+      'داعم': 3,
+      'تحصين': 4,
+      'راحة': 5,
+      'وقائي': 6,
+      'أمان': 7
+    };
+    rawMeds.sort((a: any, b: any) => (categoryWeights[a.category] || 99) - (categoryWeights[b.category] || 99));
+
+    const uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
+    
+    const structuredMeds = uniqueMeds.map(m => {
+      const stableId = m.id || m.name;
+      const logKey = `${prevAge}-${stableId}`;
+      const override = state.medDataOverrides?.[logKey];
+      
+      let duration = toNum(override?.duration !== undefined ? override.duration : (m.recommendedHours || 0));
+      let name = override?.name || m.name;
+      let doseValue = override?.doseValue !== undefined ? override.doseValue : (m.doseValue || 0);
+
+      if (uniqueMeds.length > 1 && duration >= 12 && override?.duration === undefined) duration = 10;
+      return { ...m, id: stableId, name, recommendedHours: duration, doseValue };
+    });
+
+    const meds: any[] = [];
+    for (let i = 0; i < structuredMeds.length; i++) {
+        meds.push(structuredMeds[i]);
+        const current = structuredMeds[i] as any;
+        const next = structuredMeds[i+1] as any;
+        if (i < structuredMeds.length - 1) {
+            const isCurrentWater = current.category === 'راحة' || current.name === 'ماء نقي';
+            const isNextWater = next && (next.category === 'راحة' || next.name === 'ماء نقي');
+            if (!isCurrentWater && !isNextWater) {
+                meds.push({
+                    name: 'ماء نقي',
+                    unit: 'لتر',
+                    doseValue: 0,
+                    recommendedHours: 2, // Updated to 2h gap
+                    isRest: true,
+                    category: 'راحة',
+                    id: `water-gap-prev-${prevAge}-${i}`
+                });
+            }
+        }
+    }
+
+    const currentTotalHours = meds.reduce((acc, m) => acc + (m.recommendedHours || 0), 0);
+    if (currentTotalHours < 24) {
+        meds.push({
+            name: 'ماء نقي (ختام اليوم)',
+            unit: 'لتر',
+            recommendedHours: 24 - currentTotalHours,
+            isRest: true,
+            category: 'راحة',
+            id: `day-end-water-prev-${prevAge}`
+        });
+    }
+
+    return meds;
+  }, [state.age, state.climate, state.medDataOverrides]);
+
+  const lastMedPrevDay = prevDayMeds.length > 0 ? prevDayMeds[prevDayMeds.length - 1] : null;
+  const lastMedPrevDayKey = lastMedPrevDay ? `${toNum(state.age) - 1}-${lastMedPrevDay.id || lastMedPrevDay.name}` : null;
+  const lastMedStartTime = lastMedPrevDayKey ? state.medicationLogs[lastMedPrevDayKey] : null;
+
+  const dailyMeds = useMemo(() => {
+    const rawMeds = MEDICATIONS.filter((m: any) => m.targetDays.includes(toNum(state.age)) && m.climates.includes(state.climate));
+    
+    // Scientific Ordering logic:
+    // 1. Vaccines (early morning)
+    // 2. Foundation/Reception (morning)
+    // 3. Vitamins (morning/day)
+    // 4. Preventive/Antibiotics (afternoon)
+    // 5. Supportive/Tonics (evening)
+    // 6. Rest/Water (night)
+    const categoryWeights: Record<string, number> = {
+      'تأسيس': 1,
+      'فيتامينات': 2,
+      'داعم': 3,
+      'تحصين': 4,
+      'راحة': 5,
+      'وقائي': 6,
+      'أمان': 7
+    };
+    
+    rawMeds.sort((a: any, b: any) => (categoryWeights[a.category] || 99) - (categoryWeights[b.category] || 99));
+
+    let uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
+    
+    // Check boundary with previous day to avoid consecutive Pure Water
+    const yesterdayEndedWithWater = lastMedPrevDay && (lastMedPrevDay.name.includes('ماء نقي') || lastMedPrevDay.category === 'راحة');
+    
+    if (yesterdayEndedWithWater && uniqueMeds.length > 0 && (uniqueMeds[0].name === 'ماء نقي' || uniqueMeds[0].category === 'راحة')) {
+        uniqueMeds = uniqueMeds.slice(1);
+    }
+
+    // Adjust 12h/24h meds to allow room for gaps if there are multiple activities
+    // "Day 1 Logic" uses 6h/8h blocks mostly.
+    const structuredMeds = uniqueMeds.map(m => {
+      const stableId = m.id || m.name;
+      const logKey = `${toNum(state.age)}-${stableId}`;
+      const override = state.medDataOverrides?.[logKey];
+      
+      let duration = toNum(override?.duration !== undefined ? override.duration : (m.recommendedHours || 0));
+      let doseValue = override?.doseValue !== undefined ? override.doseValue : (m.doseValue || 0);
+      let name = override?.name || m.name;
+      let unit = override?.unit || m.unit;
+
+      // If we have multiple meds and this one is 12h+, cap it to 10h to allow gaps/rest
+      if (uniqueMeds.length > 1 && duration >= 12 && override?.duration === undefined) {
+        duration = 10;
+      }
+      return { 
+        ...m, 
+        id: stableId,
+        name,
+        duration, 
+        recommendedHours: duration, 
+        doseValue,
+        unit
+      };
+    });
+
+    // Inject Pure Water gaps (Rule like Day 1)
+    const meds: any[] = [];
+    for (let i = 0; i < structuredMeds.length; i++) {
+        meds.push(structuredMeds[i]);
+        const current = structuredMeds[i] as any;
+        const next = structuredMeds[i+1] as any;
+        
+        // Add 1h gap between different treatment types
+        if (i < structuredMeds.length - 1) {
+            const isCurrentWater = current.category === 'راحة' || current.name === 'ماء نقي';
+            const isNextWater = next && (next.category === 'راحة' || next.name === 'ماء نقي');
+            
+            if (!isCurrentWater && !isNextWater) {
+                meds.push({
+                    name: 'ماء نقي',
+                    unit: 'لتر',
+                    doseValue: 0,
+                    recommendedHours: 2, // Updated to 2h gap
+                    isRest: true,
+                    category: 'راحة',
+                    id: `water-gap-${state.age}-${i}`
+                });
+            }
+        }
+    }
+
+    // Scaling logic if exceeded 24 hours (strictly enforcing integers)
+    let currentTotalHours = meds.reduce((acc, m) => acc + (m.recommendedHours || 0), 0);
+    if (currentTotalHours > 24) {
+        const scale = 24 / currentTotalHours;
+        meds.forEach(m => {
+            m.recommendedHours = Math.round((m.recommendedHours || 0) * scale);
+        });
+        
+        let newTotal = meds.reduce((acc, m) => acc + (m.recommendedHours || 0), 0);
+        if (newTotal !== 24 && meds.length > 0) {
+            meds[meds.length - 1].recommendedHours += (24 - newTotal);
+        }
+    }
+
+    // Distribute water
     let remainingWater = dailyWaterTotalLiters;
     const processedMeds = [];
-
-    // First, handle all actual medications
     for (let i = 0; i < meds.length; i++) {
        const m = meds[i];
        let medWater = 0;
-       
-       // Standard industry weights for water distribution:
-       // 2h (Vaccination) = 20% of daily intake
-       // 8h = 45%
-       // 12h = 65%
-       // If it's the only med and it's 24h = 100%
-       
-       if (m.recommendedHours >= 24) {
-          medWater = dailyWaterTotalLiters;
-       } else if (m.recommendedHours >= 12) {
-          medWater = Math.round(dailyWaterTotalLiters * 0.65);
-       } else if (m.recommendedHours >= 8) {
-          medWater = Math.round(dailyWaterTotalLiters * 0.45);
-       } else if (m.recommendedHours <= 2) {
-          medWater = Math.round(dailyWaterTotalLiters * 0.20);
-       } else {
-          medWater = Math.round(dailyWaterTotalLiters * (m.recommendedHours / 24));
-       }
+       const hours = m.recommendedHours || 0;
 
-       // Clamp and track
+       if (hours >= 24) medWater = dailyWaterTotalLiters;
+       else if (hours >= 12) medWater = Math.round(dailyWaterTotalLiters * 0.65);
+       else if (hours >= 8) medWater = Math.round(dailyWaterTotalLiters * 0.45);
+       else if (hours <= 2) medWater = Math.round(dailyWaterTotalLiters * 0.20);
+       else medWater = Math.round(dailyWaterTotalLiters * (hours / 24));
+
        medWater = Math.min(medWater, remainingWater);
        remainingWater -= medWater;
-       
        processedMeds.push({ ...m, calculatedWater: medWater });
     }
 
-    // Then, handle the rest period if any hours or water remain
     if (remainingWater > 0 && processedMeds.length > 0) {
-       // If no time left but water left (rounding), add to last medication
-       processedMeds[processedMeds.length - 1].calculatedWater += remainingWater;
+        processedMeds[processedMeds.length - 1].calculatedWater += remainingWater;
     }
 
     return processedMeds;
-  }, [state.age, state.climate, dailyWaterTotalLiters]);
+  }, [state.age, state.climate, dailyWaterTotalLiters, state.medDataOverrides]);
 
   const nextDayFirstMed = useMemo(() => {
     const meds = MEDICATIONS.filter((m: any) => m.targetDays.includes(toNum(state.age) + 1) && m.climates.includes(state.climate));
     return meds.length > 0 ? meds[0] : null;
   }, [state.age, state.climate]);
-
-  const prevDayMeds = useMemo(() => {
-    if (toNum(state.age) <= 1) return [];
-    
-    // We need to calculate what the dailyMeds for prev day was
-    const prevAge = toNum(state.age) - 1;
-    const meds = MEDICATIONS.filter((m: any) => m.targetDays.includes(prevAge) && m.climates.includes(state.climate));
-    const totalHoursOccupied = meds.reduce((acc, m) => acc + m.recommendedHours, 0);
-    
-    const processedMeds = [...meds];
-    return processedMeds;
-  }, [state.age, state.climate]);
-
-  const lastMedPrevDay = prevDayMeds.length > 0 ? prevDayMeds[prevDayMeds.length - 1] : null;
-  const lastMedPrevDayKey = lastMedPrevDay ? `${toNum(state.age) - 1}-${lastMedPrevDay.name}` : null;
-  const lastMedStartTime = lastMedPrevDayKey ? state.medicationLogs[lastMedPrevDayKey] : null;
 
   const addEmergencyMed = (startTime?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -1014,6 +1400,19 @@ export default function App() {
     }));
   };
 
+  const updateMedOverride = (logKey: string, updates: any) => {
+    setState(prev => ({
+      ...prev,
+      medDataOverrides: {
+        ...(prev.medDataOverrides || {}),
+        [logKey]: {
+          ...(prev.medDataOverrides?.[logKey] || {}),
+          ...updates
+        }
+      }
+    }));
+  };
+
   const removeEmergencyMed = (id: string) => {
     setState(prev => ({
       ...prev,
@@ -1021,19 +1420,7 @@ export default function App() {
     }));
   };
 
-  const getDayTransitionInfo = () => {
-    if (!lastMedStartTime || !lastMedPrevDay) return null;
-    const nextMed = dailyMeds[0];
-    const info = getNextTime(lastMedStartTime, lastMedPrevDay, nextMed);
-    return info;
-  };
-
-  const currentAgeEmergencyMeds = useMemo(() => {
-    return state.emergencyMeds.filter(m => toNum(m.age) === toNum(state.age));
-  }, [state.emergencyMeds, state.age]);
-
-  const lightingSchedule = useMemo(() => {
-    const age = toNum(state.age);
+  const getLightingScheduleForAge = useCallback((age: number) => {
     let baseHours = 1;
     let ageReason = "ساعة واحدة إظلام للتعرف على المكان.";
     
@@ -1051,8 +1438,8 @@ export default function App() {
       ageReason = "ساعة واحدة إظلام لتسهيل مسك الطيور.";
     }
 
-    const darknessHours = state.isCustomDarkness ? toNum(state.darknessHours) : baseHours;
-    const darknessStart = state.darknessStart || "23:00"; 
+    const darknessHours = (age === toNum(state.age) && state.isCustomDarkness) ? toNum(state.darknessHours) : baseHours;
+    const darknessStart = (age === toNum(state.age)) ? (state.darknessStart || "23:00") : "23:00"; 
     
     const [startH, startM] = darknessStart.split(':').map(Number);
     const totalEndMinutes = (startH * 60 + startM + toNum(darknessHours) * 60) % 1440;
@@ -1070,14 +1457,13 @@ export default function App() {
     const timeRange = `${formatToArabicTime(darknessStart)} - ${formatToArabicTime(darknessEnd)}`;
     const fullAgeReason = `(${timeRange}) : ${ageReason}`;
 
-    let recommendedHours = baseHours;
+    let recommendedHours = darknessHours;
+    let tempReason = "";
     const triggers = [
       { type: 'age', label: 'العمر', icon: Calendar, color: 'text-blue-400' }
     ];
 
-    // Temperature Adjustment
-    let tempReason = "";
-    if (state.isDarknessLinkedToTemp) {
+    if (age === toNum(state.age) && state.isDarknessLinkedToTemp) {
       const tempDelta = toNum(state.internalTemp) - targetTemp;
       if (tempDelta > 3) {
         recommendedHours = Math.min(8, recommendedHours + 1);
@@ -1085,142 +1471,29 @@ export default function App() {
         triggers.push({ type: 'temp', label: 'الحرارة', icon: Thermometer, color: 'text-red-400' });
       } else if (tempDelta < -3 && recommendedHours > 1) {
         recommendedHours = Math.max(1, recommendedHours - 1);
-        tempReason = "برودة: تقليل الإظلام لزيادة الحركة وتوليد الحرارة.";
-        triggers.push({ type: 'temp', label: 'الحرارة', icon: Thermometer, color: 'text-cyan-400' });
+        tempReason = "حرارة منخفضة: تقليل ساعة إظلام لتشجيع الحركة واستهلاك العلف.";
+        triggers.push({ type: 'temp', label: 'الحرارة', icon: Thermometer, color: 'text-red-400' });
       }
     }
 
-    // Medication Conflict Detection
-    let medReason = "";
-    if (state.isDarknessLinkedToMed) {
-      const hasAntibiotic = dailyMeds.some((m: any) => m.isAntibiotic) || (currentAgeEmergencyMeds && currentAgeEmergencyMeds.some(m => m.name.includes('حيوي') || m.name.includes('دوكسي')));
-      const hasVaccine = dailyMeds.some((m: any) => m.category === 'تحصين');
-
-      if (hasVaccine) {
-        recommendedHours = Math.max(1, recommendedHours - 1);
-        medReason = "يوم تحصين: تقليل الإظلام لضمان شرب اللقاح بالكامل.";
-        triggers.push({ type: 'med', label: 'العلاج', icon: Stethoscope, color: 'text-amber-400' });
-      } else if (hasAntibiotic && recommendedHours > 2) {
-        recommendedHours = 2; 
-        medReason = "فترة علاج: تقليل الإظلام لضمان ثبات مستويات الدواء.";
-        triggers.push({ type: 'med', label: 'العلاج', icon: Stethoscope, color: 'text-amber-400' });
-      }
-    }
-
-    const finalDarknessHours = state.isCustomDarkness ? toNum(state.darknessHours) : recommendedHours;
-    
-    return { 
-      darknessHours: finalDarknessHours, 
-      recommendedHours,
-      ageReason: fullAgeReason,
-      tempReason,
-      medReason,
-      description: fullAgeReason,
-      triggers,
-      isCustom: state.isCustomDarkness,
-      totalLight: 24 - finalDarknessHours,
+    return {
+      darknessHours: recommendedHours,
       darknessStart,
       darknessEnd,
-      timeRange
+      ageReason: fullAgeReason,
+      tempReason,
+      triggers
     };
-  }, [state.age, state.darknessHours, state.darknessStart, state.isCustomDarkness, state.isDarknessLinkedToTemp, state.isDarknessLinkedToMed, state.internalTemp, targetTemp, dailyMeds, currentAgeEmergencyMeds]);
+  }, [state.age, state.isCustomDarkness, state.darknessHours, state.darknessStart, state.isDarknessLinkedToTemp, state.internalTemp, targetTemp]);
 
-  const getLatestActivityEndTime = () => {
-    let latestEndTime: Date | null = null;
-    let latestMed: any = null;
-
-    // Check transition from previous day
-    const prevDayInfo = getDayTransitionInfo();
-    if (prevDayInfo) {
-      const [h, m] = prevDayInfo.endTimeStr.split(' ')[0].split(':').map(Number);
-      const isPM = prevDayInfo.endTimeStr.includes('م');
-      const date = new Date();
-      date.setHours(isPM ? (h % 12) + 12 : h % 12, m, 0, 0);
-      latestEndTime = date;
-      latestMed = lastMedPrevDay;
-    }
-
-    // Check scheduled meds logged today
-    dailyMeds.forEach(med => {
-      const medKey = `${toNum(state.age)}-${med.name}`;
-      const log = state.medicationLogs[medKey];
-      if (log) {
-        const [h, m] = log.split(':').map(Number);
-        const date = new Date();
-        date.setHours(h + med.recommendedHours, m, 0, 0);
-        if (!latestEndTime || date > latestEndTime) {
-          latestEndTime = date;
-          latestMed = med;
-        }
-      }
-    });
-
-    // Check emergency meds logged today
-    currentAgeEmergencyMeds.forEach(med => {
-      if (med.startTime && med.duration) {
-        const [h, m] = med.startTime.split(':').map(Number);
-        const date = new Date();
-        date.setHours(h + toNum(med.duration), m, 0, 0);
-        if (!latestEndTime || date > latestEndTime) {
-          latestEndTime = date;
-          latestMed = med;
-        }
-      }
-    });
-
-    return { latestEndTime, latestMed };
-  };
-
-  const calculateNextStartTime = (endTime: Date, prevMed: any, nextMed: any) => {
-    if (!endTime || !nextMed) return null;
-    
-    const nextDate = new Date(endTime);
-    let gapDuration = 0;
-    let gapText = "";
-    let gapType: 'none' | 'wash' | 'thirst' = 'none';
-
-    if (prevMed && !prevMed.isRest && !nextMed.isRest) {
-      if (nextMed.category === 'تحصين') {
-        gapType = 'thirst';
-        gapDuration = 2; // 2 hours thirsting before vaccine
-        gapText = "ساعتي تعطيش";
-      } else {
-        gapType = 'wash';
-        gapDuration = 1; // 1 hour clear water between meds
-        gapText = "ساعة غسيل بماء نقي";
-      }
-    }
-
-    nextDate.setHours(nextDate.getHours() + gapDuration);
-    return { 
-      nextStartTimeStr: formatArabicTime(nextDate),
-      nextDate,
-      gapText,
-      gapType,
-      gapDuration
-    };
-  };
-
-  const getSuggestedStartTime = (med: any) => {
-    const { latestEndTime, latestMed } = getLatestActivityEndTime();
-    if (!latestEndTime) return null;
-
-    const nextInfo = calculateNextStartTime(latestEndTime, latestMed, med);
-    if (!nextInfo) return null;
-
-    const displayH = nextInfo.nextDate.getHours();
-    const displayM = nextInfo.nextDate.getMinutes();
-    return `${displayH.toString().padStart(2, '0')}:${displayM.toString().padStart(2, '0')}`;
-  };
-
-  const unifiedTimeline = useMemo(() => {
-    const isOverlappingDarkness = (startStr: string, duration: number) => {
+  const getUnifiedTimelineForAge = useCallback((age: number) => {
+    const isOverlappingDarkness = (startStr: string | null | undefined, duration: number, darkStart: string, darkHours: number) => {
       if (!startStr) return false;
       const [h, m] = startStr.split(':').map(Number);
       const startMins = h * 60 + m;
-      const [darkH, darkM] = lightingSchedule.darknessStart.split(':').map(Number);
+      const [darkH, darkM] = darkStart.split(':').map(Number);
       const darkStartMins = darkH * 60 + darkM;
-      const darkEndMins = (darkStartMins + lightingSchedule.darknessHours * 60) % 1440;
+      const darkEndMins = (darkStartMins + darkHours * 60) % 1440;
 
       for (let i = 0; i < duration * 60; i++) {
         const currentMin = (startMins + i) % 1440;
@@ -1233,96 +1506,206 @@ export default function App() {
       return false;
     };
 
-    const scheduled = dailyMeds.map((m, i) => {
-      const startTime = state.medicationLogs[`${toNum(state.age)}-${m.name}`];
-      return {
-        ...m,
-        type: 'scheduled' as const,
-        startTime,
-        originalIndex: i,
-        isRest: m.name.includes('ماء نقي') || m.name.includes('راحة'),
-        overlapsDarkness: isOverlappingDarkness(startTime, m.recommendedHours)
-      };
+    const ageMeds = MEDICATIONS.filter(med => med.targetDays.includes(age) && med.climates.includes(state.climate));
+    const ageEmergencyMeds = state.emergencyMeds.filter(m => toNum(m.age) === age);
+    const schedule = getLightingScheduleForAge(age);
+
+    const scheduledData = ageMeds.map((m, i) => {
+        const logKey = `${age}-${m.id || m.name}`;
+        const override = state.medDataOverrides?.[logKey];
+        const currentDuration = override?.duration !== undefined ? toNum(override.duration) : m.recommendedHours;
+        const currentDoseValue = override?.doseValue !== undefined ? toNum(override.doseValue) : m.doseValue;
+        const currentUnit = override?.unit !== undefined ? override.unit : m.unit;
+        const currentName = override?.name || m.name;
+        const water = Math.round((dailyWaterTotalLiters / 24) * currentDuration);
+        const startTime = state.medicationLogs[logKey];
+        
+        return {
+          ...m,
+          name: currentName,
+          duration: currentDuration,
+          recommendedHours: currentDuration,
+          doseValue: currentDoseValue,
+          unit: currentUnit,
+          type: 'scheduled' as const,
+          originalIndex: i, 
+          calculatedWater: water,
+          isRest: (currentName || '').includes('ماء') || (currentName || '').includes('مياه') || (currentName || '').includes('راحة'),
+          startTime,
+          overlapsDarkness: startTime ? isOverlappingDarkness(startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
+        };
     });
 
-    const emergency = currentAgeEmergencyMeds.map((m, i) => {
-      const water = Math.round((dailyWaterTotalLiters / 24) * toNum(m.duration));
+    const emergencyData = ageEmergencyMeds.map((m, i) => {
+      const logKey = `${age}-${m.id || m.name}`;
+      const override = state.medDataOverrides?.[logKey];
+      const currentDuration = override?.duration !== undefined ? toNum(override.duration) : (toNum(m.duration) || 0);
+      const water = Math.round((dailyWaterTotalLiters / 24) * currentDuration);
+      
       return {
         ...m,
         type: 'emergency' as const,
-        recommendedHours: toNum(m.duration) || 0,
-        originalIndex: 100 + i,
+        recommendedHours: currentDuration,
+        originalIndex: 100 + i, 
         calculatedWater: water,
         doseValue: toNum(m.doseValue),
-        isRest: m.name.includes('ماء نقي') || m.name.includes('راحة'),
-        overlapsDarkness: m.startTime ? isOverlappingDarkness(m.startTime, toNum(m.duration)) : false
+        isRest: (m.name || '').includes('ماء') || (m.name || '').includes('مياه') || (m.name || '').includes('راحة'),
+        startTime: m.startTime,
+        overlapsDarkness: m.startTime ? isOverlappingDarkness(m.startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
       };
     });
 
+    const darknessKey = `${age}-darkness`;
+    const durationOverride = state.medDataOverrides?.[darknessKey]?.duration;
+    
     const darknessEntry = {
-      name: 'فترة الإظلام',
-      startTime: state.darknessStart || lightingSchedule.darknessStart,
-      duration: lightingSchedule.darknessHours,
-      recommendedHours: lightingSchedule.darknessHours,
+      id: 'darkness',
+      name: 'فترة الإظلام (ختام اليوم)',
+      startTime: state.medicationLogs[darknessKey] || null, 
+      duration: durationOverride !== undefined ? toNum(durationOverride) : schedule.darknessHours,
+      recommendedHours: durationOverride !== undefined ? toNum(durationOverride) : schedule.darknessHours,
       type: 'darkness' as const,
-      originalIndex: 9999, // Very high index for sorting
+      originalIndex: 9999, 
       isRest: true,
       category: 'إضاءة'
     };
 
-    const all = [...scheduled, ...emergency, darknessEntry];
+    const allItemsSoFar = [...scheduledData, ...emergencyData];
+    const loggedItems = allItemsSoFar.filter(m => m.startTime);
+    let anchorMinutes = 0;
+    if (loggedItems.length > 0) {
+      const first = loggedItems.sort((a,b) => {
+        const [ah, am] = (a.startTime as string).split(':').map(Number);
+        const [bh, bm] = (b.startTime as string).split(':').map(Number);
+        return (ah * 60 + am) - (bh * 60 + bm);
+      })[0];
+      const [h, m] = (first.startTime as string).split(':').map(Number);
+      anchorMinutes = h * 60 + m;
+    }
 
-    return all.sort((a: any, b: any) => {
-      // 1. If one is darkness, it always goes at the end regardless of time
-      if (a.type === 'darkness') return 1;
-      if (b.type === 'darkness') return -1;
+    const getLinearMinutes = (timeStr: string | undefined | null) => {
+      if (!timeStr) return 99999;
+      const [h, m] = timeStr.split(':').map(Number);
+      if (isNaN(h) || isNaN(m)) return 99999;
+      let total = h * 60 + m;
+      if (anchorMinutes > 0 && total < anchorMinutes) total += 1440;
+      return total;
+    };
 
-      const timeA = a.startTime || '99:99';
-      const timeB = b.startTime || '99:99';
-      if (timeA !== timeB) return timeA.localeCompare(timeB);
+    const finalTimeline = [...scheduledData, ...emergencyData, darknessEntry];
+
+    return finalTimeline.sort((a, b) => {
+      const timeA = getLinearMinutes(a.startTime);
+      const timeB = getLinearMinutes(b.startTime);
+      if (timeA !== timeB) return timeA - timeB;
       return a.originalIndex - b.originalIndex;
     });
-  }, [dailyMeds, currentAgeEmergencyMeds, state.medicationLogs, state.age, dailyWaterTotalLiters, lightingSchedule]);
+  }, [state.medDataOverrides, state.medicationLogs, state.emergencyMeds, state.climate, getLightingScheduleForAge, dailyWaterTotalLiters]);
 
-  const calculateMedWater = (hours: number, totalDaily: number) => {
-    // Legacy helper - kept for backward compatibility if needed elsewhere
-    if (hours >= 24) return totalDaily;
-    if (hours >= 12) return Math.round(totalDaily * 0.65);
-    if (hours >= 8) return Math.round(totalDaily * 0.45);
-    if (hours <= 2) return Math.round(totalDaily * 0.20); 
-    return Math.round(totalDaily * (hours / 24));
-  };
+  const unifiedTimeline = useMemo(() => {
+    return getUnifiedTimelineForAge(toNum(state.age));
+  }, [getUnifiedTimelineForAge, state.age]);
 
-  const formatArabicTime = (date: Date) => {
-    const h = date.getHours();
-    const m = date.getMinutes().toString().padStart(2, '0');
+  const formatTime12 = (timeStr: string) => {
+    if (!timeStr) return '';
+    const cleanTime = timeStr.replace(/[^\d:]/g, '');
+    const [h, m] = cleanTime.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return timeStr;
     const period = h >= 12 ? 'م' : 'ص';
     const displayH = h % 12 || 12;
-    return `${displayH}:${m} ${period}`;
+    return `${displayH}:${String(m).padStart(2, '0')} ${period}`;
   };
 
-  const getNextTime = (startTime: string, med: any, nextMed: any) => {
-    if (!startTime || !nextMed) return null;
-    const [h, m] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(h, m, 0, 0);
+  const getDayTransitionInfo = () => {
+    const age = toNum(state.age);
+    if (age <= 1) return null;
+    const yesterday = getUnifiedTimelineForAge(age - 1);
     
-    const durationHours = med.recommendedHours || med.duration || 0;
-    const endDate = new Date(startDate);
-    endDate.setHours(endDate.getHours() + durationHours);
-    
-    const nextInfo = calculateNextStartTime(endDate, med, nextMed);
-    if (!nextInfo) return null;
+    // Helper within scope
+    const getFinishMinutes = (item: any) => {
+      if (!item || !item.startTime) return 0;
+      const [h, m] = item.startTime.split(':').map(Number);
+      const duration = item.recommendedHours || 0;
+      return h * 60 + m + duration * 60;
+    };
 
-    return { 
-      endTimeStr: formatArabicTime(endDate), 
-      nextStartTimeStr: nextInfo.nextStartTimeStr, 
-      label: nextMed.category === 'تحصين' ? "موعد بدء التحصين" : "موعد الجرعة التالية",
-      gapText: nextInfo.gapText, 
-      gapType: nextInfo.gapType, 
-      gapDuration: nextInfo.gapDuration 
+    const lastPrev = [...yesterday]
+      .filter(i => i.startTime)
+      .sort((a, b) => getFinishMinutes(b) - getFinishMinutes(a))[0];
+    
+    if (!lastPrev || !lastPrev.startTime) return null;
+
+    const firstNext = unifiedTimeline[0];
+    const totalMinutes = getFinishMinutes(lastPrev);
+    const endH = Math.floor(totalMinutes / 60) % 24;
+    const endM = Math.round(totalMinutes % 60);
+    const rawEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    const rawNextStartTime = firstNext?.startTime || rawEndTime;
+
+    const endTimeStr = formatTime12(rawEndTime);
+    const nextStartTimeStr = formatTime12(rawNextStartTime);
+
+    const isDarkness = lastPrev.type === 'darkness';
+    const label = isDarkness ? 'آخر نشاط أمس' : 'آخر جرعة أمس';
+    const medName = isDarkness ? `${lastPrev.name} (ختام اليوم)` : lastPrev.name;
+    const nextMedName = firstNext?.name || 'مياه فقط';
+
+    return {
+      label,
+      medName,
+      endTimeStr,
+      nextStartTimeStr,
+      nextMedName,
+      rawEndTime,
+      rawNextStartTime
     };
   };
+
+  const getSuggestedStartTime = (med: any, prevItem?: any) => {
+    let endTimeStr: string | null = null;
+    let duration = 0;
+
+    if (prevItem && prevItem.startTime) {
+      endTimeStr = prevItem.startTime;
+      duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
+    } else {
+      const info = getDayTransitionInfo();
+      if (info) return info.rawNextStartTime;
+      
+      const last = unifiedTimeline.filter(i => i.startTime).reverse()[0];
+      if (last) {
+        endTimeStr = last.startTime;
+        duration = last.recommendedHours || 0;
+      }
+    }
+
+    if (!endTimeStr) return null;
+
+    const cleanEndTime = endTimeStr.replace(/[^\d:]/g, '');
+    const parts = cleanEndTime.split(':');
+    if (parts.length < 2) return null;
+    const [h, m] = parts.map(Number);
+    if (isNaN(h) || isNaN(m)) return null;
+
+    const totalMinutes = h * 60 + m + duration * 60;
+    const endH = Math.floor(totalMinutes / 60) % 24;
+    const endM = Math.round(totalMinutes % 60);
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  };
+
+  const getLatestActivityEndTime = () => {
+    const last = unifiedTimeline.filter(i => i.startTime).reverse()[0];
+    if (!last || !last.startTime) return { latestEndTime: null, latestMed: null };
+    const [h, m] = last.startTime.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h + (last.recommendedHours || 0), m, 0, 0);
+    return { latestEndTime: d, latestMed: last };
+  };
+
+
+  const lightingSchedule = useMemo(() => {
+    return getLightingScheduleForAge(toNum(state.age));
+  }, [state.age, getLightingScheduleForAge]);
 
   // New Ventilation Logic (Spec v2)
   // Min: 1 m3/hr per kg
@@ -1345,16 +1728,41 @@ export default function App() {
   const thi = toNum(state.internalTemp) + toNum(state.currentHumidity);
 
   const chartData = useMemo(() => {
-    return Array.from({ length: 40 }, (_, i) => {
-      const stats = getDailyStats(state.strain, i + 1);
+    // Find all days with manual weight entries
+    const manualDays = Object.keys(state.weightLogs || {})
+      .map(Number)
+      .filter(day => day > 0 && toNum(state.weightLogs?.[String(day)]) > 0)
+      .sort((a, b) => a - b);
+
+    return Array.from({ length: 45 }, (_, i) => {
+      const day = i + 1;
+      const stats = getDailyStats(state.strain, day);
+      
+      let finalWeight = stats.weight;
+      if (manualDays.length > 0) {
+        // Find most recent manual entry before or on this chart day
+        const lastManual = [...manualDays].reverse().find(d => d <= day);
+        if (lastManual !== undefined) {
+          const manualWeight = toNum(state.weightLogs?.[String(lastManual)]);
+          const standardAtLastManual = getDailyStats(state.strain, lastManual).weight;
+          const factor = manualWeight / standardAtLastManual;
+          
+          if (lastManual === day) {
+            finalWeight = manualWeight;
+          } else {
+            finalWeight = Math.round(stats.weight * factor);
+          }
+        }
+      }
+
       return {
-        day: i + 1,
-        weight: stats.weight,
+        day: day,
+        weight: finalWeight,
         feed: stats.dailyFeed,
         water: stats.dailyWater
       };
     });
-  }, [state.strain]);
+  }, [state.strain, state.weightLogs]);
 
   // Medication Doses
   const medDoses = MEDICATIONS.map(med => ({
@@ -1416,6 +1824,96 @@ export default function App() {
       )}
     </AnimatePresence>
   );
+
+  if (screen === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bento-card p-8 border-white/10 relative"
+        >
+          <div className="flex flex-row items-center justify-start gap-4 mb-10">
+            <Logo size={64} iconSize={32} className="rounded-2xl" />
+            <div className="flex flex-col items-end select-none min-w-0">
+              <div className="flex flex-col items-center">
+                <h1 className="text-[17px] sm:text-[19px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
+                  مدير مزارع
+                </h1>
+                <h2 className="text-[32px] sm:text-[36px] font-black tracking-[-0.07em] bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500 leading-tight text-center -mt-1 whitespace-nowrap">
+                  الدواجن
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-2xl font-black text-white text-center mb-8">تسجيل الدخول</h2>
+            
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <input 
+                name="email"
+                type="email"
+                placeholder="البريد الإلكتروني"
+                required
+                className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
+              />
+              <input 
+                name="password"
+                type="password"
+                placeholder="كلمة المرور"
+                required
+                className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
+              />
+              <div className="flex gap-2">
+                <button 
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+                >
+                  دخول
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleEmailRegister}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-xl transition-all"
+                >
+                  إنشاء حساب
+                </button>
+              </div>
+            </form>
+
+            <div className="relative flex items-center gap-4 py-2">
+              <div className="h-px bg-white/10 flex-1"></div>
+              <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">أو من خلال</span>
+              <div className="h-px bg-white/10 flex-1"></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={handleGoogleLogin}
+                className="flex items-center justify-center gap-2 bg-white text-slate-900 font-black py-3 rounded-xl hover:bg-slate-100 transition-all shadow-lg"
+              >
+                Google
+              </button>
+              <button 
+                onClick={handleFacebookLogin}
+                className="flex items-center justify-center gap-2 bg-[#1877F2] text-white font-black py-3 rounded-xl hover:bg-[#166fe5] transition-all shadow-lg shadow-blue-600/20"
+              >
+                Facebook
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setScreen('landing')}
+              className="w-full py-4 text-slate-500 font-bold hover:text-white transition-colors"
+            >
+              العودة للرئيسية
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (screen === 'landing') {
     return (
@@ -1573,26 +2071,26 @@ export default function App() {
               </motion.button>
             )}
 
-            {/* Backup & Restore Option */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setScreen('management')}
-              className="group relative overflow-hidden bg-purple-600/10 border-2 border-purple-500/20 p-8 rounded-[2rem] text-right transition-all hover:border-purple-500/40 md:col-span-2"
-            >
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <HardDrive size={80} className="text-purple-500" />
-              </div>
-              <div className="relative z-10 flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black text-white mb-2">النسخ الاحتياطي</h3>
-                  <p className="text-purple-500/70 font-bold text-sm">حفظ واستعادة بيانات البرنامج بالكامل وتصدير التقارير</p>
-                </div>
-                <div className="w-14 h-14 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-500/40">
-                  <Cloud size={32} strokeWidth={3} />
-                </div>
-              </div>
-            </motion.button>
+      {/* Login / Auth Placeholder */}
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setScreen('login')}
+        className="group relative overflow-hidden bg-white/5 border-2 border-white/10 p-8 rounded-[2rem] text-right transition-all hover:border-white/20 md:col-span-2"
+      >
+        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Settings size={80} className="text-slate-500" />
+        </div>
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <h3 className="text-2xl font-black text-white mb-2">{user ? `مرحباً، ${user.displayName || user.email}` : 'تسجيل الدخول'}</h3>
+            <p className="text-slate-500 font-bold text-sm">{user ? 'أنت مسجل الدخول الآن' : 'سجل دخولك لحفظ بياناتك سحابياً والوصول إليها من أي مكان'}</p>
+          </div>
+          <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg">
+            {user ? <CheckCircle2 size={32} strokeWidth={3} className="text-emerald-500" /> : <LayoutDashboard size={32} strokeWidth={3} />}
+          </div>
+        </div>
+      </motion.button>
           </div>
 
           {/* Naming Modal Overlay */}
@@ -1754,12 +2252,10 @@ export default function App() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bento-card p-8 border-white/10"
+          className="w-full max-w-md bento-card p-8 border-white/10 relative"
         >
-          <div className="flex flex-row-reverse items-center justify-start gap-4 mb-10">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl shadow-blue-500/20 border border-white/5 flex-shrink-0">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
+          <div className="flex flex-row items-center justify-start gap-4 mb-10">
+            <Logo size={64} iconSize={32} className="rounded-2xl" />
             <div className="flex flex-col items-end select-none min-w-0">
               <div className="flex flex-col items-center">
                 <h1 className="text-[17px] sm:text-[19px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
@@ -1846,6 +2342,19 @@ export default function App() {
               </div>
 
               <div className="relative group">
+                <div className="text-center mb-6 animate-in fade-in slide-in-from-top-4 duration-1000">
+                  <div className="inline-flex flex-col items-center">
+                    <span className="text-[9px] font-black text-blue-500/60 uppercase tracking-[0.2em] mb-1.5 px-3 py-0.5 bg-blue-500/5 rounded-full border border-blue-500/10">الوقت الآن</span>
+                    <span className="text-2xl font-black text-white font-mono tracking-widest bg-slate-950 px-5 py-2.5 rounded-2xl border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)] min-w-[180px] text-center">
+                      {currentTime.toLocaleTimeString('ar-EG', { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit', 
+                        hour12: true 
+                      })}
+                    </span>
+                  </div>
+                </div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 text-right">تاريخ بداية الدورة</label>
                 <div className="relative">
                   <input 
@@ -1987,18 +2496,6 @@ export default function App() {
                   placeholder="28"
                 />
               </div>
-
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">وقت بدء الإظلام</label>
-                <input 
-                  type="time"
-                  value={state.darknessStart ?? '23:00'}
-                  onChange={e => {
-                    setState(prev => ({ ...prev, darknessStart: e.target.value }));
-                  }}
-                  className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-black text-white text-lg transition-all"
-                />
-              </div>
             </div>
 
               <div>
@@ -2101,7 +2598,20 @@ export default function App() {
                     min="1"
                     max="6"
                     value={state.batteryTiers ?? 3}
-                    onChange={e => setState(prev => ({ ...prev, batteryTiers: parseInt(e.target.value) }))}
+                    onChange={e => {
+                      const tiers = parseInt(e.target.value);
+                      setState(prev => {
+                        const newTierCounts = [...(prev.batteryTierCounts || [])];
+                        if (newTierCounts.length < tiers) {
+                          for (let i = newTierCounts.length; i < tiers; i++) {
+                            newTierCounts.push(Math.floor(toNum(prev.totalChicks) / tiers));
+                          }
+                        } else if (newTierCounts.length > tiers) {
+                          newTierCounts.splice(tiers);
+                        }
+                        return { ...prev, batteryTiers: tiers, batteryTierCounts: newTierCounts };
+                      });
+                    }}
                     style={{
                       background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(state.batteryTiers ?? 3)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(state.batteryTiers ?? 3)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
                     }}
@@ -2129,18 +2639,10 @@ export default function App() {
       {/* Top Header */}
       <header className="bg-slate-900/50 backdrop-blur-xl px-6 pt-6 pb-6 border-b border-white/5 sticky top-0 z-20">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <motion.button 
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setScreen('management')}
-            className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-xl hover:bg-white/10 group"
-          >
-            <Cloud size={24} className="group-hover:translate-y-[-2px] transition-transform" />
-          </motion.button>
+          <div className="w-12 h-12" /> { /* Empty placeholder for balance */ }
 
-          <div className="flex flex-row-reverse items-center justify-start gap-4">
-            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-blue-500/20 flex-shrink-0">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
+          <div className="flex flex-row items-center justify-start gap-4">
+            <Logo size={48} iconSize={24} className="rounded-xl" />
             <div className="flex flex-col items-end select-none min-w-0">
               <div className="flex flex-col items-center">
                 <h1 className="text-[14px] sm:text-[16px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
@@ -2180,7 +2682,82 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="px-4 sm:px-6 py-8 max-w-3xl mx-auto">
-        <AnimatePresence mode="wait">
+        {/* Weight Entry Modal */}
+      <AnimatePresence>
+        {isWeightModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsWeightModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">تسجيل وزن اليوم</h3>
+                    <p className="text-slate-400 text-sm mt-1">يوم {state.age} من الدورة</p>
+                  </div>
+                  <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                    <ScaleIcon size={24} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mr-1">
+                    الوزن الحالي (جم)
+                  </label>
+                  <div className="relative group">
+                    <input 
+                      type="number"
+                      autoFocus
+                      value={weightInput}
+                      onChange={(e) => setWeightInput(e.target.value)}
+                      placeholder="أدخل الوزن بالجرام..."
+                      className="w-full bg-slate-950/50 border-2 border-white/5 focus:border-emerald-500/50 rounded-2xl p-4 text-2xl font-bold text-white outline-none transition-all text-center"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button 
+                    onClick={() => setIsWeightModalOpen(false)}
+                    className="p-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
+                  >
+                    إلغاء
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setState(prev => ({
+                        ...prev,
+                        isManualWeight: true,
+                        weightLogs: {
+                          ...(prev.weightLogs || {}),
+                          [String(toNum(prev.age))]: weightInput === '' ? 0 : Number(weightInput)
+                        }
+                      }));
+                      setIsWeightModalOpen(false);
+                    }}
+                    className="p-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    حفظ الوزن
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
           {screen === 'management' && (
             <motion.div 
               key="management"
@@ -2230,7 +2807,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Card 1: Google Cloud Backup */}
+                  {/* Card 1: Firebase Sync Info */}
                   <div className="bg-blue-600/10 p-6 rounded-[2rem] border border-blue-500/20 shadow-xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                       <Cloud size={80} className="text-blue-400" />
@@ -2238,30 +2815,27 @@ export default function App() {
                     <div className="relative z-10 flex flex-col gap-4">
                       <div className="flex items-center justify-between flex-row-reverse text-right">
                         <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                          {isDriveLoading ? <RefreshCw size={28} className="animate-spin" /> : <Cloud size={28} />}
+                          <Cloud size={28} />
                         </div>
                         <div className="flex-1 me-4">
-                          <h4 className="text-lg font-black text-white">النسخ الاحتياطي على Google</h4>
-                          <p className="text-[11px] text-blue-400/70 font-bold">حفظ واستعادة النسخة في حسابك الشخصي على Google Drive</p>
+                          <h4 className="text-lg font-black text-white">المزامنة السحابية</h4>
+                          <p className="text-[11px] text-blue-400/70 font-bold">يتم الآن حفظ بياناتك تلقائياً في حسابك المؤمن</p>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-1 gap-3">
-                        <button 
-                          onClick={uploadToDrive}
-                          disabled={isDriveLoading}
-                          className="w-full bg-blue-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-400 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {isDriveLoading ? 'جاري الاتصال...' : 'رفع نسخة جديدة للسحاب'}
-                        </button>
-                        
-                        <button 
-                          onClick={restoreFromDrive}
-                          disabled={isDriveLoading}
-                          className="w-full bg-blue-600/20 text-blue-300 py-3 rounded-2xl font-bold text-xs border border-blue-500/20 hover:bg-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                        >
-                          {isDriveLoading ? 'جاري البحث...' : 'استعادة أحدث نسخة من السحاب'}
-                        </button>
+                        {user ? (
+                           <div className="w-full bg-blue-600/20 text-blue-300 py-4 rounded-2xl font-bold text-xs border border-blue-500/20 text-center">
+                             مسجل الدخول كـ: {user.email}
+                           </div>
+                        ) : (
+                          <button 
+                            onClick={() => setScreen('login')}
+                            className="w-full bg-blue-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-400 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                          >
+                            تسجيل الدخول للمزامنة
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2510,21 +3084,6 @@ export default function App() {
                       className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 font-black text-white outline-none focus:border-blue-500"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase">سعر كجم العلف</label>
-                    <input 
-                      type="text"
-                      inputMode="decimal"
-                      value={state.feedPrice ?? ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                          setState(prev => ({ ...prev, feedPrice: val }));
-                        }
-                      }}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 font-black text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex flex-col text-right">
@@ -2599,7 +3158,14 @@ export default function App() {
                   <button 
                     onClick={() => setState(prev => ({ 
                       ...prev, 
-                      salesRecords: [...prev.salesRecords, { id: Math.random().toString(36).substr(2, 9), label: `مبيعات اليوم ${prev.age}`, amount: 0, price: prev.sellingPrice, weight: 0 }] 
+                      salesRecords: [...prev.salesRecords, { 
+                        id: Math.random().toString(36).substr(2, 9), 
+                        label: `مبيعات اليوم ${prev.age}`, 
+                        amount: 0, 
+                        price: prev.sellingPrice, 
+                        weight: 0,
+                        date: new Date().toISOString().split('T')[0]
+                      }] 
                     }))}
                     className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2"
                   >
@@ -2704,6 +3270,16 @@ export default function App() {
                           />
                         </div>
                       </div>
+                      
+                      <div className="flex flex-col gap-1.5 pt-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase">تاريخ العملية</label>
+                        <input 
+                          type="date"
+                          value={sale.date ?? ''}
+                          onChange={e => setState(prev => ({ ...prev, salesRecords: prev.salesRecords.map(s => s.id === sale.id ? { ...s, date: e.target.value } : s) }))}
+                          className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-black text-white text-right focus:border-blue-500/50 transition-all"
+                        />
+                      </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1.5">
@@ -2757,19 +3333,19 @@ export default function App() {
                             dragElastic={0.1}
                             className="invisible group-hover/spend:visible group-focus/spend:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-900 border border-white/10 p-4 rounded-xl shadow-2xl z-50 font-sans text-right cursor-move pointer-events-auto"
                           >
-                            <p className="text-white font-bold mb-2 border-b border-white/10 pb-1 text-[10px]">توزيع التكاليف:</p>
+                            <p className="text-white font-bold mb-2 border-b border-white/10 pb-1 text-[10px]">توزيع التكاليف والمصروفات:</p>
                             <div className="space-y-1.5 text-[9px] pointer-events-none">
                               <div className="flex justify-between text-slate-300">
                                 <span>{finances.totalChickPurchaseCost.toLocaleString()} ج.م</span>
-                                <span>الكتاكيت ({state.totalChicks} فرد):</span>
+                                <span>شراء الكتاكيت (العدد الكلي):</span>
                               </div>
                               <div className="flex justify-between text-slate-300">
                                 <span>{finances.totalFeedCost.toLocaleString()} ج.م</span>
-                                <span>العلف:</span>
+                                <span>تكلفة العلف المستهلك (الكلي):</span>
                               </div>
-                              <div className="flex justify-between text-slate-400 font-bold">
+                              <div className="flex justify-between text-slate-300">
                                 <span>{finances.generalBillSum.toLocaleString()} ج.م</span>
-                                <span>المصاريف الثابتة:</span>
+                                <span>المصاريف العامة والفواتير:</span>
                               </div>
                             </div>
                           </motion.div>
@@ -2782,35 +3358,7 @@ export default function App() {
                   </div>
 
                   <div className="w-full border-t border-white/5 pt-10 space-y-10">
-                    {/* 2. خسارة النافق التراكمية */}
-                    <div className="text-center group relative">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                          <div className="group/tooltip relative" tabIndex={0}>
-                            <Info size={12} className="text-slate-500 cursor-help" />
-                            <motion.div 
-                              drag
-                              dragMomentum={false}
-                              dragElastic={0.1}
-                              className="invisible group-hover/tooltip:visible group-focus/tooltip:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2.5rem)] bg-slate-800 p-4 rounded-xl border border-white/10 shadow-2xl z-50 text-[10px] text-slate-300 font-bold leading-relaxed text-right font-sans cursor-move pointer-events-auto"
-                            >
-                              <p className="text-emerald-400 mb-2 font-black border-b border-white/10 pb-1 text-xs">طريقة الحساب الدقيقة (Bird-Day):</p>
-                              <p className="mb-2">حساب الخسارة التراكمية = مجموع خسائر كل طائر نفق بناءً على:</p>
-                              <ul className="list-disc list-inside space-y-1.5 mt-1 text-slate-400 rtl text-[9px] pointer-events-none">
-                                <li>سعر الكتكوت الأصلي عند الشراء</li>
-                                <li>قيمة العلف الفعلي الذي استهلكه حتى لحظة وفاته</li>
-                                <li>نصيبه العادل من المصاريف العامة</li>
-                              </ul>
-                            </motion.div>
-                          </div>
-                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">خسارة النافق التراكمية</p>
-                      </div>
-                      <p className="text-3xl font-black text-red-400">
-                        {finances.mortalityLossTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                        <span className="text-xs text-red-600 ms-2">ج.م</span>
-                      </p>
-                    </div>
-
-                    {/* 3. إجمالي المبيعات */}
+                    {/* 2. إجمالي المبيعات */}
                     <div className="text-center group relative">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">إجمالي المبيعات (المحققة)</p>
@@ -2873,13 +3421,66 @@ export default function App() {
                 </div>
               </Card>
 
+              {/* Feed Cost Management */}
+              <Card className="bg-slate-900 border-white/5 p-6 text-right">
+                <div className="flex items-center justify-end gap-3 mb-6">
+                  <h4 className="text-xs font-black text-white uppercase tracking-widest">تكاليف الأعلاف</h4>
+                  <div className="p-2 bg-slate-950 rounded-lg text-emerald-400">
+                    <Package size={16} />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-6">
+                  <FeedSection 
+                    title="علف بادي"
+                    bills={state.feedBillsBady || []}
+                    onAdd={() => setState(prev => ({ ...prev, feedBillsBady: [...(prev.feedBillsBady || []), { id: Math.random().toString(36).substr(2, 9), company: '', weight: 50, amount: 0, quantity: 1, proteinPercentage: 23, entryDate: new Date().toISOString().split('T')[0] }] }))}
+                    onRemove={(id) => {
+                       const bill = (state.feedBillsBady || []).find(b => b.id === id);
+                       setBillToDelete({ id, section: 'feedBillsBady', label: `علف بادي - ${bill?.company || 'بدون شركة'}` });
+                    }}
+                    onUpdate={(id, field, val) => setState(prev => ({ ...prev, feedBillsBady: (prev.feedBillsBady || []).map(b => b.id === id ? { ...b, [field]: val } : b) }))}
+                  />
+                  <FeedSection 
+                    title="علف نامي"
+                    bills={state.feedBillsNamy || []}
+                    onAdd={() => setState(prev => ({ ...prev, feedBillsNamy: [...(prev.feedBillsNamy || []), { id: Math.random().toString(36).substr(2, 9), company: '', weight: 50, amount: 0, quantity: 1, proteinPercentage: 21, entryDate: new Date().toISOString().split('T')[0] }] }))}
+                    onRemove={(id) => {
+                       const bill = (state.feedBillsNamy || []).find(b => b.id === id);
+                       setBillToDelete({ id, section: 'feedBillsNamy', label: `علف نامي - ${bill?.company || 'بدون شركة'}` });
+                    }}
+                    onUpdate={(id, field, val) => setState(prev => ({ ...prev, feedBillsNamy: (prev.feedBillsNamy || []).map(b => b.id === id ? { ...b, [field]: val } : b) }))}
+                  />
+                  <FeedSection 
+                    title="علف ناهي"
+                    bills={state.feedBillsNahy || []}
+                    onAdd={() => setState(prev => ({ ...prev, feedBillsNahy: [...(prev.feedBillsNahy || []), { id: Math.random().toString(36).substr(2, 9), company: '', weight: 50, amount: 0, quantity: 1, proteinPercentage: 19, entryDate: new Date().toISOString().split('T')[0] }] }))}
+                    onRemove={(id) => {
+                       const bill = (state.feedBillsNahy || []).find(b => b.id === id);
+                       setBillToDelete({ id, section: 'feedBillsNahy', label: `علف ناهي - ${bill?.company || 'بدون شركة'}` });
+                    }}
+                    onUpdate={(id, field, val) => setState(prev => ({ ...prev, feedBillsNahy: (prev.feedBillsNahy || []).map(b => b.id === id ? { ...b, [field]: val } : b) }))}
+                  />
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center px-2">
+                  <p className="text-sm font-black text-white">
+                    {((state.feedBillsBady?.reduce((acc, b) => acc + toNum(b.amount), 0) || 0) + 
+                      (state.feedBillsNamy?.reduce((acc, b) => acc + toNum(b.amount), 0) || 0) + 
+                      (state.feedBillsNahy?.reduce((acc, b) => acc + toNum(b.amount), 0) || 0)).toLocaleString()} 
+                    <span className="text-[10px] text-slate-500 font-bold ms-1">ج.م</span>
+                  </p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase">إجمالي تكاليف الأعلاف</p>
+                </div>
+              </Card>
+
               {/* Bills Management */}
               <div className="space-y-4">
                 <BillSection 
                    title="فواتير الكهرباء" 
                    bills={state.electricityBills} 
                    icon={Zap}
-                   onAdd={() => setState(prev => ({ ...prev, electricityBills: [...prev.electricityBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: 1, endDay: prev.targetCycleDays }] }))}
+                   onAdd={() => setState(prev => ({ ...prev, electricityBills: [...prev.electricityBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: prev.targetCycleDays, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }] }))}
                    onRemove={(id) => {
                      const bill = state.electricityBills.find(b => b.id === id);
                      setBillToDelete({ id, section: 'electricityBills', label: bill?.label || 'فاتورة كهرباء' });
@@ -2890,7 +3491,7 @@ export default function App() {
                    title="فواتير المياه" 
                    bills={state.waterBills} 
                    icon={Droplets}
-                   onAdd={() => setState(prev => ({ ...prev, waterBills: [...prev.waterBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: 1, endDay: prev.targetCycleDays }] }))}
+                   onAdd={() => setState(prev => ({ ...prev, waterBills: [...prev.waterBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: prev.targetCycleDays, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }] }))}
                    onRemove={(id) => {
                      const bill = state.waterBills.find(b => b.id === id);
                      setBillToDelete({ id, section: 'waterBills', label: bill?.label || 'فاتورة مياه' });
@@ -2901,7 +3502,7 @@ export default function App() {
                    title="فواتير الأدوية" 
                    bills={state.medicationBills} 
                    icon={Activity}
-                   onAdd={() => setState(prev => ({ ...prev, medicationBills: [...prev.medicationBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: 1, endDay: prev.targetCycleDays }] }))}
+                   onAdd={() => setState(prev => ({ ...prev, medicationBills: [...prev.medicationBills, { id: Math.random().toString(36).substr(2, 9), label: 'بدون عنوان', amount: 0, startDay: prev.targetCycleDays, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }] }))}
                    onRemove={(id) => {
                      const bill = state.medicationBills.find(b => b.id === id);
                      setBillToDelete({ id, section: 'medicationBills', label: bill?.label || 'فاتورة أدوية' });
@@ -2912,7 +3513,7 @@ export default function App() {
                    title="فواتير أخرى" 
                    bills={state.otherBills} 
                    icon={Banknote}
-                   onAdd={() => setState(prev => ({ ...prev, otherBills: [...prev.otherBills, { id: Math.random().toString(36).substr(2, 9), label: 'مصاريف أخرى', amount: 0, startDay: 1, endDay: prev.targetCycleDays }] }))}
+                   onAdd={() => setState(prev => ({ ...prev, otherBills: [...prev.otherBills, { id: Math.random().toString(36).substr(2, 9), label: 'مصاريف أخرى', amount: 0, startDay: prev.targetCycleDays, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }] }))}
                    onRemove={(id) => {
                      const bill = state.otherBills.find(b => b.id === id);
                      setBillToDelete({ id, section: 'otherBills', label: bill?.label || 'فاتورة أخرى' });
@@ -3115,55 +3716,129 @@ export default function App() {
                       </div>
                    </div>
 
-                   <div className="p-6 bg-purple-600/10 border border-purple-500/20 rounded-3xl text-center relative z-10 shadow-[0_0_20px_rgba(168,85,247,0.05)]">
-                      <span className="text-[10px] font-black text-purple-300 uppercase tracking-[0.2em] mb-3 block">السعة الاستيعابية الموصى بها</span>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <p className="text-4xl font-black text-white">
-                            {Math.floor((state.batteryLength * state.batteryWidth) * (
-                              state.age <= 7 ? 100 :
-                              state.age <= 14 ? 60 :
-                              state.age <= 21 ? 40 :
-                              state.age <= 28 ? 25 : 15
-                            ) * (state.externalEquipment ? 1.15 : 1))}
-                          </p>
-                          <span className="text-[10px] font-black text-purple-500 uppercase">كتكوت / للدور الواحد</span>
+                   <div className="mb-6 p-4 bg-slate-950/50 rounded-2xl border border-white/10 relative z-10">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 text-right">التسكين الحالي (عدد الطيور)</label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0 border border-blue-500/20">
+                          <Bird size={20} />
                         </div>
-                        <div className="space-y-1 border-r border-purple-500/20">
-                          <p className="text-4xl font-black text-emerald-400">
-                            {state.batteryTiers * Math.floor((state.batteryLength * state.batteryWidth) * (
-                              state.age <= 7 ? 100 :
-                              state.age <= 14 ? 60 :
-                              state.age <= 21 ? 40 :
-                              state.age <= 28 ? 25 : 15
-                            ) * (state.externalEquipment ? 1.15 : 1))}
-                          </p>
-                          <span className="text-[10px] font-black text-emerald-500 uppercase">لإجمالي الأدوار ({state.batteryTiers})</span>
-                        </div>
+                        <input 
+                          type="text"
+                          inputMode="numeric"
+                          value={state.totalChicks ?? ''}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setState(prev => ({ ...prev, totalChicks: val }));
+                          }}
+                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xl text-center focus:outline-none transition-all"
+                          placeholder="1000"
+                        />
                       </div>
-                      
-                      <div className="mt-6 pt-4 border-t border-purple-500/10">
-                        <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
-                          تم حساب الكثافة بناءً على المعايير العالمية لتربية الدواجن في البطاريات، حيث تتغير المساحة المخصصة لكل طائر مع زيادة العمر والوزن.
-                        </p>
-                      </div>
-                   </div>
-                </Card>
 
-                <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 flex gap-4 items-start">
-                   <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
-                      <AlertCircle size={20} />
+                      <div className="mt-6 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">توزيع الطيور على الأدوار</span>
+                          <div className="h-px flex-1 bg-white/5 mx-4" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {Array.from({ length: Number(state.batteryTiers || 0) }).map((_, idx) => (
+                            <div key={idx} className="bg-slate-900/40 p-3 rounded-2xl border border-white/5 space-y-1.5 transition-all hover:border-purple-500/20">
+                               <div className="flex justify-between items-center px-1">
+                                 <span className="text-[8px] font-black text-slate-500 uppercase">الدور {idx + 1}</span>
+                                 {(() => {
+                                   const densityPerM2 = 
+                                      Number(state.age) <= 7 ? 45 :
+                                      Number(state.age) <= 14 ? 32 :
+                                      Number(state.age) <= 21 ? 22 :
+                                      Number(state.age) <= 28 ? 17 :
+                                      Number(state.age) <= 35 ? 14 : 12;
+                                   const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
+                                   const tierCount = toNum(state.batteryTierCounts?.[idx]);
+                                   const isTierOver = tierCount > recPerTier;
+                                   return (
+                                     <div className={cn("w-1.5 h-1.5 rounded-full", isTierOver ? "bg-red-500 animate-pulse" : "bg-emerald-500")} />
+                                   );
+                                 })()}
+                               </div>
+                               <input 
+                                 type="text"
+                                 inputMode="numeric"
+                                 value={state.batteryTierCounts?.[idx] ?? ''}
+                                 onChange={e => {
+                                   const val = e.target.value.replace(/\D/g, '');
+                                   const newCounts = [...(state.batteryTierCounts || [])];
+                                   newCounts[idx] = val;
+                                   const newTotal = newCounts.reduce((acc, curr) => acc + toNum(curr), 0);
+                                   setState(prev => ({ 
+                                     ...prev, 
+                                     batteryTierCounts: newCounts,
+                                     totalChicks: newTotal > 0 ? newTotal : prev.totalChicks
+                                   }));
+                                 }}
+                                 className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-2 py-2 text-white font-black text-center focus:outline-none focus:border-purple-500/30 transition-all text-sm"
+                                 placeholder="0"
+                                />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const densityPerM2 = 
+                          Number(state.age) <= 7 ? 45 :
+                          Number(state.age) <= 14 ? 32 :
+                          Number(state.age) <= 21 ? 22 :
+                          Number(state.age) <= 28 ? 17 :
+                          Number(state.age) <= 35 ? 14 : 12;
+                        const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
+                        const recTotal = Number(state.batteryTiers) * recPerTier;
+                        const current = toNum(state.totalChicks);
+                        const isOver = current > recTotal;
+                        const percent = recTotal > 0 ? Math.round((current / recTotal) * 100) : 0;
+
+                        return (
+                          <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-3">
+                             <div className="flex items-center justify-between">
+                                <div className={cn(
+                                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                                  isOver ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                )}>
+                                  {isOver ? "كثافة زائدة" : "كثافة آمنة"}
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">نسبة الإشغال</span>
+                                  <p className={cn("text-sm font-black", isOver ? "text-red-400" : "text-emerald-400")}>{percent}%</p>
+                                </div>
+                             </div>
+                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div 
+                                  className={cn("h-full transition-all duration-500", isOver ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "bg-emerald-500")}
+                                  style={{ width: `${Math.min(100, percent)}%` }}
+                                />
+                             </div>
+                             {isOver && (
+                               <p className="text-[9px] text-red-500 font-bold text-center bg-red-500/5 py-1.5 rounded-lg border border-red-500/10">أنت تتجاوز السعة الموصى بها بـ {current - recTotal} طائر</p>
+                             )}
+                          </div>
+                        );
+                      })()}
                    </div>
-                   <div className="text-right">
-                      <h4 className="text-xs font-black text-white mb-1">توجيهات التسكين</h4>
-                      <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                        في حالة التربية الأرضية (Floor) يتم تجاهل هذا القسم. هذا الحساب مخصص فقط لأنظمة البطاريات والأقفاص الحديثة. 
-                        يجب مراعاة توزيع المشارب والمعالف لضمان وصول جميع الطيور للغذاء.
-                      </p>
-                   </div>
-                </div>
+
+
+
+              <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 flex gap-4 items-start">
+                 <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
+                    <AlertCircle size={20} />
+                 </div>
+                 <div className="text-right">
+                    <h4 className="text-xs font-black text-white mb-1">توجيهات المساحة والتهوية</h4>
+                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                      في النظم الحديثة ذات العلافات الخارجية وخطوط النبل المعلقة، تزداد السعة الاستيعابية للمساحة الصافية بنسبة 15% نظراً لعدم وجود إشغالات داخل الدور، مما يحسن من حركة الطيور وتوزيع الهواء.
+                    </p>
+                 </div>
               </div>
+           </Card>
+          </div>
             </motion.div>
           )}
 
@@ -3199,7 +3874,13 @@ export default function App() {
                   value={dailyStats.weight} 
                   unit="جم" 
                   icon={ScaleIcon} 
-                  color="text-emerald-400" 
+                  color={dailyStats.isScientific ? "text-blue-400" : (dailyStats as any).status === 'excellent' ? "text-emerald-400" : "text-amber-400"}
+                  subLabel="المعيار الدولي"
+                  subValue={`${(dailyStats as any).standardWeight} جم`}
+                  onClick={() => {
+                    setWeightInput(String(state.weightLogs?.[String(toNum(state.age))] || ''));
+                    setIsWeightModalOpen(true);
+                  }}
                 />
                 <Stat 
                   label="الكتلة الحيوية" 
@@ -3498,11 +4179,26 @@ export default function App() {
           {screen === 'medication' && (
             <motion.div 
               key="medication"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="relative group/meds perspective-[2000px]"
             >
+              <AnimatePresence mode="wait" initial={false} custom={flipDirection}>
+                <motion.div 
+                  key={`med-page-${state.age}`}
+                  custom={flipDirection}
+                  initial={{ opacity: 0, x: flipDirection * 100, rotateY: flipDirection * 10 }}
+                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  exit={{ opacity: 0, x: -flipDirection * 100, rotateY: -flipDirection * 10 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 350, 
+                    damping: 35,
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="space-y-6 transform-gpu"
+                >
               <header className="flex items-center justify-between px-0 mb-4">
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 sm:gap-3">
                   <div className="w-10 h-10 bg-red-400/10 rounded-xl flex items-center justify-center text-red-500 shadow-inner">
@@ -3562,139 +4258,290 @@ export default function App() {
                     {unifiedTimeline.length > 0 ? (
                       <>
                         {getDayTransitionInfo() && (
-                          <div className="bg-slate-800/40 border border-slate-700/50 px-4 py-3 rounded-2xl mb-2 border-s-4 border-s-slate-500 text-right">
-                             <div className="flex items-center gap-2 mb-1 justify-end">
-                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">متابعة من اليوم السابق:</span>
-                               <Clock size={12} className="text-slate-400" />
+                          <div className="bg-slate-900/60 border border-slate-700/40 p-5 rounded-[2rem] mb-6 shadow-2xl relative overflow-hidden group" dir="rtl">
+                             {/* Header Row */}
+                             <div className="flex flex-row items-center gap-2 mb-4 justify-start">
+                               <div className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400">
+                                 <Clock size={12} />
+                               </div>
+                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">متابعة اليوم السابق</span>
                              </div>
-                             <div className="space-y-1">
-                               <p className="text-[11px] font-black text-white/90">
-                                 آخر جرعة أمس: 
-                                 <span className="mx-1 text-sky-400 font-bold">
-                                   {lastMedPrevDay?.name}
-                                 </span>
-                               </p>
-                               <p className="text-[11px] font-black text-white/90">
-                                 انتهت الساعة: 
-                                 <span className="mx-1 text-blue-400">
-                                   {getDayTransitionInfo()?.endTimeStr}
-                                 </span>
-                               </p>
-                             </div>
-                             <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-white/5 items-end">
-                               {getDayTransitionInfo()?.gapType !== 'none' && (
-                                 <div className="flex items-center gap-1.5">
-                                   <p className="text-[9px] font-bold text-slate-400">
-                                     فاصل زمني: {getDayTransitionInfo()?.gapText} ({getDayTransitionInfo()?.gapDuration} ساعة)
-                                   </p>
-                                   <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+
+                             {/* Info Rows */}
+                             <div className="flex flex-col gap-4">
+                               <div className="flex flex-row items-center justify-between w-full">
+                                 <span className="text-white/50 font-black text-[12px] text-right">آخر نشاط أمس:</span>
+                                 <span className="text-sky-400 font-bold text-[14px] text-left leading-tight">{getDayTransitionInfo()?.medName}</span>
+                               </div>
+
+                               <div className="flex flex-row items-center justify-between w-full">
+                                 <span className="text-white/50 font-black text-[12px] text-right">انتهت بتمام الساعة:</span>
+                                 <span className="text-blue-400 font-bold text-[14px] text-left leading-tight tabular-nums">{getDayTransitionInfo()?.endTimeStr}</span>
+                               </div>
+
+                               {/* Separator */}
+                               <div className="h-[1px] bg-white/5 my-2" />
+
+                               {/* Next Activity Section */}
+                               <div className="flex flex-row items-center justify-between w-full">
+                                 <span className="text-amber-500 font-black text-[12px] text-right">الجرعة التالية:</span>
+                                 <div className="bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-xl">
+                                   <span className="text-sky-400 font-bold text-[11px] text-left">
+                                     {getDayTransitionInfo()?.nextMedName}
+                                   </span>
                                  </div>
-                               )}
-                               <div className="flex items-center gap-1.5">
-                                 <p className="text-[10px] font-black text-amber-500">
-                                   {getDayTransitionInfo()?.label}: 
-                                   <span className="ms-1 text-white">الساعة {getDayTransitionInfo()?.nextStartTimeStr}</span>
-                                 </p>
-                                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.5)]" />
+                               </div>
+
+                               <div className="flex flex-row items-center justify-between w-full">
+                                 <span className="text-amber-500 font-black text-[12px] text-right">موعد البدء:</span>
+                                 <span className="text-white font-bold text-[13px] text-left tabular-nums">{getDayTransitionInfo()?.nextStartTimeStr}</span>
+                               </div>
+                             </div>
+
+                             {/* Decorative Pulse (Left side) */}
+                             <div className="absolute top-5 left-5">
+                               <div className="relative flex items-center justify-center">
+                                 <div className="absolute w-4 h-4 rounded-full bg-amber-500/10 animate-ping" />
+                                 <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
                                </div>
                              </div>
                           </div>
                         )}
 
                         {unifiedTimeline.map((item: any, i) => {
+                          const nextItem = unifiedTimeline[i + 1];
+                          const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? nextDayFirstMed : null;
+
                           if (item.type === 'darkness') {
+                            const darknessKey = `${toNum(state.age)}-darkness`;
+                            const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
+
                             return (
-                              <div key="darkness-period" className="bg-indigo-500/5 border border-indigo-500/10 p-5 rounded-3xl relative border-s-4 border-s-indigo-600 animate-in fade-in slide-in-from-right-4 duration-500 shadow-sm overflow-hidden">
-                                {/* Indicators in Timeline */}
-                                <div className="absolute top-4 right-4 flex flex-col gap-1.5 z-20">
-                                  {lightingSchedule.triggers.map((trigger) => (
-                                    <div 
-                                      key={trigger.type} 
-                                      className={cn(
-                                        "w-5 h-5 rounded-full bg-slate-950 flex items-center justify-center border border-white/5 shadow-md",
-                                        trigger.color.replace('text-', 'shadow-').split(' ')[0] + "/10"
-                                      )}
-                                    >
-                                      <trigger.icon size={10} className={trigger.color} />
+                              <div key="darkness-card" className="bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-l-4 border-indigo-500 overflow-hidden relative group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
+                                
+                                <div className="flex items-center justify-between relative z-10">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-indigo-600/20 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/30 shadow-[0_0_20px_rgba(79,70,229,0.15)] group-hover:scale-110 transition-transform">
+                                      <Moon size={24} />
                                     </div>
-                                  ))}
-                                </div>
-
-                                <div className="flex flex-col items-center justify-center w-full">
-                                  <div className="flex items-center gap-3 mb-6">
+                                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button 
+                                        onClick={() => {
+                                          if (i === 0) return;
+                                          const prevItem = unifiedTimeline[i - 1];
+                                          const currentKey = `${toNum(state.age)}-darkness`;
+                                          const prevKey = prevItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${prevItem.id || prevItem.name}`;
+                                          const prevOrder = state.medDataOverrides?.[prevKey]?.order ?? (prevItem.originalIndex || 0);
+                                          setState(prev => ({
+                                            ...prev,
+                                            medDataOverrides: {
+                                              ...prev.medDataOverrides,
+                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: prevOrder - 1 },
+                                              [prevKey]: { ...prev.medDataOverrides?.[prevKey], order: prevOrder }
+                                            }
+                                          }));
+                                        }}
+                                        disabled={i === 0}
+                                        className="text-slate-500 hover:text-white disabled:opacity-30"
+                                      >
+                                        <ChevronUp size={12} />
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          if (i === unifiedTimeline.length - 1) return;
+                                          const nextItem = unifiedTimeline[i + 1];
+                                          const currentKey = `${toNum(state.age)}-darkness`;
+                                          const nextKey = nextItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${nextItem.id || nextItem.name}`;
+                                          const nextOrder = state.medDataOverrides?.[nextKey]?.order ?? (nextItem.originalIndex || 0);
+                                          setState(prev => ({
+                                            ...prev,
+                                            medDataOverrides: {
+                                              ...prev.medDataOverrides,
+                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: nextOrder + 1 },
+                                              [nextKey]: { ...prev.medDataOverrides?.[nextKey], order: nextOrder }
+                                            }
+                                          }));
+                                        }}
+                                        disabled={i === unifiedTimeline.length - 1}
+                                        className="text-slate-500 hover:text-white disabled:opacity-30"
+                                      >
+                                        <ChevronDown size={12} />
+                                      </button>
+                                    </div>
                                     <div className="text-right">
-                                      <h3 className="text-sm font-black text-white">{item.name}</h3>
-                                      <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">فترة راحة بيولوجية (علمي)</p>
-                                    </div>
-                                    <div className="w-10 h-10 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-600/20 shadow-[0_0_15px_rgba(79,70,229,0.1)]">
-                                      <Moon size={20} />
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-col items-center w-full gap-4">
-                                    <div className="flex flex-col items-center justify-center gap-3 bg-slate-900/40 p-5 rounded-2xl border border-white/5 w-full max-w-[200px]">
-                                      <div className="flex flex-col items-center gap-1.5 w-full">
-                                        <span className="text-[8px] font-black text-slate-500 uppercase">من</span>
-                                        <input 
-                                          type="time" 
-                                          value={state.darknessStart ?? '23:00'}
-                                          onChange={(e) => setState(prev => ({ ...prev, darknessStart: e.target.value }))}
-                                          className="bg-indigo-500/20 text-xs font-black text-white px-3 py-2 rounded-xl border border-indigo-500/30 focus:outline-none focus:border-indigo-400 transition-colors cursor-pointer w-full text-center"
-                                        />
-                                      </div>
-                                      
-                                      <div className="flex flex-col items-center gap-1.5 w-full">
-                                        <span className="text-[8px] font-black text-slate-500 uppercase">إلى</span>
-                                        <input 
-                                          type="time" 
-                                          value={lightingSchedule.darknessEnd}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (!val) return;
-                                            const [sh, sm] = (state.darknessStart ?? '23:00').split(':').map(Number);
-                                            const [eh, em] = val.split(':').map(Number);
-                                            let durationMinutes = (eh * 60 + em) - (sh * 60 + sm);
-                                            if (durationMinutes < 0) durationMinutes += 1440;
-                                            setState(prev => ({ ...prev, darknessHours: durationMinutes / 60, isCustomDarkness: true }));
-                                          }}
-                                          className="bg-indigo-500/20 text-xs font-black text-white px-3 py-2 rounded-xl border border-indigo-500/30 focus:outline-none focus:border-indigo-400 transition-colors cursor-pointer w-full text-center"
-                                        />
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-col items-center gap-2">
-                                      <div className="flex items-center gap-2 px-6 py-2 bg-indigo-500/10 rounded-full border border-indigo-500/20 shadow-sm transition-all duration-300">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">المدة:</span>
-                                        <span className={cn(
-                                          "text-xs font-black leading-none",
-                                          state.isCustomDarkness ? "text-amber-400" : "text-indigo-400"
-                                        )}>
-                                          {toNum(lightingSchedule.darknessHours).toFixed(1)} ساعة إظلام
-                                          {state.isCustomDarkness && <span className="ms-1 text-[8px] opacity-70">(يدوي)</span>}
-                                        </span>
-                                      </div>
-
-                                      {/* Reasoning in Timeline */}
-                                      <div className="mt-2 space-y-1 w-full max-w-xs transition-opacity duration-500">
-                                        <p className="text-[9px] text-slate-500 font-bold leading-tight text-center italic opacity-80">{lightingSchedule.ageReason}</p>
-                                        {lightingSchedule.tempReason && (
-                                          <p className="text-[9px] text-red-300/80 font-bold leading-tight text-center">{lightingSchedule.tempReason}</p>
-                                        )}
-                                        {lightingSchedule.medReason && (
-                                          <p className="text-[9px] text-amber-300/80 font-bold leading-tight text-center">{lightingSchedule.medReason}</p>
-                                        )}
-                                      </div>
+                                      <h3 className="text-base font-black text-white">{item.name}</h3>
+                                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none mt-1">نشاط إظلام مستقل</p>
                                     </div>
                                   </div>
                                 </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                                  <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[70px]">وقت البدء:</span>
+                                      <input 
+                                        type="time" 
+                                        value={state.medicationLogs[darknessKey] ?? ''}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setState(prev => ({
+                                            ...prev,
+                                            medicationLogs: {
+                                              ...prev.medicationLogs,
+                                              [darknessKey]: val
+                                            }
+                                          }));
+                                        }}
+                                        className="bg-indigo-500/10 text-white text-sm font-black border border-indigo-500/20 rounded-xl px-4 py-2 focus:outline-none focus:border-indigo-400 transition-colors w-full text-center cursor-pointer shadow-inner"
+                                      />
+                                    </div>
+
+                                    {!state.medicationLogs[darknessKey] && getSuggestedStartTime(item, prevAct) && (
+                                      <div className="flex flex-col gap-1.5 pt-1">
+                                        <button 
+                                          onClick={() => {
+                                            const suggested = getSuggestedStartTime(item, prevAct);
+                                            if (suggested) {
+                                              setState(prev => ({
+                                                ...prev,
+                                                medicationLogs: {
+                                                  ...prev.medicationLogs,
+                                                  [darknessKey]: suggested
+                                                }
+                                              }));
+                                            }
+                                          }}
+                                          className="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl transition-all group/btn shadow-lg shadow-emerald-500/10"
+                                        >
+                                          <div className="flex flex-col items-start gap-0.5 text-right">
+                                            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">ربط (بعد النشاط السابق):</span>
+                                            <span className="text-xs font-black text-white leading-none mt-1">
+                                              {(() => {
+                                                const suggested = getSuggestedStartTime(item, prevAct);
+                                                if (!suggested) return '--:--';
+                                                const [sh, sm] = suggested.split(':').map(Number);
+                                                const sd = new Date();
+                                                sd.setHours(sh, sm, 0, 0);
+                                                
+                                                let refTime: Date | undefined = undefined;
+                                                if (prevAct && prevAct.startTime) {
+                                                  const [ph, pm] = prevAct.startTime.split(':').map(Number);
+                                                  const pDate = new Date();
+                                                  const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
+                                                  pDate.setHours(ph + pDuration, pm, 0, 0);
+                                                  refTime = pDate;
+                                                } else {
+                                                  const { latestEndTime } = getLatestActivityEndTime();
+                                                  refTime = latestEndTime || undefined;
+                                                }
+                                                return formatArabicTime(sd, refTime);
+                                              })()}
+                                            </span>
+                                          </div>
+                                          <div className="p-1.5 bg-emerald-500/20 rounded-lg group-hover/btn:bg-emerald-500/40 transition-colors">
+                                            <Zap size={14} className="text-emerald-400 group-hover/btn:scale-110 transition-transform" />
+                                          </div>
+                                        </button>
+                                        {(() => {
+                                          let refTime: Date | null = null;
+                                          if (prevAct && prevAct.startTime) {
+                                            const [ph, pm] = prevAct.startTime.split(':').map(Number);
+                                            const pDate = new Date();
+                                            const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
+                                            pDate.setHours(ph + pDuration, pm, 0, 0);
+                                            refTime = pDate;
+                                          } else {
+                                            const { latestEndTime } = getLatestActivityEndTime();
+                                            refTime = latestEndTime;
+                                          }
+                                          if (refTime && (refTime.getHours() < 5 && refTime.getHours() >= 0)) {
+                                            return <span className="text-[10px] font-black text-[#00EEEE] text-center">* ممتدة من اليوم السابق</span>;
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
+                                    )}
+
+                                    <div className="flex items-center gap-3 bg-slate-950/40 px-4 py-3 rounded-2xl border border-white/5 shadow-xl">
+                                      <span className="text-sm font-black text-indigo-400">فترة إظلام لمدة</span>
+                                      <input 
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={state.medDataOverrides?.[darknessKey]?.duration ?? item.recommendedHours}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            setState(prev => ({
+                                              ...prev,
+                                              medDataOverrides: {
+                                                ...prev.medDataOverrides,
+                                                [darknessKey]: { ...prev.medDataOverrides?.[darknessKey], duration: val }
+                                              }
+                                            }));
+                                          }
+                                        }}
+                                        className="w-12 bg-transparent text-white text-[15px] font-black focus:outline-none text-center border-b border-indigo-500/30"
+                                        placeholder={String(lightingSchedule.darknessHours)}
+                                      />
+                                      <span className="text-sm font-black text-indigo-400">ساعة</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10 flex flex-col justify-center gap-3">
+                                    <p className="text-[10px] text-slate-400 font-bold leading-relaxed text-right italic opacity-80 border-r-2 border-indigo-500/30 pr-3">
+                                      {lightingSchedule.ageReason}
+                                    </p>
+                                    {(lightingSchedule.tempReason || lightingSchedule.medReason) && (
+                                      <div className="space-y-1">
+                                        {lightingSchedule.tempReason && <p className="text-[9px] text-red-300 font-bold text-right">{lightingSchedule.tempReason}</p>}
+                                        {lightingSchedule.medReason && <p className="text-[9px] text-amber-300 font-bold text-right">{lightingSchedule.medReason}</p>}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {item.startTime && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
+                                  <div className="mt-2 px-5 py-4 bg-indigo-500/10 rounded-2xl flex flex-col gap-3 border border-indigo-500/10 relative z-10" dir="rtl">
+                                    {(() => {
+                                      const nextAct = nextItem || localNextDayFirstMed;
+                                      const nextInfo = getNextTime(item.startTime, item, nextAct);
+                                      if (!nextInfo) return null;
+                                      
+                                      return (
+                                        <>
+                                          <div className="flex items-start justify-between gap-3 text-right">
+                                            <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest pt-0.5">موعد الانتهاء:</span>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              {item.isSpanningMidnight && <Moon size={14} className="text-indigo-400" />}
+                                              <span className={cn("text-sm font-black tabular-nums", item.isSpanningMidnight ? "text-indigo-300" : "text-indigo-400")}>
+                                                {nextInfo.endTimeStr}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex flex-col border-t border-indigo-500/10 pt-3 gap-1.5 text-right">
+                                            <div className="flex items-center gap-2">
+                                              <Clock size={12} className="text-indigo-400 shrink-0" />
+                                              <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none">
+                                                {i === unifiedTimeline.length - 1 ? "أول جرعة غداً (" + (state.age + 1) + "):" : nextInfo.label + " (" + nextAct.name + "):"}
+                                              </span>
+                                            </div>
+                                            <div className="text-sm font-black text-indigo-400 tabular-nums pr-5">
+                                              {nextInfo.nextStartTimeStr}
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
                               </div>
                             );
                           }
 
                           if (item.type === 'emergency') {
                             const med = item;
-                            const nextItem = unifiedTimeline[i + 1];
-                            const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? nextDayFirstMed : null;
 
                             return (
                               <div key={med.id} className="bg-red-500/5 border border-red-500/20 p-5 rounded-3xl relative group border-s-4 border-s-red-600">
@@ -3712,7 +4559,10 @@ export default function App() {
 
                                 <div className="flex items-center gap-3 mb-4 justify-end">
                                   <div className="text-right">
-                                    <h3 className="text-sm font-black text-white">جرعة طوارئ</h3>
+                                    <h3 className="text-sm font-black text-white flex items-center gap-2 justify-end">
+                                      {med.isSpanningMidnight && <Moon size={14} className="text-indigo-400 animate-pulse" title="تمتد لليوم التالي" />}
+                                      جرعة طوارئ
+                                    </h3>
                                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">تلقائي الترتيب ضمن المواعيد</p>
                                   </div>
                                   <div className="w-10 h-10 bg-red-600/10 rounded-xl flex items-center justify-center text-red-500 border border-red-600/20 shadow-[0_0_15px_rgba(220,38,38,0.1)]">
@@ -3740,25 +4590,13 @@ export default function App() {
                                               const name = e.target.value;
                                               let updates: any = { name };
                                               
-                                              // Auto-fill logic based on selected name or keywords
-                                              const exactMatch = EMERGENCY_DEFAULTS.find(d => d.name === name);
-                                              const keywordMatch = !exactMatch && EMERGENCY_DEFAULTS.find(d => 
-                                                d.keywords.some(k => name.toLowerCase().includes(k.toLowerCase()))
-                                              );
-                                              const medicationMatch = !exactMatch && !keywordMatch && MEDICATIONS.find(m => m.name === name);
-
-                                              const finalMatch = exactMatch || keywordMatch || medicationMatch;
+                                              // Auto-fill logic based on selected name
+                                              const finalMatch = CUSTOM_MED_LIST.find(m => m.name === name);
 
                                               if (finalMatch) {
-                                                if ('duration' in finalMatch) {
-                                                  updates.duration = finalMatch.duration;
-                                                  updates.doseValue = finalMatch.dose || 1;
-                                                  updates.unit = finalMatch.unit;
-                                                } else if ('doseValue' in finalMatch) {
-                                                  // From MEDICATIONS list
-                                                  updates.doseValue = finalMatch.doseValue;
-                                                  updates.unit = finalMatch.unit;
-                                                }
+                                                updates.duration = finalMatch.duration;
+                                                updates.doseValue = finalMatch.dose !== undefined ? finalMatch.dose : 1;
+                                                updates.unit = finalMatch.unit;
                                               }
                                               updateEmergencyMed(med.id, updates);
                                             }}
@@ -3782,48 +4620,25 @@ export default function App() {
                                               onClick={() => setOpenMedDropdown(null)}
                                             />
                                             <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-1">
-                                              <div className="px-3 py-1 bg-white/5 mb-1">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">جرعات طوارئ مقترحة</span>
+                                              <div className="px-3 py-1 bg-white/5 my-1">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">تغيير الدواء</span>
                                               </div>
-                                              {EMERGENCY_DEFAULTS.map((d, i) => (
+                                              {CUSTOM_MED_LIST.map((m, i) => (
                                                 <button
-                                                  key={`emergency-${i}`}
+                                                  key={`custom-${i}`}
                                                   type="button"
                                                   onClick={() => {
                                                     updateEmergencyMed(med.id, {
-                                                      name: d.name,
-                                                      duration: d.duration,
-                                                      doseValue: d.dose || 1,
-                                                      unit: d.unit
+                                                      name: m.name,
+                                                      duration: m.duration,
+                                                      doseValue: m.dose !== undefined ? m.dose : 1,
+                                                      unit: m.unit
                                                     });
                                                     setOpenMedDropdown(null);
                                                   }}
                                                   className="w-full text-right px-4 py-2 text-[10px] font-bold text-slate-300 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0"
                                                 >
-                                                  {d.name}
-                                                </button>
-                                              ))}
-                                              <div className="px-3 py-1 bg-white/5 my-1">
-                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">باقي الأدوية</span>
-                                              </div>
-                                              {Array.from(new Set(MEDICATIONS.map(m => m.name)))
-                                                .filter(name => !EMERGENCY_DEFAULTS.some(d => d.name === name))
-                                                .map((name, i) => (
-                                                <button
-                                                  key={`med-${i}`}
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const m = MEDICATIONS.find(med => med.name === name);
-                                                    updateEmergencyMed(med.id, {
-                                                      name: name,
-                                                      doseValue: m?.doseValue || 1,
-                                                      unit: m?.unit || 'سم³/لتر'
-                                                    });
-                                                    setOpenMedDropdown(null);
-                                                  }}
-                                                  className="w-full text-right px-4 py-2 text-[10px] font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0"
-                                                >
-                                                  {name}
+                                                  {m.name}
                                                 </button>
                                               ))}
                                             </div>
@@ -3849,20 +4664,22 @@ export default function App() {
                                             <ChevronDown size={14} className="text-slate-500" />
                                             <div className="flex items-center gap-2">
                                               {med.startTime && (
-                                                <span className="text-[15px] font-black text-white leading-none">
+                                                <span className="text-[14px] font-black text-white leading-none">
                                                   {(() => {
                                                     const [h, m] = med.startTime.split(':').map(Number);
-                                                    const displayH = h % 12 || 12;
-                                                    const displayM = m.toString().padStart(2, '0');
-                                                    return `${displayH}:${displayM}`;
-                                                  })()}
-                                                </span>
-                                              )}
-                                              {med.startTime && (
-                                                <span className="text-[15px] font-black text-white leading-none min-w-[15px]">
-                                                  {(() => {
-                                                    const [h] = med.startTime.split(':').map(Number);
-                                                    return h >= 12 ? 'م' : 'ص';
+                                                    const d = new Date();
+                                                    d.setHours(h, m, 0, 0);
+                                                    
+                                                    // Determine the anchor for this day to show rollover if needed
+                                                    const prevDayInfo = getDayTransitionInfo();
+                                                    let refDate = undefined;
+                                                    if (prevDayInfo && prevDayInfo.endTimeStr) {
+                                                        const [ah, am] = prevDayInfo.endTimeStr.split(' ')[0].split(':').map(Number);
+                                                        refDate = new Date();
+                                                        refDate.setHours(ah, am, 0, 0);
+                                                    }
+                                                    
+                                                    return formatArabicTime(d, refDate);
                                                   })()}
                                                 </span>
                                               )}
@@ -3939,14 +4756,21 @@ export default function App() {
                                       <div className="p-4 bg-red-600/10 rounded-2xl border border-red-600/20 space-y-3 text-right">
                                         <div className="flex items-center justify-between">
                                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">توقيت الانتهاء:</span>
-                                          <span className="text-xs font-black text-red-400">
-                                            {(() => {
-                                              const [h, m] = med.startTime.split(':').map(Number);
-                                              const d = new Date();
-                                              d.setHours(h + toNum(med.duration), m, 0, 0);
-                                              return formatArabicTime(d);
-                                            })()}
-                                          </span>
+                                          <div className="flex items-center gap-1.5">
+                                            {med.isSpanningMidnight && <Moon size={10} className="text-indigo-400" />}
+                                            <span className={cn("text-xs font-black", med.isSpanningMidnight ? "text-indigo-400" : "text-red-400")}>
+                                              {(() => {
+                                                const [h, m] = med.startTime.split(':').map(Number);
+                                                const d = new Date();
+                                                d.setHours(h + toNum(med.duration), m, 0, 0);
+                                                
+                                                const refD = new Date();
+                                                refD.setHours(h, m, 0, 0);
+                                                
+                                                return formatArabicTime(d, refD);
+                                              })()}
+                                            </span>
+                                          </div>
                                         </div>
 
                                          <div className="border-t border-red-500/10 pt-2 flex flex-col gap-1.5">
@@ -3954,7 +4778,7 @@ export default function App() {
                                              <div className="flex items-center justify-between bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
                                                <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">إجمالي الدواء:</span>
                                                <span className="text-xs font-black text-amber-400">
-                                                 {(med.calculatedWater * toNum(med.doseValue)).toLocaleString()} {med.unit.includes('/') ? med.unit.split('/')[0] : med.unit}
+                                                 {(med.calculatedWater * toNum(med.doseValue)).toLocaleString()} {med.unit && med.unit.includes('/') ? med.unit.split('/')[0] : med.unit}
                                                </span>
                                              </div>
                                            )}
@@ -3979,10 +4803,6 @@ export default function App() {
 
                                           return (
                                             <>
-                                              <div className="flex items-center gap-2 py-1.5 px-3 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-end">
-                                                <span className="text-[9px] font-black text-amber-200">{nextInfo.gapText}</span>
-                                                <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">:الفاصل المطلوب</span>
-                                              </div>
                                               <div className="flex items-center justify-between border-t border-red-500/20 pt-2 text-right">
                                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                                   <Zap size={10} className="text-emerald-400 shrink-0" />
@@ -4003,108 +4823,317 @@ export default function App() {
                             );
                           } else {
                             const med = item;
-                            const medKey = `${state.age}-${med.name}`;
-                            const nextItem = unifiedTimeline[i + 1];
-                            const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? nextDayFirstMed : null;
+                            const logKey = `${toNum(state.age)}-${med.id || med.name}`;
+                            const colors = getCategoryColorClasses(med.category);
+                            const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
+                            const nextAct = nextItem || localNextDayFirstMed;
 
                             return (
                               <div key={i} className={cn(
-                                "bg-slate-800/40 border border-white/5 p-5 rounded-3xl flex flex-col gap-3 border-s-4 shadow-sm",
-                                med.isRest ? "border-s-emerald-500/50 opacity-70" : "border-s-blue-500"
+                                "bg-slate-900 shadow-xl border-t border-white/5 p-5 rounded-3xl flex flex-col gap-4 border-l-4 transition-all duration-300",
+                                colors.border,
+                                med.category === 'راحة' && "opacity-70"
                               )}>
                                 <div className="flex items-center justify-between group">
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-3 w-full">
                                     <div className={cn(
-                                      "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border shadow-inner",
-                                      med.isRest ? "bg-emerald-600/10 text-emerald-400 border-emerald-500/20" : "bg-blue-600/10 text-blue-400 border-blue-500/20"
+                                      "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border shadow-inner transition-colors shrink-0",
+                                      colors.bg, colors.text, "border-white/10"
                                     )}>
-                                      {med.originalIndex + 1}
+                                      {i + 1}
                                     </div>
-                                    <h4 className="font-black text-base text-white">{med.name}</h4>
+                                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button 
+                                        onClick={() => {
+                                          if (i === 0) return;
+                                          const prevItem = unifiedTimeline[i - 1];
+                                          const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
+                                          const prevKey = prevItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${prevItem.id || prevItem.name}`;
+                                          const prevOrder = state.medDataOverrides?.[prevKey]?.order ?? (prevItem.originalIndex || 0);
+                                          setState(prev => ({
+                                            ...prev,
+                                            medDataOverrides: {
+                                              ...prev.medDataOverrides,
+                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: prevOrder - 1 },
+                                              [prevKey]: { ...prev.medDataOverrides?.[prevKey], order: prevOrder }
+                                            }
+                                          }));
+                                        }}
+                                        disabled={i === 0}
+                                        className="text-slate-500 hover:text-white disabled:opacity-30"
+                                      >
+                                        <ChevronUp size={12} />
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          if (i === unifiedTimeline.length - 1) return;
+                                          const nextItem = unifiedTimeline[i + 1];
+                                          const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
+                                          const nextKey = nextItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${nextItem.id || nextItem.name}`;
+                                          const nextOrder = state.medDataOverrides?.[nextKey]?.order ?? (nextItem.originalIndex || 0);
+                                          setState(prev => ({
+                                            ...prev,
+                                            medDataOverrides: {
+                                              ...prev.medDataOverrides,
+                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: nextOrder + 1 },
+                                              [nextKey]: { ...prev.medDataOverrides?.[nextKey], order: nextOrder }
+                                            }
+                                          }));
+                                        }}
+                                        disabled={i === unifiedTimeline.length - 1}
+                                        className="text-slate-500 hover:text-white disabled:opacity-30"
+                                      >
+                                        <ChevronDown size={12} />
+                                      </button>
+                                    </div>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                      <div className="relative">
+                                        <div className="flex items-center gap-2">
+                                          <input 
+                                            type="text"
+                                            value={med.name}
+                                            onChange={(e) => {
+                                              const name = e.target.value;
+                                              let updates: any = { name };
+                                              const match = CUSTOM_MED_LIST.find(m => m.name === name);
+                                              if (match) {
+                                                updates.doseValue = match.dose;
+                                                updates.unit = match.unit;
+                                                updates.duration = match.duration;
+                                              }
+                                              updateMedOverride(logKey, updates);
+                                            }}
+                                            onFocus={() => setOpenMedDropdown(logKey)}
+                                            className="bg-transparent border-none p-0 text-base font-black text-white focus:ring-0 w-full"
+                                          />
+                                          <button 
+                                            type="button"
+                                            onClick={() => setOpenMedDropdown(openMedDropdown === logKey ? null : logKey)}
+                                            className="text-slate-500 hover:text-white"
+                                          >
+                                            <ChevronDown size={14} className={cn("transition-transform", openMedDropdown === logKey && "rotate-180")} />
+                                          </button>
+                                        </div>
+                                        {openMedDropdown === logKey && (
+                                          <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setOpenMedDropdown(null)} />
+                                            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto py-1">
+                                              <div className="px-3 py-1 bg-white/5 my-1">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">تغيير الدواء</span>
+                                              </div>
+                                              {CUSTOM_MED_LIST.map((m, idx) => (
+                                                <button
+                                                  key={idx}
+                                                  type="button"
+                                                  onMouseDown={(e) => {
+                                                    e.preventDefault(); 
+                                                    updateMedOverride(logKey, { 
+                                                      name: m.name,
+                                                      doseValue: m.dose,
+                                                      unit: m.unit,
+                                                      duration: m.duration
+                                                    });
+                                                    setOpenMedDropdown(null);
+                                                  }}
+                                                  className="w-full text-right px-4 py-2 text-[10px] font-bold text-slate-400 hover:bg-blue-600/20 hover:text-white border-b border-white/5 last:border-0 transition-colors"
+                                                >
+                                                  {m.name}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2">
+                                        <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.text)}>
+                                          {med.category}
+                                        </span>
+                                        {med.isSpanningMidnight && <Moon size={14} className="text-indigo-400 animate-pulse" title="تمتد لليوم التالي" />}
+                                        {med.isNextDay && <span className="text-[9px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-lg border border-cyan-400/20 shadow-sm shadow-cyan-400/20 tracking-tight">ممتدة لليوم التالي</span>}
+                                      </div>
+                                    </div>
                                   </div>
                                   
                                   {med.overlapsDarkness && (
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-amber-500/10 border border-amber-500/10 rounded-lg">
-                                      <span className="text-[9px] font-bold text-amber-400">تداخل مع الإظلام</span>
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-amber-500/10 border border-amber-500/10 rounded-lg shrink-0">
+                                      <span className="text-[9px] font-bold text-amber-400">تداخل</span>
                                       <AlertTriangle size={10} className="text-amber-500" />
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="flex flex-col space-y-2 bg-slate-900/40 p-4 rounded-2xl border border-white/5">
-                                  {/* Dose Info - Only for non-rest or if dose > 0 */}
-                                  {!med.isRest && med.doseValue > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
-                                      <div className="text-[11px] font-black text-amber-500 uppercase">الجرعة: {med.doseValue} {med.unit}</div>
-                                    </div>
-                                  )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-2xl border border-white/5">
+                                  <div className="space-y-2">
+                                    {/* Dose Info */}
+                                      {med.category !== 'راحة' && (
+                                        <div className="flex items-center gap-3">
+                                          <label className="text-[9px] font-black text-slate-500 uppercase min-w-[40px]">الجرعة:</label>
+                                          <div className="flex items-center gap-2 flex-1">
+                                            <input 
+                                              type="text"
+                                              inputMode="decimal"
+                                              value={state.medDataOverrides?.[logKey]?.doseValue ?? med.doseValue}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                  updateMedOverride(logKey, { doseValue: val });
+                                                }
+                                              }}
+                                              className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5"
+                                            />
+                                          <div className="flex gap-1">
+                                            {['سم³/لتر', 'جرام/لتر'].map((u) => (
+                                              <button
+                                                key={u}
+                                                onClick={() => updateMedOverride(logKey, { unit: u })}
+                                                className={cn(
+                                                  "px-2 py-1 rounded text-[8px] font-black transition-all",
+                                                  med.unit === u ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500"
+                                                )}
+                                              >
+                                                {u}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
 
-                                  {/* Duration Info - Show for non-rest OR for pure water */}
-                                  {(!med.isRest || med.name.includes('ماء نقي')) && med.recommendedHours > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
-                                      <div className="text-[11px] font-bold text-blue-400 uppercase">مدة الإعطاء: {med.recommendedHours} ساعات</div>
-                                    </div>
-                                  )}
-                                  
-                                  <div className="flex items-center gap-2 pt-1 border-t border-white/5 mt-1">
-                                    <Droplets size={12} className="text-emerald-500" />
-                                    <p className="text-[11px] font-black text-emerald-500 uppercase tracking-widest leading-none">
-                                      {med.isRest ? 'راحة:' : 'المطلوب الآن:'} {
-                                        med.unit && med.unit.includes('طائر') 
-                                          ? Math.round(toNum(state.totalChicks) * med.doseValue).toLocaleString() 
-                                          : Math.round(med.calculatedWater * med.doseValue).toLocaleString()
-                                      } { (med.unit && med.unit.includes('/')) ? med.unit.split('/')[0] : med.unit } / {med.calculatedWater} لتر مياه
-                                    </p>
+                                    {/* Duration Info */}
+                                    {(med.category !== 'راحة' || 
+                                      (med.name && (
+                                        med.name.includes('ماء') || 
+                                        med.name.includes('مياه') || 
+                                        CUSTOM_MED_LIST.some(m => m.name === med.name)
+                                      ))
+                                    ) && (
+                                      <div className="flex items-center gap-3">
+                                        <label className="text-[9px] font-black text-slate-500 uppercase min-w-[40px]">مدة الإعطاء:</label>
+                                        <div className="flex items-center gap-2 flex-1">
+                                          <input 
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={state.medDataOverrides?.[logKey]?.duration ?? med.recommendedHours}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                updateMedOverride(logKey, { duration: val });
+                                              }
+                                            }}
+                                            className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5"
+                                            placeholder={String(med.recommendedHours)}
+                                          />
+                                          <span className="text-[9px] font-bold text-slate-500 uppercase">ساعات</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {med.startTime && toNum(med.duration) > 0 && (
+                                      <div className={cn(
+                                        "p-3 rounded-2xl border space-y-2 text-right",
+                                        colors.bg, "bg-opacity-5", colors.border, "border-opacity-20"
+                                      )}>
+                                        {toNum(med.doseValue) > 0 && (
+                                          <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">إجمالي الدواء:</span>
+                                            <span className={cn("text-xs font-black", colors.text)}>
+                                              {(med.calculatedWater * toNum(med.doseValue)).toLocaleString()} {med.unit && med.unit.includes('/') ? med.unit.split('/')[0] : med.unit}
+                                            </span>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center justify-between px-2">
+                                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">على مياه:</span>
+                                          <span className="text-xs font-black text-white">{med.calculatedWater} لتر</span>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-3 bg-slate-950/50 p-2.5 rounded-2xl border border-white/5">
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ps-2">وقت البدء:</span>
                                     <input 
                                       type="time" 
-                                      value={state.medicationLogs[medKey] ?? ''}
+                                      value={state.medicationLogs[logKey] ?? ''}
                                       onChange={(e) => {
                                         const val = e.target.value;
                                         setState(prev => ({
                                           ...prev,
                                           medicationLogs: {
                                             ...prev.medicationLogs,
-                                            [medKey]: val
+                                            [logKey]: val
                                           }
                                         }));
                                       }}
                                       className="bg-slate-950 text-white text-xs font-black border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500/50 transition-colors w-32 shadow-inner"
                                     />
-                                    {!state.medicationLogs[medKey] && getSuggestedStartTime(med) && (
-                                      <button 
-                                        onClick={() => {
-                                          const suggested = getSuggestedStartTime(med);
-                                          if (suggested) {
-                                            setState(prev => ({
-                                              ...prev,
-                                              medicationLogs: {
-                                                ...prev.medicationLogs,
-                                                [medKey]: suggested
-                                              }
-                                            }));
+                                    {!state.medicationLogs[logKey] && getSuggestedStartTime(med, prevAct) && !(toNum(state.age) === 1 && i === 0) && (
+                                      <div className="flex flex-col gap-1.5 flex-1">
+                                        <button 
+                                          onClick={() => {
+                                            const suggested = getSuggestedStartTime(med, prevAct);
+                                            if (suggested) {
+                                              setState(prev => ({
+                                                ...prev,
+                                                medicationLogs: {
+                                                  ...prev.medicationLogs,
+                                                  [logKey]: suggested
+                                                }
+                                              }));
+                                            }
+                                          }}
+                                          className="w-full flex items-center justify-between px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl transition-all group shadow-lg shadow-emerald-500/10"
+                                        >
+                                          <div className="flex flex-col items-start gap-0.5 text-right">
+                                            <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest leading-none text-right">ربط (بعد النشاط السابق):</span>
+                                            <span className="text-[10px] font-black text-white leading-none">
+                                              {(() => {
+                                                const suggested = getSuggestedStartTime(med, prevAct);
+                                                if (!suggested) return '--:--';
+                                                const [h, m] = suggested.split(':').map(Number);
+                                                const d = new Date();
+                                                d.setHours(h, m, 0, 0);
+
+                                                let refTime: Date | undefined = undefined;
+                                                if (prevAct && prevAct.startTime) {
+                                                  const [ph, pm] = prevAct.startTime.split(':').map(Number);
+                                                  const pDate = new Date();
+                                                  const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
+                                                  pDate.setHours(ph + pDuration, pm, 0, 0);
+                                                  refTime = pDate;
+                                                } else {
+                                                  const { latestEndTime } = getLatestActivityEndTime();
+                                                  refTime = latestEndTime || undefined;
+                                                }
+
+                                                return formatArabicTime(d, refTime);
+                                              })()}
+                                            </span>
+                                          </div>
+                                          <div className="p-1.5 bg-emerald-500/20 rounded-lg group-hover:bg-emerald-500/40 transition-colors">
+                                            <Zap size={12} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                                          </div>
+                                        </button>
+                                        {(() => {
+                                          let refTime: Date | null = null;
+                                          if (prevAct && prevAct.startTime) {
+                                            const [ph, pm] = prevAct.startTime.split(':').map(Number);
+                                            const pDate = new Date();
+                                            const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
+                                            pDate.setHours(ph + pDuration, pm, 0, 0);
+                                            refTime = pDate;
+                                          } else {
+                                            const { latestEndTime } = getLatestActivityEndTime();
+                                            refTime = latestEndTime;
                                           }
-                                        }}
-                                        className="text-[9px] font-black text-amber-500 hover:text-white hover:bg-amber-500 flex items-center gap-1.5 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 transition-all active:scale-95"
-                                      >
-                                        <Clock size={10} />
-                                        ربط (بعد النشاط السابق): {formatArabicTime((() => {
-                                          const s = getSuggestedStartTime(med);
-                                          const [h, m] = s!.split(':').map(Number);
-                                          const d = new Date();
-                                          d.setHours(h, m, 0, 0);
-                                          return d;
-                                        })())}
-                                      </button>
+                                          if (refTime && (refTime.getHours() < 5 && refTime.getHours() >= 0)) {
+                                            return <span className="text-[9px] font-black text-[#00EEEE]">* ممتدة من اليوم السابق</span>;
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
                                     )}
-                                    {state.medicationLogs[medKey] && (
+                                    {state.medicationLogs[logKey] && (
                                       <div className="text-[9px] font-bold text-emerald-400 bg-emerald-400/5 px-2.5 py-1 rounded-lg border border-emerald-400/10 flex items-center gap-1.5">
                                         <CheckCircle2 size={12} />
                                         تم التسجيل
@@ -4112,35 +5141,35 @@ export default function App() {
                                     )}
                                   </div>
 
-                                  {state.medicationLogs[medKey] && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
+                                  {state.medicationLogs[logKey] && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
                                     <div className="px-4 py-3 bg-white/5 rounded-2xl flex flex-col gap-2.5 border border-white/5">
                                       {(() => {
                                         const nextAct = nextItem || localNextDayFirstMed;
-                                        const nextInfo = getNextTime(state.medicationLogs[medKey], med, nextAct);
+                                        const nextInfo = getNextTime(state.medicationLogs[logKey], med, nextAct);
                                         if (!nextInfo) return null;
                                         
                                         return (
                                           <>
                                             <div className="flex items-center justify-between">
                                               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">موعد الانتهاء:</span>
-                                              <span className="text-xs font-black text-blue-400">{nextInfo.endTimeStr}</span>
-                                            </div>
-
-                                            {nextInfo.gapType !== 'none' && (
-                                              <div className="flex items-center gap-2 py-1.5 px-3 bg-amber-500/10 rounded-lg border border-amber-500/20 justify-end">
-                                                <span className="text-[9px] font-black text-amber-200">{nextInfo.gapText}</span>
-                                                <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">:الفاصل المطلوب</span>
+                                              <div className="flex items-center gap-1.5">
+                                                {med.isSpanningMidnight && <Moon size={10} className="text-indigo-400" />}
+                                                <span className={cn("text-xs font-black", med.isSpanningMidnight ? "text-indigo-400" : "text-blue-400")}>
+                                                  {nextInfo.endTimeStr}
+                                                </span>
                                               </div>
-                                            )}
+                                            </div>
 
                                             <div className="flex items-center justify-between border-t border-white/5 pt-2 text-right">
                                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                                <Clock size={10} className="text-emerald-400 shrink-0" />
+                                                <Zap size={10} className="text-emerald-400 shrink-0" />
                                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block leading-tight">
-                                                  {i === unifiedTimeline.length - 1 ? "أول جرعة غداً (" + (state.age + 1) + "):" : nextInfo.label + " (" + nextAct.name + "):"}
+                                                  موعد الجرعة التالية ({nextAct.name}):
                                                 </span>
                                               </div>
-                                              <span className="text-xs font-black text-emerald-400 whitespace-nowrap ps-2">{nextInfo.nextStartTimeStr}</span>
+                                              <div className="flex items-center gap-2 ps-2">
+                                                <span className="text-xs font-black text-emerald-400 whitespace-nowrap">{nextInfo.nextStartTimeStr}</span>
+                                              </div>
                                             </div>
                                           </>
                                         );
@@ -4169,6 +5198,7 @@ export default function App() {
                     ? Math.round(toNum(state.totalChicks) * med.doseValue) 
                     : Math.round(med.calculatedWater * med.doseValue);
                   const isWithdrawalRisk = toNum(state.age) >= 28 && med.isAntibiotic;
+                  const colors = getCategoryColorClasses(med.category);
                   
                   return (
                     <Card key={idx} className={cn(
@@ -4179,9 +5209,7 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <span className={cn(
                             "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                            med.category === 'تأسيس' ? "bg-emerald-500/10 text-emerald-400" :
-                            med.category === 'وقائي' ? "bg-red-500/10 text-red-400" :
-                            med.category === 'تحصين' ? "bg-purple-500/10 text-purple-400" : "bg-amber-500/10 text-amber-400"
+                            colors.bg, colors.text
                           )}>
                             {med.category}
                           </span>
@@ -4189,7 +5217,7 @@ export default function App() {
                              اليوم {state.age}
                           </span>
                         </div>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{med.mixing || 'بدون خلط'}</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{med.mixingRules || med.mixing || 'بدون خلط'}</span>
                       </div>
 
                       {isWithdrawalRisk && (
@@ -4204,34 +5232,62 @@ export default function App() {
                           <div className="flex items-center gap-4">
                             <div className={cn(
                               "w-1.5 h-10 rounded-full bg-slate-800 transition-all",
-                              isWithdrawalRisk ? "bg-red-600" : "group-hover:bg-blue-600"
+                              isWithdrawalRisk ? "bg-red-600" : "group-hover:" + colors.dot
                             )}></div>
                             <div>
-                              <h4 className="font-black text-lg text-white group-hover:text-blue-400 transition-colors">{med.name}</h4>
+                              <h4 className={cn("font-black text-lg text-white group-hover:transition-colors", "group-hover:" + colors.text)}>{med.name}</h4>
+                              {med.tradeName && <p className="text-[10px] font-bold text-slate-500 italic mt-0.5">{med.tradeName}</p>}
                             </div>
                           </div>
                         </div>
                       </div>
                       
                       <div className="bg-slate-950/50 px-5 py-3 border-t border-white/5 grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
+                        <div 
+                          className="space-y-1 cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMedInfo({ 
+                              title: "التفسير العلمي", 
+                              text: med.scientificExplanation || med.benefits || "لا يتوفر تفسير حالياً"
+                            });
+                          }}
+                        >
                           <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">التفسير العلمي</span>
-                          <p className="text-[10px] font-bold text-slate-300 leading-relaxed italic">
-                            {med.benefits}
+                          <p className="text-[10px] font-bold text-slate-300 leading-relaxed italic line-clamp-3">
+                            {med.scientificExplanation || med.benefits}
                           </p>
                         </div>
                         <div className="space-y-2">
-                           <div>
+                           <div 
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMedInfo({ 
+                                  title: "قواعد الخلط", 
+                                  text: med.mixingRules || med.mixing || "بدون قواعد خلط خاصة"
+                                });
+                              }}
+                           >
                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">قواعد الخلط</span>
                               <p className="text-[10px] font-bold text-white flex items-center gap-1.5">
-                                <Droplets size={10} className="text-cyan-500" />
-                                {med.mixing}
+                                <Droplets size={10} className="text-cyan-500 flex-shrink-0" />
+                                <span className="truncate">{med.mixingRules || med.mixing}</span>
                               </p>
                            </div>
-                           <div>
+                           <div 
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMedInfo({ 
+                                  title: "التتابع الفني", 
+                                  text: med.technicalSequence || med.sequence || "لا يتوفر تتابع فني حالياً"
+                                });
+                              }}
+                           >
                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">التتابع الفني</span>
-                              <p className="text-[10px] font-bold text-slate-400">
-                                {med.sequence}
+                              <p className="text-[10px] font-bold text-slate-400 truncate">
+                                {med.technicalSequence || med.sequence}
                               </p>
                            </div>
                         </div>
@@ -4276,8 +5332,10 @@ export default function App() {
                     </Card>
                   )}
                </div>
-            </motion.div>
-          )}
+             </motion.div>
+           </AnimatePresence>
+          </motion.div>
+        )}
 
           {screen === 'charts' && (
             <motion.div 
@@ -5312,6 +6370,37 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      {/* Floating Day Navigation Arrows */}
+      {screen !== 'landing' && screen !== 'finances' && (
+        <>
+          {/* Previous Day */}
+          {state.age > 1 && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: isNavVisible ? 1 : 0, x: 0 }}
+              onClick={goToPrevDay}
+              className="fixed left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white shadow-xl hover:bg-slate-800 transition-all active:scale-90"
+              title="اليوم السابق"
+            >
+              <ChevronLeft size={24} />
+            </motion.button>
+          )}
+
+          {/* Next Day */}
+          {state.age < 60 && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: isNavVisible ? 1 : 0, x: 0 }}
+              onClick={goToNextDay}
+              className="fixed right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 text-white shadow-xl hover:bg-slate-800 transition-all active:scale-90"
+              title="اليوم التالي"
+            >
+              <ChevronRight size={24} />
+            </motion.button>
+          )}
+        </>
+      )}
+
       {/* Bottom Navigation */}
       <motion.nav 
         initial={false}
@@ -5408,6 +6497,55 @@ export default function App() {
           label="الأرباح" 
         />
       </motion.nav>
+
+      <AnimatePresence>
+        {selectedMedInfo && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMedInfo(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+              dir="rtl"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500">
+                    <Info size={20} />
+                  </div>
+                  <h3 className="font-black text-xl text-white">{selectedMedInfo.title}</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedMedInfo(null)}
+                  className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-8">
+                <p className="text-lg font-bold text-slate-200 leading-relaxed text-right">
+                  {selectedMedInfo.text}
+                </p>
+              </div>
+              <div className="p-6 bg-slate-800/30 border-t border-white/5 flex justify-end">
+                <button 
+                  onClick={() => setSelectedMedInfo(null)}
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                >
+                  فهمت
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {deleteStep > 0 && (
@@ -5553,11 +6691,166 @@ function PieChartIcon(props: any) {
 }
 
 function ScaleIcon(props: any) {
-  return <Activity {...props} />
+  return <Scale {...props} />
 }
 
 function ContainerIcon(props: any) {
   return <LayoutDashboard {...props} />
+}
+
+function FeedSection({ 
+  title, 
+  bills, 
+  onAdd, 
+  onRemove, 
+  onUpdate 
+}: { 
+  title: string, 
+  bills: FeedBill[], 
+  onAdd: () => void, 
+  onRemove: (id: string) => void, 
+  onUpdate: (id: string, field: string, val: any) => void 
+}) {
+  return (
+    <div className="bg-slate-950/30 p-4 rounded-2xl border border-white/5 space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <button 
+          type="button"
+          onClick={onAdd}
+          className="p-1.5 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition-all active:scale-95"
+        >
+          <Plus size={14} />
+        </button>
+        <div className="flex items-center gap-2">
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{title}</span>
+           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {bills.map(bill => (
+          <div key={bill.id} className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-4">
+             <div className="flex items-center justify-between">
+                <button 
+                  type="button"
+                  onClick={() => onRemove(bill.id)}
+                  className="text-slate-600 hover:text-red-500 transition-colors"
+                  title="حذف"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <input 
+                  type="text"
+                  value={bill.company}
+                  onChange={e => onUpdate(bill.id, 'company', e.target.value)}
+                  placeholder="اسم شركة العلف..."
+                  className="bg-transparent text-xs font-bold text-white text-right outline-none flex-1 ms-2"
+                />
+             </div>
+
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-sans">
+                <div className="space-y-1">
+                   <label className="text-[9px] font-bold text-slate-500 text-right block uppercase">السعر للشكارة (ج.م)</label>
+                   <input 
+                    type="text"
+                    inputMode="decimal"
+                    value={bill.amount}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        onUpdate(bill.id, 'amount', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold text-white text-center outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-bold text-slate-500 text-right block uppercase">الكمية (شكارة)</label>
+                   <input 
+                    type="text"
+                    inputMode="numeric"
+                    value={bill.quantity ?? 1}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*$/.test(val)) {
+                        onUpdate(bill.id, 'quantity', val);
+                      }
+                    }}
+                    placeholder="1"
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold text-white text-center outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-bold text-slate-500 text-right block uppercase">وزن الشكارة (كجم)</label>
+                   <input 
+                    type="text"
+                    inputMode="decimal"
+                    value={bill.weight}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        onUpdate(bill.id, 'weight', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold text-white text-center outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-bold text-slate-500 text-right block uppercase">نسبة البروتين (%)</label>
+                   <input 
+                    type="text"
+                    inputMode="decimal"
+                    value={bill.proteinPercentage ?? ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || (/^\d*\.?\d*$/.test(val) && parseFloat(val) <= 100)) {
+                        onUpdate(bill.id, 'proteinPercentage', val);
+                      }
+                    }}
+                    placeholder="%"
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold text-white text-center outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+             </div>
+
+             {/* FIXED: Improved layout with flex-wrap and better min-width for date field to avoid clipping */}
+             <div className="flex flex-row flex-wrap items-end justify-between gap-3 mt-2">
+                <div className="flex-1 min-w-[130px] space-y-1">
+                   <label className="text-[9px] font-bold text-slate-500 text-center block uppercase">تاريخ الإضافة</label>
+                   <input 
+                    type="date"
+                    value={bill.entryDate || new Date().toISOString().split('T')[0]}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => onUpdate(bill.id, 'entryDate', e.target.value)}
+                    className="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-1.5 text-[11px] font-black text-white text-center outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+                
+                <div className="flex gap-2 shrink-0">
+                  {toNum(bill.weight) > 0 && toNum(bill.amount) > 0 && (
+                     <div className="bg-slate-950/80 p-1.5 rounded-lg border border-white/5 text-center shadow-inner min-w-[70px]">
+                        <p className="text-[8px] text-slate-500 font-bold uppercase mb-0.5">سعر الكيلو</p>
+                        <p className="text-[10px] text-emerald-400 font-black">{(toNum(bill.amount) / toNum(bill.weight)).toFixed(2)} <span className="text-[7px]">ج.م</span></p>
+                     </div>
+                  )}
+                  {toNum(bill.amount) > 0 && toNum(bill.quantity) > 1 && (
+                     <div className="bg-slate-950/80 p-1.5 rounded-lg border border-white/5 text-center shadow-inner min-w-[80px]">
+                        <p className="text-[8px] text-slate-500 font-bold uppercase mb-0.5">إجمالي الفاتورة</p>
+                        <p className="text-[10px] text-blue-400 font-black">{(toNum(bill.amount) * toNum(bill.quantity)).toLocaleString()} <span className="text-[7px]">ج.م</span></p>
+                     </div>
+                  )}
+                </div>
+             </div>
+          </div>
+        ))}
+        {bills.length === 0 && (
+          <p className="text-[9px] text-slate-700 font-bold py-2 text-center uppercase tracking-widest italic">لا توجد سجلات شراء</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { title: string, bills: Bill[], icon: any, onAdd: () => void, onRemove: (id: string) => void, onUpdate: (id: string, field: string, val: any) => void }) {
@@ -5581,7 +6874,7 @@ function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { 
       
       <div className="space-y-4">
         {bills.map(bill => (
-          <div key={bill.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-3">
+          <div key={bill.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
               <button 
                 type="button"
@@ -5598,50 +6891,112 @@ function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { 
                 type="text"
                 value={bill.label ?? ''}
                 onChange={e => onUpdate(bill.id, 'label', e.target.value)}
-                className="bg-transparent text-xs font-bold text-white text-right outline-none w-1/2"
-                placeholder="بيان الفاتورة..."
+                className="bg-transparent text-sm font-bold text-white text-right outline-none w-full ms-2"
+                placeholder="وصف الفاتورة..."
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-slate-600 uppercase text-center">المبلغ</label>
-                <input 
-                  type="number"
-                  value={bill.amount ?? 0}
-                  onChange={e => onUpdate(bill.id, 'amount', e.target.value)}
-                  className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-black text-white text-center"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase flex items-center justify-end gap-1">
+                    المبلغ (ج.م)
+                    <Banknote size={10} />
+                  </label>
+                  <input 
+                    type="text"
+                    inputMode="decimal"
+                    value={bill.amount ?? ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                        onUpdate(bill.id, 'amount', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-black text-white text-center focus:border-blue-500/50 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase flex items-center justify-center gap-1">
+                    تاريخ إدخال الفاتورة
+                    <Calendar size={10} />
+                  </label>
+                  <input 
+                    type="date"
+                    value={bill.entryDate ?? new Date().toISOString().split('T')[0]}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={e => onUpdate(bill.id, 'entryDate', e.target.value)}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-6 py-2.5 text-[12px] font-black text-white text-center focus:border-blue-500/50 outline-none"
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-slate-600 uppercase text-center">إلى يوم</label>
-                <input 
-                  type="number"
-                  value={bill.endDay ?? 35}
-                  onChange={e => onUpdate(bill.id, 'endDay', e.target.value)}
-                  className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-black text-white text-center"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-black text-slate-600 uppercase text-center">من يوم</label>
-                <input 
-                  type="number"
-                  value={bill.startDay ?? 1}
-                  onChange={e => onUpdate(bill.id, 'startDay', e.target.value)}
-                  className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] font-black text-white text-center"
-                />
+
+              <div className="space-y-1.5 font-sans">
+                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center justify-end gap-1">
+                  فترة الاستهلاك (من يوم - إلى يوم)
+                  <Calendar size={10} />
+                </label>
+                <div className="flex items-center gap-2 bg-slate-900 border border-white/10 rounded-xl p-1 shrink-0">
+                   <div className="flex-1 flex items-center bg-slate-950 rounded-lg border border-white/5 overflow-hidden">
+                    <input 
+                      type="text"
+                      inputMode="numeric"
+                      value={bill.startDay ?? ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          onUpdate(bill.id, 'startDay', val);
+                        }
+                      }}
+                      placeholder="إلى"
+                      className="w-full bg-transparent px-2 py-1.5 text-[11px] font-black text-white text-center outline-none"
+                    />
+                  </div>
+                  <span className="text-slate-600 font-bold text-xs">-</span>
+                  <div className="flex-1 flex items-center bg-slate-950 rounded-lg border border-white/5 overflow-hidden">
+                    <input 
+                      type="text"
+                      inputMode="numeric"
+                      value={bill.endDay ?? ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          onUpdate(bill.id, 'endDay', val);
+                        }
+                      }}
+                      placeholder="من"
+                      className="w-full bg-transparent px-2 py-1.5 text-[11px] font-black text-white text-center outline-none"
+                    />
+                  </div>
+                </div>
+                {toNum(bill.startDay) > toNum(bill.endDay) && (
+                   <div className="flex justify-between items-center px-1">
+                      <span className="text-[8px] font-bold text-blue-400">
+                        ({(toNum(bill.startDay) - toNum(bill.endDay) + 1)} يوم)
+                      </span>
+                      <span className="text-[8px] font-bold text-slate-600 italic">مدة التغطية</span>
+                   </div>
+                )}
               </div>
             </div>
           </div>
         ))}
         {bills.length === 0 && (
-          <p className="text-[10px] text-slate-600 font-bold py-2 text-center uppercase tracking-widest">لا توجد سجلات</p>
+          <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
+            <Plus size={24} className="text-slate-800 mb-2" />
+            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">لا توجد سجلات حالياً</p>
+          </div>
         )}
       </div>
       {bills.length > 0 && (
-        <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center px-2">
-          <p className="text-sm font-black text-white">{bills.reduce((acc, b) => acc + toNum(b.amount), 0).toLocaleString()} ج.م</p>
-          <p className="text-[9px] font-black text-slate-500 uppercase">الإجمالي</p>
+        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center px-2">
+          <p className="text-sm font-black text-white">{bills.reduce((acc, b) => acc + toNum(b.amount), 0).toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">ج.م</span></p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-black text-slate-500 uppercase">إجمالي {title}</span>
+            <div className="w-1 h-3 bg-slate-700 rounded-full" />
+          </div>
         </div>
       )}
     </Card>
