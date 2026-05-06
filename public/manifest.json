@@ -1,6 +1,6 @@
 {
   "name": "مدير مزارع الدواجن",
-  "short_name": "مدير الدواجن",
+  "short_name": "مدير مزارع الدواجن",
   "description": "نظام الإدارة الذكي لمزارع الدواجن",
   "start_url": "/",
   "display": "standalone",
