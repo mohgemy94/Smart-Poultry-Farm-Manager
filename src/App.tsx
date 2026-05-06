@@ -2304,23 +2304,37 @@ export default function App() {
 
             {/* Resume Last Cycle (if exists) */}
             {state.id && (
-              <motion.button
+              <motion.div
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setScreen('dashboard')}
                 className="group relative overflow-hidden bg-blue-600/10 border-2 border-blue-500/20 p-8 rounded-[2rem] text-right transition-all hover:border-blue-500/40"
               >
                 <div className="absolute top-0 left-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                   <Clock size={80} className="text-blue-500" />
                 </div>
-                <div className="relative z-10">
+                
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    initiateDeleteCycle(e, state.id);
+                  }}
+                  className="absolute top-6 left-6 z-20 w-12 h-12 bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white rounded-2xl flex items-center justify-center transition-all shadow-lg shadow-rose-500/10 border border-rose-500/30"
+                  title="حذف الدورة"
+                >
+                  <Trash2 size={24} />
+                </button>
+
+                <div 
+                  onClick={() => setScreen('dashboard')}
+                  className="relative z-10 cursor-pointer"
+                >
                   <div className="w-14 h-14 bg-blue-500 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/40">
                     <History size={32} strokeWidth={3} />
                   </div>
                   <h3 className="text-2xl font-black text-white mb-2">استكمال الدورة الحالية</h3>
                   <p className="text-blue-500/70 font-bold text-sm">{state.name || 'بدون اسم'}</p>
                 </div>
-              </motion.button>
+              </motion.div>
             )}
 
             {/* Backup & Restore Option */}

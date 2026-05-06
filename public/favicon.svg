@@ -1,7 +1,8 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="120" fill="url(#paint0_linear)"/>
-  <path d="M360 160C320 160 280 180 240 220C200 260 180 320 180 360H380C380 320 360 280 340 240C320 200 360 180 380 180C400 180 400 160 360 160Z" fill="white"/>
-  <circle cx="340" cy="200" r="12" fill="#2563EB"/>
+  <path d="M128 360C128 300 160 260 220 230C280 200 340 180 400 180s40 20 20 40c-20 20-60 40-60 80s40 60 60 80H128Z" fill="white" fill-opacity="0.9"/>
+  <circle cx="340" cy="210" r="15" fill="#2563EB"/>
+  <path d="M160 360c20-20 60-30 100-30s80 10 100 30" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
   <defs>
     <linearGradient id="paint0_linear" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2563EB"/>
