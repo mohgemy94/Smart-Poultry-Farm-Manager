@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Solid Blue Background -->
+  <rect width="512" height="512" rx="120" fill="#2563EB"/>
+  
+  <!-- Bird Body -->
+  <path d="M352 168a112 112 0 0 0-224 0c0 64 32 128 112 144v80l48-48h64a112 112 0 0 0 0-224z" fill="white"/>
+  
+  <!-- Beak -->
+  <path d="M352 168l32 16-32 16" stroke="#fbbf24" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Eye -->
+  <circle cx="280" cy="140" r="20" fill="#1e3a8a"/>
+</svg>
