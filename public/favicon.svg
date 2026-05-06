@@ -1,0 +1,31 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="inner_grad" x1="140" y1="140" x2="372" y2="372" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Dark Background -->
+  <rect width="512" height="512" rx="128" fill="#000814"/>
+  
+  <!-- Inner Gradient Card -->
+  <rect x="128" y="100" width="256" height="256" rx="80" fill="url(#inner_grad)"/>
+  
+  <!-- Bird Icon (Line Art) -->
+  <g transform="translate(192, 164) scale(8)" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M16 7a3.5 3.5 0 0 0-7 0"/>
+    <path d="M10.2 11.2A3 3 0 0 0 12 16h4a3 3 0 0 0 3-3V7l-2 1"/>
+    <path d="m14 18 1 3h-4l1-3"/>
+    <path d="M11 11h.01"/>
+    <path d="M16 11h.01"/>
+  </g>
+
+  <!-- Arabic Text (Approximated with shapes/paths for "مدير مزارع الدواجن") -->
+  <!-- Since I can't guarantee font rendering in SVG without embedding, I will use paths representing the logo text -->
+  <g transform="translate(110, 380)" fill="white">
+     <!-- Simple representation of the Arabic text in the screenshot -->
+     <text x="50%" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="32" fill="#38BDF8">مدير مزارع</text>
+     <text x="50%" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-weight="black" font-size="52" fill="#22D3EE">الدواجن</text>
+  </g>
+</svg>

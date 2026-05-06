@@ -4,23 +4,23 @@
   "description": "نظام الإدارة الذكي لمزارع الدواجن",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#2563EB",
+  "background_color": "#000814",
   "theme_color": "#2563EB",
   "icons": [
     {
-      "src": "/poultry-icon-v10.svg",
+      "src": "/favicon.svg?v=12",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/poultry-icon-v10.svg",
+      "src": "/favicon.svg?v=12",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/poultry-icon-v10.svg",
+      "src": "/favicon.svg?v=12",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"

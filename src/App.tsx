@@ -108,26 +108,26 @@ const EMERGENCY_DEFAULTS = [
   { name: 'مضاد حيوي معوي وتنفسي', keywords: ['حيوي', 'دوكسي', 'اموكسي', 'كولستين', 'تيلوزين'], duration: '12', dose: '1', unit: 'جرام/لتر' },
   { name: 'فيتامين أد3هـ', keywords: ['أد3', 'اد3', 'فيتامين'], duration: '8', dose: '1', unit: 'سم³/لتر' },
   { name: 'فيتامين هـ سيلينيوم', keywords: ['سيلينيوم', 'هـ'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'أملاح معدنية', keywords: ['أملاح', 'املاح', 'بانش'], duration: '12', dose: '1', unit: 'سم³/لتر' },
-  { name: 'غسيل كلوي + منشط كبد', keywords: ['غسيل', 'كلى', 'كلوي', 'رينال'], duration: '12', dose: '1', unit: 'سم³/لتر' },
+  { name: 'أملاح معدنية', keywords: ['أملاح', 'املاح', 'بانش'], duration: '8', dose: '1', unit: 'سم³/لتر' },
+  { name: 'غسيل كلوي + منشط كبد', keywords: ['غسيل', 'كلى', 'كلوي', 'رينال'], duration: '8', dose: '1', unit: 'سم³/لتر' },
 ];
 
 const CUSTOM_MED_LIST = [
   { name: 'محلول معالجة جفاف', dose: 5, unit: 'جرام/لتر', duration: 8 },
-  { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 12 },
+  { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'أحماض أمينية', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 8 },
+  { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 4 },
   { name: 'فيتامين أد3هـ (AD3E)', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'فيتامين هـ + سيلينيوم (E+Se)', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'فيتامين ب.ك كولين (B-K)', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'غسيل كلوي + منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 12 },
+  { name: 'غسيل كلوي + منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'غسيل كلوي', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'مضاد حيوي (معوي+تنفسي)', dose: 1, unit: 'جرام/لتر', duration: 12 },
   { name: 'مضاد كوكسيديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
   { name: 'مضاد كلوستريديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
-  { name: 'تحصين جمبورو', dose: 1, unit: 'سم³/لتر', duration: 4 },
-  { name: 'تحصين هيتشنر ب1+أي بي (Hitchner B1+IB)', dose: 1, unit: 'سم³/لتر', duration: 4 },
+  { name: 'تحصين جمبورو', dose: 1, unit: 'سم³/لتر', duration: 2 },
+  { name: 'تحصين هيتشنر ب1+أي بي (Hitchner B1+IB)', dose: 1, unit: 'سم³/لتر', duration: 2 },
   { name: 'تحصين لاسوتا', dose: 1, unit: 'سم³/لتر', duration: 4 },
   { name: 'مضاد سموم فطرية', dose: 1, unit: 'سم³/لتر', duration: 12 },
   { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8 },
@@ -1103,7 +1103,6 @@ export default function App() {
     return birdShare;
   };
 
-  // --- Financial Summary ---
   const finances = useMemo(() => {
     // 1. Inputs & Census
     const birdsDied = state.mortalityBills.reduce((acc, m) => acc + toNum(m.count), 0);
@@ -1185,13 +1184,14 @@ export default function App() {
       avgWeightAtDeath: birdsDied > 0 ? (feedConsumedDead / (birdsDied * 1000)) : 0
     };
   }, [state.mortalityBills, state.totalChicks, state.strain, dailyStats.cumFeed, dailyStats.weight, state.feedPrice, state.chickPrice, state.sellingPrice, state.salesRecords, allBills, calculateMortalityOverhead]);
+
   const climateInfo = CLIMATE_FACTORS[state.climate];
 
   // Derived Calculations
   const herdBiomass = (toNum(state.totalChicks) * dailyStats.weight) / 1000; // in kg
   const dailyFeedTotal = (toNum(state.totalChicks) * dailyStats.dailyFeed) / 1000; // in kg
-  const dailyWaterTotal = (dailyFeedTotal * climateInfo.waterFactor); // Simplified: 1.6-2.2x feed by weight is a rough rule, but manuals use ml/bird
-  const dailyWaterTotalLiters = Math.round((toNum(state.totalChicks) * dailyStats.dailyWater * (climateInfo.waterFactor / 1.8)) / 1000); // Adjusted for climate
+  const dailyWaterTotal = (dailyFeedTotal * (climateInfo?.waterFactor || 1.8)); // Standard water/feed ratio
+  const dailyWaterTotalLiters = Math.round((toNum(state.totalChicks) * dailyStats.dailyWater * ((climateInfo?.waterFactor || 1.8) / 1.8)) / 1000); // Adjusted for climate
   
   const targetTemp = getTargetTemperature(toNum(state.age));
 
@@ -1217,130 +1217,144 @@ export default function App() {
     return `${displayH}:${m} ${period}${suffix}`;
   };
 
-  const calculateNextStartTime = (endTime: Date, prevMed: any, nextMed: any) => {
-    if (!endTime || !prevMed || !nextMed) return null;
+  const getNextTime = (startTimeStr: string, currentMed: any, nextMed: any) => {
+    if (!startTimeStr || !currentMed || !nextMed) return null;
 
-    let gapHours = 0;
-    let gapText = "";
-    let gapType = "none";
-    
-    // Rule 1: No gap between rest/water/lighting meds, OR if prev med is an Antibiotic (bridging requested)
-    if (prevMed.category === 'راحة' || nextMed.category === 'راحة' || 
-        prevMed.category === 'إضاءة' || nextMed.category === 'إضاءة' ||
-        prevMed.isAntibiotic || // User requested linking antibiotic to next dose
-        (prevMed.name && prevMed.name.includes('ماء نقي')) || 
-        (nextMed.name && nextMed.name.includes('ماء نقي'))) {
-      gapHours = 0;
-    } else {
-      gapHours = 2; // Updated to 2h gap as per broiler program spec
-      gapText = "ساعتان راحة (ماء نقي)";
-      gapType = "rest";
-    }
-
-    const nextDate = new Date(endTime);
-    nextDate.setHours(nextDate.getHours() + gapHours);
-    
-    return {
-      nextDate,
-      nextStartTimeStr: formatArabicTime(nextDate, endTime),
-      gapText,
-      gapType,
-      gapDuration: gapHours
-    };
-  };
-
-  const getNextTime = (startTime: string, med: any, nextMed: any) => {
-    if (!startTime || !nextMed) return null;
-    const [h, m] = startTime.split(':').map(Number);
+    const [h, m] = startTimeStr.split(':').map(Number);
     const startDate = new Date();
     startDate.setHours(h, m, 0, 0);
-    
-    const durationHours = med.recommendedHours || med.duration || 0;
-    const endDate = new Date(startDate);
-    endDate.setHours(endDate.getHours() + durationHours);
-    
-    const nextInfo = calculateNextStartTime(endDate, med, nextMed);
-    if (!nextInfo) return null;
 
-    return { 
-      endTimeStr: formatArabicTime(endDate, startDate), 
-      nextStartTimeStr: formatArabicTime(nextInfo.nextDate, startDate), 
-      label: nextMed.category === 'تحصين' ? "موعد بدء التحصين" : "موعد الجرعة التالية",
-      gapText: nextInfo.gapText, 
-      gapType: nextInfo.gapType, 
-      gapDuration: nextInfo.gapDuration,
-      isNextDay: nextInfo.nextDate.getDate() !== startDate.getDate()
+    const duration = toNum(currentMed.recommendedHours || currentMed.duration);
+    const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+
+    let gapHours = 1;
+    if (currentMed.category === 'راحة' || nextMed.category === 'راحة' || currentMed.isAntibiotic) {
+       gapHours = 0;
+    }
+    
+    const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
+    
+    return {
+      endTimeStr: formatArabicTime(endDate, startDate),
+      nextStartTimeStr: formatArabicTime(nextStartDate, startDate),
+      label: gapHours === 0 ? "تليها مباشرة" : "الموعد القادم"
     };
   };
 
-  const getCategoryColorClasses = (category: string) => {
-    switch (category) {
-      case 'وقائي':
-      case 'تأسيس':
-        return {
-          border: 'border-s-amber-500',
-          bg: 'bg-amber-600/10',
-          text: 'text-amber-400',
-          dot: 'bg-amber-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(245,158,11,0.5)]'
-        };
-      case 'فيتامينات':
-        return {
-          border: 'border-s-emerald-500',
-          bg: 'bg-emerald-600/10',
-          text: 'text-emerald-400',
-          dot: 'bg-emerald-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-        };
-      case 'داعم':
-        return {
-          border: 'border-s-blue-500',
-          bg: 'bg-blue-600/10',
-          text: 'text-blue-400',
-          dot: 'bg-blue-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-        };
-      case 'تحصين':
-        return {
-          border: 'border-s-purple-500',
-          bg: 'bg-purple-600/10',
-          text: 'text-purple-400',
-          dot: 'bg-purple-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-        };
-      case 'كلوي/كبد':
-        return {
-          border: 'border-s-rose-500',
-          bg: 'bg-rose-600/10',
-          text: 'text-rose-400',
-          dot: 'bg-rose-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(244,63,94,0.5)]'
-        };
-      case 'سموم':
-        return {
-          border: 'border-s-red-500',
-          bg: 'bg-red-600/10',
-          text: 'text-red-400',
-          dot: 'bg-red-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-        };
-      case 'راحة':
-        return {
-          border: 'border-s-slate-500',
-          bg: 'bg-slate-600/10',
-          text: 'text-slate-400',
-          dot: 'bg-slate-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(100,116,139,0.5)]'
-        };
-      default:
-        return {
-          border: 'border-s-blue-500',
-          bg: 'bg-blue-600/10',
-          text: 'text-blue-400',
-          dot: 'bg-blue-500',
-          dotShadow: 'shadow-[0_0_8px_rgba(59,130,246,0.5)]'
-        };
+  const getCategoryColorClasses = (category: string, name: string = '') => {
+    const cat = category?.trim() || '';
+    const nm = name?.trim() || '';
+
+    // 1. White Group (Specific Supplements/Rehydration)
+    if (cat === 'أملاح معدنية' || cat === 'محلول معالجة الجفاف' || 
+        nm.includes('أملاح') || nm.includes('جفاف') || 
+        nm.includes('مثبت لقاح') || nm.includes('أحماض أمينية')) {
+      return {
+        border: 'border-s-white',
+        bg: 'bg-white/10',
+        text: 'text-white',
+        dot: 'bg-white',
+        dotShadow: 'shadow-[0_0_8px_rgba(255,255,255,0.5)]',
+        accent: 'text-slate-200'
+      };
     }
+
+    // 2. Light Red Group (Antibiotics & Specific Vaccines)
+    if (cat === 'مضاد حيوي' || nm.includes('مضاد حيوي') || 
+        nm.includes('كوكسيديا') || nm.includes('كلوستريديا') || 
+        nm.includes('جمبورو') || nm.includes('هيتشنر')) {
+      return {
+        border: 'border-s-red-400',
+        bg: 'bg-red-400/10',
+        text: 'text-red-400',
+        dot: 'bg-red-400',
+        dotShadow: 'shadow-[0_0_8px_rgba(248,113,113,0.5)]',
+        accent: 'text-red-300'
+      };
+    }
+
+    // 3. Vitamins & Probiotics: Emerald/Green
+    if (cat === 'فيتامينات' || cat === 'بكتيريا نافعة' || 
+        nm.includes('فيتامين') || nm.includes('بكتيريا') || nm.includes('بروبيوتك')) {
+      return {
+        border: 'border-s-emerald-500',
+        bg: 'bg-emerald-600/10',
+        text: 'text-emerald-400',
+        dot: 'bg-emerald-500',
+        dotShadow: 'shadow-[0_0_8px_rgba(16,185,129,0.5)]',
+        accent: 'text-emerald-300'
+      };
+    }
+
+    // 4. Vaccines & Emergency (Remaining): Pure Red
+    if (cat === 'تحصين' || cat === 'طوارئ' || nm.includes('تحصين') || nm.includes('طوارئ')) {
+      return {
+        border: 'border-s-red-600',
+        bg: 'bg-red-600/10',
+        text: 'text-red-400',
+        dot: 'bg-red-600',
+        dotShadow: 'shadow-[0_0_8px_rgba(220,38,38,0.5)]',
+        accent: 'text-red-300'
+      };
+    }
+
+    // 5. Yellow Group (Kidney Wash & Liver Tonic) - Solar Yellow
+    if (cat === 'كلوي/كبد' || nm.includes('غسيل') || nm.includes('كلوي') || nm.includes('منشط') || nm.includes('كبد')) {
+      return {
+        border: 'border-s-yellow-400',
+        bg: 'bg-yellow-400/10',
+        text: 'text-yellow-400',
+        dot: 'bg-yellow-400',
+        dotShadow: 'shadow-[0_0_8px_rgba(250,204,21,0.5)]',
+        accent: 'text-yellow-300'
+      };
+    }
+
+    // 6. Beige Group (Antitoxin/Antifungal) - Amber/Beige vibe
+    if (cat === 'سموم' || nm.includes('سموم') || nm.includes('فطرية')) {
+      return {
+        border: 'border-s-[#d2b48c]', // Tan/Beige
+        bg: 'bg-[#d2b48c]/10',
+        text: 'text-[#d2b48c]',
+        dot: 'bg-[#d2b48c]',
+        dotShadow: 'shadow-[0_0_8px_rgba(210,180,140,0.5)]',
+        accent: 'text-[#e5d3b3]'
+      };
+    }
+
+    // 7. Pure Water: Sky Blue
+    if (cat === 'ماء نقي' || nm.includes('ماء نقي') || nm.includes('مياه')) {
+      return {
+        border: 'border-s-sky-400',
+        bg: 'bg-sky-400/10',
+        text: 'text-sky-400',
+        dot: 'bg-sky-400',
+        dotShadow: 'shadow-[0_0_8px_rgba(56,189,248,0.5)]',
+        accent: 'text-sky-300'
+      };
+    }
+
+    // 6. Rest/Darkness: Slate
+    if (cat === 'راحة' || cat === 'إظلام' || nm.includes('راحة') || nm.includes('إظلام')) {
+      return {
+        border: 'border-s-slate-500',
+        bg: 'bg-slate-600/10',
+        text: 'text-slate-400',
+        dot: 'bg-slate-500',
+        dotShadow: 'shadow-[0_0_8px_rgba(100,116,139,0.5)]',
+        accent: 'text-slate-300'
+      };
+    }
+
+    // Default: Blue
+    return {
+      border: 'border-s-blue-500',
+      bg: 'bg-blue-600/10',
+      text: 'text-blue-400',
+      dot: 'bg-blue-500',
+      dotShadow: 'shadow-[0_0_8px_rgba(59,130,246,0.5)]',
+      accent: 'text-blue-300'
+    };
   };
 
   const prevDayMeds = useMemo(() => {
@@ -1362,7 +1376,26 @@ export default function App() {
     };
     rawMeds.sort((a: any, b: any) => (categoryWeights[a.category] || 99) - (categoryWeights[b.category] || 99));
 
-    const uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
+    const uniqueMeds: any[] = [];
+    
+    // Day 3 & 4 Special Sequence: Antibiotic -> Water -> Vitamin -> Water
+    if (prevAge === 3 || prevAge === 4) {
+      const antibiotic = rawMeds.find(m => m.isAntibiotic || m.name.includes('حيوي') || m.category === 'وقائي');
+      const vitamin = rawMeds.find(m => m.category === 'فيتامينات' && m.name.includes('أد3هـ'));
+      const water = rawMeds.find(m => m.category === 'راحة' || m.name.includes('ماء نقي'));
+      
+      if (antibiotic || vitamin || water) {
+        if (antibiotic) uniqueMeds.push({ ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 });
+        if (vitamin) uniqueMeds.push({ ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 });
+      }
+    }
+
+    if (uniqueMeds.length === 0) {
+      const unique = rawMeds.filter((m: any, i: number) => i === 0 || m.name !== rawMeds[i-1].name);
+      uniqueMeds.push(...unique);
+    }
     
     const structuredMeds = uniqueMeds.map(m => {
       const stableId = m.id || m.name;
@@ -1440,7 +1473,26 @@ export default function App() {
     
     rawMeds.sort((a: any, b: any) => (categoryWeights[a.category] || 99) - (categoryWeights[b.category] || 99));
 
-    let uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
+    let uniqueMeds: any[] = [];
+    
+    // Day 3 & 4 Special Sequence: Antibiotic -> Water -> Vitamin -> Water
+    const currentAge = toNum(state.age);
+    if (currentAge === 3 || currentAge === 4) {
+      const antibiotic = rawMeds.find(m => m.isAntibiotic || m.name.includes('حيوي') || m.category === 'وقائي');
+      const vitamin = rawMeds.find(m => m.category === 'فيتامينات' && m.name.includes('أد3هـ'));
+      const water = rawMeds.find(m => m.category === 'راحة' || m.name.includes('ماء نقي'));
+      
+      if (antibiotic || vitamin || water) {
+        if (antibiotic) uniqueMeds.push({ ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 });
+        if (vitamin) uniqueMeds.push({ ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 });
+      }
+    }
+
+    if (uniqueMeds.length === 0) {
+      uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
+    }
     
     // Check boundary with previous day to avoid consecutive Pure Water
     const yesterdayEndedWithWater = lastMedPrevDay && (lastMedPrevDay.name.includes('ماء نقي') || lastMedPrevDay.category === 'راحة');
@@ -1691,7 +1743,24 @@ export default function App() {
       return false;
     };
 
-    const ageMeds = MEDICATIONS.filter(med => med.targetDays.includes(age) && med.climates.includes(state.climate));
+    let ageMeds = MEDICATIONS.filter(med => med.targetDays.includes(age) && med.climates.includes(state.climate));
+    
+    // Day 3 & 4 Special Sequence: Antibiotic -> Water -> Vitamin -> Water
+    if (age === 3 || age === 4) {
+      const antibiotic = ageMeds.find(m => m.isAntibiotic || m.name.includes('حيوي') || m.category === 'وقائي');
+      const vitamin = ageMeds.find(m => m.category === 'فيتامينات' && m.name.includes('أد3هـ'));
+      const water = ageMeds.find(m => m.category === 'راحة' || m.name.includes('ماء نقي'));
+      
+      if (antibiotic && vitamin && water) {
+        ageMeds = [
+          { ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 },
+          { ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 },
+          { ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 },
+          { ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 }
+        ];
+      }
+    }
+
     const ageEmergencyMeds = state.emergencyMeds.filter(m => toNum(m.age) === age);
     const schedule = getLightingScheduleForAge(age);
 
@@ -4645,13 +4714,14 @@ export default function App() {
                             const darknessKey = `${toNum(state.age)}-darkness`;
                             const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
 
+                            const colors = getCategoryColorClasses('راحة', 'إظلام');
                             return (
-                              <div key="darkness-card" className="bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-l-4 border-indigo-500 overflow-hidden relative group">
+                              <div key="darkness-card" className={cn("bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-s-4 overflow-hidden relative group", colors.border)}>
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
                                 
                                 <div className="flex items-center justify-between relative z-10">
                                   <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-indigo-600/20 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/30 shadow-[0_0_20px_rgba(79,70,229,0.15)] group-hover:scale-110 transition-transform">
+                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-[0_0_20px_rgba(79,70,229,0.15)] group-hover:scale-110 transition-transform", colors.bg.replace('/10', '/20'), colors.text, colors.border.replace('border-s-', 'border-'))}>
                                       <Moon size={24} />
                                     </div>
                                     <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -4871,9 +4941,10 @@ export default function App() {
 
                           if (item.type === 'emergency') {
                             const med = item;
+                            const colors = getCategoryColorClasses('طوارئ', med.name);
 
                             return (
-                              <div key={med.id} className="bg-red-500/5 border border-red-500/20 p-5 rounded-3xl relative group border-s-4 border-s-red-600">
+                              <div key={med.id} className={cn("bg-slate-900/80 border border-white/5 p-5 rounded-3xl relative group border-s-4 transition-all hover:bg-slate-800/90 shadow-xl", colors.border)}>
                 <button 
                   type="button"
                   onClick={(e) => {
@@ -4894,7 +4965,7 @@ export default function App() {
                                     </h3>
                                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">تلقائي الترتيب ضمن المواعيد</p>
                                   </div>
-                                  <div className="w-10 h-10 bg-red-600/10 rounded-xl flex items-center justify-center text-red-500 border border-red-600/20 shadow-[0_0_15px_rgba(220,38,38,0.1)]">
+                                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border shadow-lg transition-transform group-hover:scale-110", colors.bg.replace('/10', '/20'), colors.text, colors.border.replace('border-s-', 'border-'))}>
                                     <Zap size={20} />
                                   </div>
                                 </div>
@@ -5153,21 +5224,21 @@ export default function App() {
                           } else {
                             const med = item;
                             const logKey = `${toNum(state.age)}-${med.id || med.name}`;
-                            const colors = getCategoryColorClasses(med.category);
+                            const colors = getCategoryColorClasses(med.category, med.name);
                             const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
                             const nextAct = nextItem || localNextDayFirstMed;
 
                             return (
                               <div key={i} className={cn(
-                                "bg-slate-900 shadow-xl border-t border-white/5 p-5 rounded-3xl flex flex-col gap-4 border-l-4 transition-all duration-300",
+                                "bg-slate-900 shadow-xl border-t border-white/5 p-5 rounded-3xl flex flex-col gap-4 border-s-4 transition-all duration-300",
                                 colors.border,
-                                med.category === 'راحة' && "opacity-70"
+                                med.isRest && "opacity-80"
                               )}>
                                 <div className="flex items-center justify-between group">
                                   <div className="flex items-center gap-3 w-full">
                                     <div className={cn(
                                       "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border shadow-inner transition-colors shrink-0",
-                                      colors.bg, colors.text, "border-white/10"
+                                      colors.bg.replace('/10', '/20'), colors.text, colors.border.replace('border-s-', 'border-')
                                     )}>
                                       {i + 1}
                                     </div>
@@ -5275,7 +5346,7 @@ export default function App() {
                                       </div>
                                       
                                       <div className="flex items-center gap-2">
-                                        <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.text)}>
+                                        <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.accent)}>
                                           {med.category}
                                         </span>
                                         {med.isSpanningMidnight && <Moon size={14} className="text-indigo-400 animate-pulse" title="تمتد لليوم التالي" />}
@@ -5360,7 +5431,7 @@ export default function App() {
                                     {med.startTime && toNum(med.duration) > 0 && (
                                       <div className={cn(
                                         "p-3 rounded-2xl border space-y-2 text-right",
-                                        colors.bg, "bg-opacity-5", colors.border, "border-opacity-20"
+                                        colors.bg, "bg-opacity-5", colors.border.replace('border-s-', 'border-'), "border-opacity-20"
                                       )}>
                                         {toNum(med.doseValue) > 0 && (
                                           <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
@@ -5527,18 +5598,19 @@ export default function App() {
                     ? Math.round(toNum(state.totalChicks) * med.doseValue) 
                     : Math.round(med.calculatedWater * med.doseValue);
                   const isWithdrawalRisk = toNum(state.age) >= 28 && med.isAntibiotic;
-                  const colors = getCategoryColorClasses(med.category);
+                  const colors = getCategoryColorClasses(med.category, med.name);
                   
                   return (
                     <Card key={idx} className={cn(
-                      "hover:bg-slate-800/80 transition-all cursor-pointer group border-white/5 overflow-hidden p-0",
-                      isWithdrawalRisk ? "border-red-500/50 bg-red-500/5" : "hover:border-blue-400/30"
+                      "hover:bg-slate-800/80 transition-all cursor-pointer group border-white/5 overflow-hidden p-0 border-s-4",
+                      colors.border,
+                      isWithdrawalRisk ? "border-red-500/50 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "hover:border-opacity-100"
                     )}>
                       <div className="bg-slate-950/30 px-5 py-2 border-b border-white/5 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <span className={cn(
                             "text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                            colors.bg, colors.text
+                            colors.bg.replace('/10', '/20'), colors.text
                           )}>
                             {med.category}
                           </span>
@@ -5561,7 +5633,7 @@ export default function App() {
                           <div className="flex items-center gap-4">
                             <div className={cn(
                               "w-1.5 h-10 rounded-full bg-slate-800 transition-all",
-                              isWithdrawalRisk ? "bg-red-600" : "group-hover:" + colors.dot
+                              isWithdrawalRisk ? "bg-red-600" : "group-hover:" + colors.accent.replace('text-', 'bg-')
                             )}></div>
                             <div>
                               <h4 className={cn("font-black text-lg text-white group-hover:transition-colors", "group-hover:" + colors.text)}>{med.name}</h4>
