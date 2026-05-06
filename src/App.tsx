@@ -39,6 +39,7 @@ import {
   Trash2,
   X,
   Moon,
+  LogOut,
   FileText,
   AlertTriangle,
   Info,
@@ -83,7 +84,7 @@ import {
 } from '@/src/lib/firebase';
 
 // --- Types ---
-type Screen = 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management';
 
 // --- Utils ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -343,11 +344,19 @@ const INITIAL_STATE: AppState = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>(() => {
     const saved = localStorage.getItem('poultry_app_screen');
+    // If user has already passed the gateway check in this session, we can restore.
+    // However, for security as requested, "as soon as app opens" implies a fresh check.
+    const isBypassed = sessionStorage.getItem('poultry_gateway_passed');
+    if (!isBypassed) return 'gateway';
+    
     if (saved === 'setup' || !saved) return 'landing';
     return (saved as Screen) || 'landing';
   });
+  const [gatewayEmail, setGatewayEmail] = useState('');
+  const [gatewayPassword, setGatewayPassword] = useState('');
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const [flipDirection, setFlipDirection] = useState(0);
 
   const [isAutoSave, setIsAutoSave] = useState(() => {
@@ -403,11 +412,17 @@ export default function App() {
 
   const [isNamingNewCycle, setIsNamingNewCycle] = useState(false);
   const [newCycleNameInput, setNewCycleNameInput] = useState('');
+  const [isLogoutConfirming, setIsLogoutConfirming] = useState(false);
   const [deletingCycleId, setDeletingCycleId] = useState<string | null>(null);
   const [deleteStep, setDeleteStep] = useState(0); // 0: none, 1: warning, 2: final confirm
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   const [selectedMedInfo, setSelectedMedInfo] = useState<{ title: string, text: string } | null>(null);
+
+  // Scroll to top when switching screens
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
 
   // --- Auto-hide Nav Logic ---
   const [isNavVisible, setIsNavVisible] = useState(true);
@@ -429,18 +444,25 @@ export default function App() {
   };
 
   const fetchChickenPrice = async (force = false) => {
-    // Only fetch if not manual mode or if forced
-    if (state.isManualPriceMode && !force) return;
-
     setIsFetchingPrice(true);
     try {
-      // جلب السعر الحقيقي من السيرفر الذي يقوم بسحب البيانات من موقع بالتفصيل
-      const response = await fetch('/api/poultry-price');
-      if (!response.ok) throw new Error('Network response was not ok');
+      // Use relative path for same-origin requests, absolute for others
+      const response = await fetch('/api/poultry-price', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      const officialFarmPrice = data.price; 
       
-      const officialFarmPrice = data.price || 85; 
-      
+      if (!officialFarmPrice) throw new Error('Price not found in response');
+
       const now = new Date();
       const formattedDate = now.toLocaleString('ar-EG', {
         year: 'numeric',
@@ -458,8 +480,13 @@ export default function App() {
         lastPriceUpdateAt: formattedDate,
         isManualPriceMode: false
       }));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch poultry price from backend API", error);
+      // In case of error, if it was an automatic fetch, we just fail silently (preserving current price)
+      // but if it was a forced manual refresh, we alert the user.
+      if (force) {
+        alert(`فشل تحديث السعر: ${error.message || 'مشكلة في الاتصال بالسيرفر'}. تأكد من اتصال الإنترنت أو استخدم الإدخال اليدوي.`);
+      }
     } finally {
       setIsFetchingPrice(false);
     }
@@ -467,9 +494,7 @@ export default function App() {
 
   useEffect(() => {
     // جلب السعر عند كل دخول للتطبيق
-    if (!state.isManualPriceMode) {
-      fetchChickenPrice();
-    }
+    fetchChickenPrice();
   }, []);
 
   useEffect(() => {
@@ -763,6 +788,39 @@ export default function App() {
     }
   };
 
+  const handleGatewayLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // قاعدة البيانات الداخلية (أوف لاين)
+    const usersDatabase = [
+      { user: "mohamed.gemy84@yahoo.com", pass: "250226#@koko" },
+      { user: "Moh.gem9898@gmail.com", pass: "25260257" }
+    ];
+
+    const userFound = usersDatabase.find(
+      (u) => u.user.toLowerCase() === gatewayEmail.trim().toLowerCase() && u.pass === gatewayPassword
+    );
+
+    if (userFound) {
+      sessionStorage.setItem('poultry_gateway_passed', 'true');
+      setScreen('landing');
+    } else {
+      alert("اسم المستخدم أو كلمة المرور غير صحيحة.");
+    }
+  };
+
+  const handleAppLogout = () => {
+    setIsLogoutConfirming(true);
+  };
+
+  const confirmLogout = () => {
+    sessionStorage.removeItem('poultry_gateway_passed');
+    localStorage.removeItem('poultry_app_screen');
+    signOut(auth).catch(() => {});
+    setScreen('gateway');
+    setIsLogoutConfirming(false);
+  };
+
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     const email = (e.target as any).email.value;
@@ -772,6 +830,133 @@ export default function App() {
       setScreen('landing');
     } catch (error: any) {
       alert(`حدث خطأ أثناء إنشاء الحساب: ${error.message}`);
+    }
+  };
+
+  const uploadToDrive = async () => {
+    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
+    if (!CLIENT_ID) {
+      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
+      return;
+    }
+    
+    setIsDriveLoading(true);
+    try {
+      // @ts-ignore
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: async (response: any) => {
+          if (response.error) {
+            setIsDriveLoading(false);
+            alert('تم إلغاء العملية أو حدث خطأ في التصريح');
+            return;
+          }
+          
+          if (response.access_token) {
+            const accessToken = response.access_token;
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `برنامج_إدارة_الدواجن_نسخة_احتياطية_${timestamp}.json`;
+            const metadata = { name: filename, mimeType: 'application/json' };
+            
+            const backupData = {
+              app: 'poultry_manager',
+              version: 4,
+              activeCycle: state,
+              archive: allCycles,
+              settings: { isAutoSave }
+            };
+            
+            const fileContent = JSON.stringify(backupData);
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+            try {
+              const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: form,
+              });
+
+              if (res.ok) alert('تم الرفع الكامل إلى Google Drive بنجاح');
+              else alert('فشل الرفع: تأكد من صلاحيات التطبيق');
+            } catch (err) {
+              alert('خطأ في الاتصال بالسيرفر أثناء الرفع');
+            } finally {
+              setIsDriveLoading(false);
+            }
+          }
+        },
+      });
+      client.requestAccessToken();
+    } catch (e) {
+      setIsDriveLoading(false);
+      alert('تأكد من تحميل مكتبة Google Identity Services');
+    }
+  };
+
+  const restoreFromDrive = async () => {
+    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
+    if (!CLIENT_ID) {
+      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
+      return;
+    }
+
+    setIsDriveLoading(true);
+    try {
+      // @ts-ignore
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: async (response: any) => {
+          if (response.access_token) {
+            const accessToken = response.access_token;
+            try {
+              // Search for backup files
+              const searchRes = await fetch(
+                `https://www.googleapis.com/drive/v3/files?q=name contains 'برنامج_إدارة_الدواجن_نسخة_احتياطية' and trashed = false&orderBy=createdTime desc&pageSize=1`,
+                { headers: { Authorization: `Bearer ${accessToken}` } }
+              );
+              
+              const searchData = await searchRes.json();
+              if (searchData.files && searchData.files.length > 0) {
+                const fileId = searchData.files[0].id;
+                const fileName = searchData.files[0].name;
+                
+                if (confirm(`هل تريد استعادة أحدث نسخة تم العثور عليها (${fileName})؟ سيتم استبدال البيانات الحالية.`)) {
+                  const fileRes = await fetch(
+                    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                  );
+                  const backup = await fileRes.json();
+                  
+                  if (backup.app === 'poultry_manager' && backup.activeCycle) {
+                    setState(backup.activeCycle);
+                    if (backup.archive) setAllCycles(backup.archive);
+                    if (backup.settings) setIsAutoSave(backup.settings.isAutoSave ?? true);
+                    alert('تم استعادة البيانات من السحاب بنجاح');
+                  } else {
+                    alert('الملف المختار ليس ملف نسخة احتياطية صالح لهذا البرنامج');
+                  }
+                }
+              } else {
+                alert('لم يتم العثور على أي نسخ احتياطية في حسابك');
+              }
+            } catch (err) {
+              alert('حدث خطأ أثناء البحث أو تحميل النسخة الاحتياطية');
+            } finally {
+              setIsDriveLoading(false);
+            }
+          } else {
+            setIsDriveLoading(false);
+          }
+        },
+      });
+      client.requestAccessToken();
+    } catch (e) {
+      setIsDriveLoading(false);
+      alert('خطأ في تهيئة الاتصال بـ Google');
     }
   };
   const [openMedDropdown, setOpenMedDropdown] = React.useState<string | null>(null);
@@ -1825,6 +2010,73 @@ export default function App() {
     </AnimatePresence>
   );
 
+  if (screen === 'gateway') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative overflow-hidden" dir="rtl">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/20 blur-[120px] rounded-full" />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bento-card p-10 border-white/10 relative z-10 backdrop-blur-xl bg-slate-900/80 shadow-2xl"
+        >
+          <div className="flex flex-col items-center gap-6 mb-12">
+            <Logo size={96} iconSize={48} className="rounded-[2.5rem]" />
+            <div className="text-center">
+              <h1 className="text-2xl font-black text-white mb-1 uppercase tracking-tight">مدير مزارع الدواجن</h1>
+              <p className="text-slate-400 font-bold text-sm">برجاء تسجيل الدخول للمتابعة</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleGatewayLogin} className="space-y-5">
+            <div className="space-y-2 text-right">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">البريد الإلكتروني</label>
+              <input 
+                type="email"
+                value={gatewayEmail}
+                onChange={(e) => setGatewayEmail(e.target.value)}
+                placeholder="اسم المستخدم"
+                required
+                autoCapitalize="none"
+                className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700"
+              />
+            </div>
+            
+            <div className="space-y-2 text-right">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">كلمة المرور</label>
+              <input 
+                type="password"
+                value={gatewayPassword}
+                onChange={(e) => setGatewayPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700"
+              />
+            </div>
+
+            <motion.button 
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
+            >
+              <Zap size={24} fill="currentColor" />
+              دخول
+            </motion.button>
+          </form>
+
+          <p className="text-center text-slate-600 font-bold text-[10px] mt-10 uppercase tracking-[0.2em] select-none">
+            POULTRY MANAGER v5.0 • PROTECTED ACCESS
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (screen === 'login') {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
@@ -2071,27 +2323,87 @@ export default function App() {
               </motion.button>
             )}
 
-      {/* Login / Auth Placeholder */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setScreen('login')}
-        className="group relative overflow-hidden bg-white/5 border-2 border-white/10 p-8 rounded-[2rem] text-right transition-all hover:border-white/20 md:col-span-2"
-      >
-        <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Settings size={80} className="text-slate-500" />
-        </div>
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <h3 className="text-2xl font-black text-white mb-2">{user ? `مرحباً، ${user.displayName || user.email}` : 'تسجيل الدخول'}</h3>
-            <p className="text-slate-500 font-bold text-sm">{user ? 'أنت مسجل الدخول الآن' : 'سجل دخولك لحفظ بياناتك سحابياً والوصول إليها من أي مكان'}</p>
+            {/* Backup & Restore Option */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setScreen('management')}
+              className="group relative overflow-hidden bg-purple-600/10 border-2 border-purple-500/20 p-8 rounded-[2rem] text-right transition-all hover:border-purple-500/40 md:col-span-2"
+            >
+              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                <HardDrive size={80} className="text-purple-500" />
+              </div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-black text-white mb-2">النسخ الاحتياطي</h3>
+                  <p className="text-purple-500/70 font-bold text-sm">حفظ واستعادة بيانات البرنامج بالكامل وتصدير التقارير</p>
+                </div>
+                <div className="w-14 h-14 bg-purple-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-500/40">
+                  <Cloud size={32} strokeWidth={3} />
+                </div>
+              </div>
+            </motion.button>
           </div>
-          <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            {user ? <CheckCircle2 size={32} strokeWidth={3} className="text-emerald-500" /> : <LayoutDashboard size={32} strokeWidth={3} />}
-          </div>
-        </div>
-      </motion.button>
-          </div>
+
+          {/* Logout Action */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleAppLogout}
+            className="w-full flex items-center justify-center gap-4 bg-rose-600/10 border-2 border-rose-500/20 p-6 rounded-[2rem] text-rose-500 transition-all hover:bg-rose-600/20 hover:border-rose-500/40 shadow-xl shadow-rose-600/5 group mb-8"
+          >
+            <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-500/20 group-hover:scale-110 transition-transform">
+              <LogOut size={24} className="rotate-180" />
+            </div>
+            <div className="text-right">
+              <h3 className="text-xl font-black">تسجيل الخروج</h3>
+              <p className="text-[10px] text-rose-500/70 font-bold">إنهاء الجلسة والعودة لشاشة الدخول</p>
+            </div>
+          </motion.button>
+
+          {/* Logout Confirmation Modal */}
+          <AnimatePresence>
+            {isLogoutConfirming && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[200] flex items-center justify-center p-6"
+              >
+                <motion.div 
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl flex flex-col items-center text-center gap-6"
+                >
+                  <div className="w-20 h-20 bg-rose-500/20 rounded-3xl flex items-center justify-center text-rose-500 mb-2">
+                    <LogOut size={40} className="rotate-180" />
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-2xl font-black text-white mb-2">تسجيل الخروج</h3>
+                    <p className="text-slate-400 font-medium">هل أنت متأكد من رغبتك في تسجيل الخروج من البرنامج؟</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 w-full">
+                    <button 
+                      onClick={() => setIsLogoutConfirming(false)}
+                      className="bg-slate-800 text-white py-4 rounded-2xl font-black transition-all active:scale-95 border border-white/5"
+                    >
+                      إلغاء
+                    </button>
+                    <button 
+                      onClick={confirmLogout}
+                      className="bg-rose-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-rose-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <LogOut size={20} className="rotate-180" />
+                      خروج
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Naming Modal Overlay */}
           <AnimatePresence>
@@ -2807,7 +3119,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Card 1: Firebase Sync Info */}
+                  {/* Card 1: Google Cloud Backup */}
                   <div className="bg-blue-600/10 p-6 rounded-[2rem] border border-blue-500/20 shadow-xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                       <Cloud size={80} className="text-blue-400" />
@@ -2815,27 +3127,30 @@ export default function App() {
                     <div className="relative z-10 flex flex-col gap-4">
                       <div className="flex items-center justify-between flex-row-reverse text-right">
                         <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                          <Cloud size={28} />
+                          {isDriveLoading ? <RefreshCw size={28} className="animate-spin" /> : <Cloud size={28} />}
                         </div>
                         <div className="flex-1 me-4">
-                          <h4 className="text-lg font-black text-white">المزامنة السحابية</h4>
-                          <p className="text-[11px] text-blue-400/70 font-bold">يتم الآن حفظ بياناتك تلقائياً في حسابك المؤمن</p>
+                          <h4 className="text-lg font-black text-white">النسخ الاحتياطي على Google</h4>
+                          <p className="text-[11px] text-blue-400/70 font-bold">حفظ واستعادة النسخة في حسابك الشخصي على Google Drive</p>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-1 gap-3">
-                        {user ? (
-                           <div className="w-full bg-blue-600/20 text-blue-300 py-4 rounded-2xl font-bold text-xs border border-blue-500/20 text-center">
-                             مسجل الدخول كـ: {user.email}
-                           </div>
-                        ) : (
-                          <button 
-                            onClick={() => setScreen('login')}
-                            className="w-full bg-blue-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-400 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                          >
-                            تسجيل الدخول للمزامنة
-                          </button>
-                        )}
+                        <button 
+                          onClick={uploadToDrive}
+                          disabled={isDriveLoading}
+                          className="w-full bg-blue-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-400 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {isDriveLoading ? 'جاري الاتصال...' : 'رفع نسخة جديدة للسحاب'}
+                        </button>
+                        
+                        <button 
+                          onClick={restoreFromDrive}
+                          disabled={isDriveLoading}
+                          className="w-full bg-blue-600/20 text-blue-300 py-3 rounded-2xl font-bold text-xs border border-blue-500/20 hover:bg-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {isDriveLoading ? 'جاري البحث...' : 'استعادة أحدث نسخة من السحاب'}
+                        </button>
                       </div>
                     </div>
                   </div>
