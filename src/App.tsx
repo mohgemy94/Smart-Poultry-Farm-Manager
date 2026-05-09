@@ -14,7 +14,17 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
+  CloudRain,
+  CloudLightning,
+  CloudSun,
+  Snowflake,
+  Sun,
+  Search,
+  MapPin,
+  AlertTriangle,
+  RefreshCw,
   Thermometer, 
+  Target,
   Calendar,
   AlertCircle,
   PlusCircle,
@@ -23,13 +33,14 @@ import {
   Clock,
   CheckCircle2,
   Zap,
+  Cpu,
+  Sparkles,
   Plus,
   Layers,
   Wallet,
   TrendingUp,
   Banknote,
   Scale,
-  RefreshCw,
   Download,
   Upload,
   HardDrive,
@@ -41,13 +52,17 @@ import {
   Moon,
   LogOut,
   FileText,
-  AlertTriangle,
   Info,
   Layout,
+  Minus,
   Edit3,
   Check,
   Bird,
-  Package
+  Package,
+  Play,
+  Pause,
+  RotateCcw,
+  MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -71,6 +86,7 @@ import {
   MEDICATIONS, 
   DailyData 
 } from '@/src/lib/data';
+import { EXPERT_DATABASE, ExpertTip } from '@/src/lib/expertData';
 import { cn } from '@/src/lib/utils';
 import { 
   auth, 
@@ -84,7 +100,7 @@ import {
 } from '@/src/lib/firebase';
 
 // --- Types ---
-type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
 
 // --- Utils ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
@@ -93,6 +109,778 @@ const polarToCartesian = (centerX: number, centerY: number, radius: number, angl
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians)
   };
+};
+
+const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targetThi: number }) => {
+  const [weather, setWeather] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState('جاري التحديد...');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  const fetchWeather = useCallback(async (lat: number, lon: number, name?: string) => {
+    setLoading(true);
+    try {
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true&wind_speed_10m=true&daily=weathercode,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max&timezone=auto`
+      );
+      const weatherData = await weatherRes.json();
+      setWeather(weatherData);
+
+      if (!name) {
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
+        );
+        const geoData = await geoRes.json();
+        setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
+      } else {
+        setLocationName(name);
+      }
+    } catch (err) {
+      setError('فشل في جلب بيانات الطقس');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getTargetTemp = (day: number) => {
+    if (day <= 3) return 33;
+    if (day <= 7) return 31;
+    if (day <= 14) return 28;
+    if (day <= 21) return 25;
+    if (day <= 28) return 22;
+    return 20;
+  };
+
+  const getPoultryAdvice = (temp: number, rh: number, wind: number, age: number) => {
+    const advices = [];
+    const targetT = getTargetTemp(age);
+
+    if (temp > targetT + 3) advices.push(`الحرارة الحالية (${Math.round(temp)}°م) أعلى من المطلوب لعمر ${age} يوم (${targetT}°م). زد التهوية.`);
+    if (temp < targetT - 3) advices.push(`الحرارة الحالية (${Math.round(temp)}°م) أقل من المطلوب لعمر ${age} يوم (${targetT}°م). تأكد من التدفئة.`);
+    if (rh > 75) advices.push('الرطوبة الخارجية مرتفعة: اعتمد على زيادة سرعة الهواء.');
+    if (wind > 25) advices.push('رياح قوية خارجية: تأكد من إحكام غلق الستائر لمنع التيارات الهوائية.');
+    
+    if (advices.length === 0) advices.push(`الجو الخارجي مثالي لاحتياجات الطيور في عمر ${age} يوم.`);
+    return advices;
+  };
+
+  const searchLocations = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=5&language=ar&format=json`
+      );
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchWeather(position.coords.latitude, position.coords.longitude);
+        },
+        (err) => {
+          setError('يرجى تفعيل الموقع (GPS) للحصول على طقس دقيق');
+          setLoading(false);
+        }
+      );
+    } else {
+      setError('المتصفح لا يدعم تحديد الموقع');
+      setLoading(false);
+    }
+  }, [fetchWeather]);
+
+  const getWeatherIcon = (code: number, size = 32) => {
+    if (code === 0) return <Sun className="text-amber-400" size={size} strokeWidth={1.5} />;
+    if (code <= 3) return <CloudSun className="text-sky-400" size={size} strokeWidth={1.5} />;
+    if (code <= 48) return <Cloud className="text-slate-400" size={size} strokeWidth={1.5} />;
+    if (code <= 67) return <CloudRain className="text-blue-500" size={size} strokeWidth={1.5} />;
+    if (code <= 77) return <Snowflake className="text-slate-200" size={size} strokeWidth={1.5} />;
+    if (code <= 99) return <CloudLightning className="text-purple-500" size={size} strokeWidth={1.5} />;
+    return <Cloud size={size} strokeWidth={1.5} />;
+  };
+
+  const getWeatherLabel = (code: number) => {
+    if (code === 0) return 'صافي';
+    if (code <= 3) return 'غائم جزئياً';
+    if (code <= 48) return 'ضباب';
+    if (code <= 67) return 'أمطال خفيفة';
+    if (code <= 77) return 'ثلوج';
+    if (code <= 99) return 'عواصف رعدية';
+    return 'غير معروف';
+  };
+
+  if (loading && !weather) return (
+    <div className="flex flex-col items-center justify-center h-96 gap-6">
+      <motion.div 
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
+        className="w-16 h-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20"
+      >
+        <RefreshCw size={32} />
+      </motion.div>
+      <div className="text-center space-y-2">
+        <p className="text-white font-black text-lg">جاري رصد الطقس</p>
+        <p className="text-slate-500 font-bold text-sm">نقوم بتحديد موقع المزرعة الحالي...</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 text-right pb-24"
+    >
+      {/* Dynamic Header */}
+      <div className="relative z-[100]">
+        <div className="flex items-center justify-between px-2 mb-4">
+          <button 
+            onClick={() => setShowSearch(!showSearch)}
+            className={cn(
+              "p-3 rounded-2xl transition-all duration-300 border shadow-lg",
+              showSearch ? "bg-white text-slate-900 border-white" : "bg-slate-900/60 text-blue-400 border-white/5 hover:bg-slate-900"
+            )}
+          >
+            {showSearch ? <X size={20} /> : <Search size={20} />}
+          </button>
+          <div className="text-right">
+            <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
+              {locationName}
+              <MapPin size={22} className="text-blue-500" />
+            </h2>
+            <div className="flex items-center justify-end gap-2 mt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">بيانات طقس مباشرة</p>
+            </div>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {showSearch && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="absolute top-full left-0 right-0 bg-slate-900/95 p-5 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl space-y-4 z-[101]"
+            >
+              <div className="relative group">
+                <input 
+                  type="text"
+                  placeholder="ابحث عن مدينة أو منطقة..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchLocations()}
+                  className="bg-slate-950 border border-white/5 rounded-2xl w-full text-right px-12 py-4 text-white font-black text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                  dir="rtl"
+                />
+                <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 group-hover:text-blue-500 transition-colors" />
+                {searchQuery && (
+                  <button onClick={searchLocations} className="absolute left-3 top-1/2 -translate-y-1/2 bg-blue-600 px-4 py-1.5 rounded-xl text-white font-black text-xs hover:bg-blue-500 transition-colors">
+                    بحث
+                  </button>
+                )}
+              </div>
+              
+              {isSearching && (
+                <div className="flex justify-center py-4">
+                  <RefreshCw className="animate-spin text-blue-500" size={20} />
+                </div>
+              )}
+              
+              {searchResults.length > 0 && (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {searchResults.map((res, i) => (
+                    <button
+                      key={`${res.latitude}-${res.longitude}-${i}`}
+                      onClick={() => {
+                        fetchWeather(res.latitude, res.longitude, res.name);
+                        setSearchResults([]);
+                        setSearchQuery('');
+                        setShowSearch(false);
+                      }}
+                      className="w-full text-right p-4 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-between group transition-all border border-transparent hover:border-white/5"
+                    >
+                      <ChevronLeft size={16} className="text-slate-700 group-hover:text-blue-500" />
+                      <div className="text-right">
+                        <p className="text-white font-black text-sm">{res.name}</p>
+                        <p className="text-slate-500 text-[10px] font-bold mt-0.5">{res.admin1}, {res.country}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {error ? (
+        <div className="flex flex-col items-center justify-center p-10 bg-red-500/5 rounded-[2.5rem] border border-red-500/10 gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+            <AlertTriangle size={32} />
+          </div>
+          <p className="text-white font-black text-center">{error}</p>
+          <button 
+            onClick={() => { setLoading(true); setError(null); }}
+            className="bg-white px-8 py-3 rounded-2xl text-slate-900 font-black text-sm hover:scale-105 transition-transform"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Main Weather Visual */}
+          <div className="relative overflow-hidden group">
+             {/* Dynamic Light Background */}
+             <div className="absolute inset-0 bg-blue-600/10 blur-[120px] rounded-full translate-y-[-50%] animate-pulse" />
+             
+             <div className="relative bg-slate-900/60 backdrop-blur-md p-8 md:p-10 rounded-[3rem] border border-white/5 shadow-2xl space-y-10">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                   <div className="text-center md:text-right flex flex-col items-center md:items-end">
+                      <span className="text-blue-400 font-black tracking-widest text-[10px] uppercase mb-1 bg-blue-500/10 px-3 py-1 rounded-full">الحالة الراهنة</span>
+                      <div className="flex items-center gap-6 mt-2">
+                         <div className="flex flex-col items-center md:items-end order-2 md:order-1">
+                            <span className="text-white font-black text-2xl tracking-tighter drop-shadow-md">{getWeatherLabel(weather?.current_weather?.weathercode)}</span>
+                            <span className="text-slate-500 font-bold text-xs mt-1">سماء {getWeatherLabel(weather?.current_weather?.weathercode).includes('غائم') ? 'مغطاة' : 'صافية كلياً'}</span>
+                         </div>
+                         <h1 className="text-8xl font-black text-white tracking-tighter drop-shadow-2xl order-1 md:order-2 tabular-nums">
+                            {Math.round(weather?.current_weather?.temperature)}°
+                         </h1>
+                      </div>
+                   </div>
+                   
+                   <div className="relative">
+                      <div className="absolute inset-0 bg-blue-400/20 blur-3xl scale-150 animate-pulse rounded-full" />
+                      <div className="relative transition-transform duration-700 hover:scale-110">
+                         {getWeatherIcon(weather?.current_weather?.weathercode, 120)}
+                      </div>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="p-5 rounded-[2rem] bg-slate-950/40 border border-white/5 flex flex-col items-center justify-center gap-2 group/stat">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover/stat:scale-110 transition-transform">
+                        <Wind size={20} />
+                      </div>
+                      <div className="text-center">
+                         <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest block mb-0.5">سرعة الرياح</span>
+                         <span className="text-white font-black text-lg tabular-nums">{weather?.current_weather?.windspeed} <span className="text-[10px] text-slate-500">كم/س</span></span>
+                      </div>
+                   </div>
+                   <div className="p-5 rounded-[2rem] bg-slate-950/40 border border-white/5 flex flex-col items-center justify-center gap-2 group/stat">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/stat:scale-110 transition-transform">
+                        <Droplets size={20} />
+                      </div>
+                      <div className="text-center">
+                         <span className="text-slate-500 font-bold text-[10px] uppercase tracking-widest block mb-0.5">رطوبة الجو</span>
+                         <span className="text-white font-black text-lg tabular-nums">{weather?.daily?.relative_humidity_2m_max[0]} <span className="text-[10px] text-slate-500">%</span></span>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Linked Internal THI Card */}
+                <div className="pt-8 border-t border-white/5 space-y-6">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">مؤشر الإجهاد الداخلي (الحالي)</span>
+                      </div>
+                      <div className="bg-slate-950 px-4 py-2 rounded-2xl border border-white/5 flex items-baseline gap-1.5 shadow-inner">
+                         <span className={cn(
+                           "text-2xl font-black tabular-nums tracking-tighter",
+                           thi < targetThi - 2 ? "text-blue-400" : 
+                           thi < (targetThi + 1.5) ? "text-emerald-400" : 
+                           "text-red-400"
+                         )}>{thi.toFixed(1)}</span>
+                         <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">THI</span>
+                      </div>
+                   </div>
+
+                   <div className={cn(
+                     "p-6 rounded-[2.5rem] border transition-all duration-500 relative overflow-hidden group/status",
+                     thi < targetThi - 2 ? "bg-blue-500/5 border-blue-500/10 shadow-[0_0_50px_-20px_rgba(59,130,246,0.3)]" :
+                     thi < (targetThi + 1.5) ? "bg-emerald-500/5 border-emerald-500/10 shadow-[0_0_50px_-20_rgba(16,185,129,0.3)]" :
+                     "bg-red-500/5 border-red-500/10 shadow-[0_0_50px_-20_rgba(239,68,68,0.3)]"
+                   )}>
+                     <div className="flex items-center gap-5 relative z-10">
+                       <div className={cn(
+                         "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border transition-transform group-hover/status:scale-105",
+                         thi < targetThi - 2 ? "bg-blue-500/10 border-blue-500/20 text-blue-400 shadow-blue-500/10 shadow-xl" :
+                         thi < (targetThi + 1.5) ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10 shadow-xl" :
+                         "bg-red-500/10 border-red-500/20 text-red-400 shadow-red-500/10 shadow-xl"
+                       )}>
+                         <Zap size={28} strokeWidth={2.5} />
+                       </div>
+                       <div className="flex-1 space-y-2">
+                         <p className="text-xs text-white font-black leading-tight tracking-tight">
+                             {thi < targetThi - 2 ? "تحذير: الوضع بارد جداً على الطيور بالداخل" :
+                              thi < (targetThi + 1.5) ? "الوضع البيئي داخل العنبر مثالي ومستقر" :
+                              "تنبيه: بدأ ظهور مؤشرات إجهاد حراري"}
+                         </p>
+                         <p className="text-[10px] text-slate-400 font-bold leading-relaxed max-w-[90%]">
+                             {thi > targetThi + 1.5 ? "الجو الخارجي الحار يرفع درجة حرارة العنبر، يرجى تفعيل أنظمة التبريد." : "تتحكم أنظمة التهوية بذكاء في استيعاب التغيرات الجوية الخارجية."}
+                         </p>
+                       </div>
+                     </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          {/* AI Advice Box */}
+          <div className="bg-slate-900/60 p-6 rounded-[2.5rem] border border-white/5 space-y-5 relative group overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-[80px] pointer-events-none" />
+             
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="bg-blue-500/20 p-2 rounded-xl text-blue-400 border border-blue-500/10">
+                       <Cpu size={18} />
+                   </div>
+                   <div className="text-right">
+                      <h3 className="text-white font-black text-sm tracking-tight">توصيات الخبير الذكية</h3>
+                      <p className="text-slate-500 text-[10px] font-bold">بناءً على عمر {age} يوم والطقس الحالي</p>
+                   </div>
+                </div>
+                <div className="bg-slate-950 p-2 rounded-xl border border-white/5">
+                   <Sparkles size={14} className="text-blue-500 animate-pulse" />
+                </div>
+             </div>
+
+             <div className="grid gap-3">
+                {getPoultryAdvice(
+                    weather.current_weather.temperature, 
+                    weather.daily.relative_humidity_2m_max[0],
+                    weather.current_weather.windspeed,
+                    age
+                ).map((advice, i) => (
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      key={i} 
+                      className="text-slate-300 text-[11px] font-black leading-relaxed text-right p-4 rounded-[1.5rem] bg-slate-950/60 border border-white/5 hover:border-blue-500/20 transition-colors flex items-start gap-3 justify-end"
+                    >
+                        <span className="flex-1">{advice}</span>
+                        <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                    </motion.div>
+                ))}
+             </div>
+          </div>
+
+          {/* Forecast Grid */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 border border-white/5">
+                     <Calendar size={20} />
+                  </div>
+                  <h3 className="text-xl font-black text-white tracking-tighter">التوقعات الأسبوعية</h3>
+               </div>
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900/50 px-3 py-1 rounded-full border border-white/5">7 أيام</span>
+            </div>
+
+            <div className="grid gap-3">
+              {weather?.daily?.time.map((date: string, i: number) => (
+                <motion.div 
+                  whileHover={{ scale: 1.02 }}
+                  key={`${date}-${i}`} 
+                  className="bg-slate-900/60 p-5 rounded-[2rem] border border-white/5 flex items-center justify-between group transition-all hover:bg-slate-900/80 hover:border-blue-500/20"
+                >
+                  <div className="flex items-center gap-6 text-left shrink-0">
+                    <div className="flex flex-col items-center">
+                       <span className="text-white font-black text-lg tabular-nums drop-shadow-sm">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
+                       <span className="text-slate-600 font-bold text-[10px] tracking-widest uppercase">عظمى</span>
+                    </div>
+                    <div className="flex flex-col items-center border-l border-white/5 pl-6">
+                       <span className="text-slate-500 font-bold text-lg tabular-nums">{Math.round(weather.daily.temperature_2m_min[i])}°</span>
+                       <span className="text-slate-600 font-bold text-[10px] tracking-widest uppercase">صغرى</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-5">
+                    <div className="text-right hidden sm:block">
+                       <span className="text-blue-400 font-black text-[10px] uppercase tracking-widest block mb-1 opacity-60 group-hover:opacity-100 transition-opacity">{getWeatherLabel(weather.daily.weathercode[i])}</span>
+                       <div className="flex items-center justify-end gap-1 text-[9px] font-bold text-slate-500">
+                          <Droplets size={10} className="text-cyan-400" />
+                          <span>رطوبة {weather.daily.relative_humidity_2m_max[i]}%</span>
+                       </div>
+                    </div>
+                    
+                    <div className="w-14 h-14 rounded-2xl bg-slate-950/60 border border-white/5 flex items-center justify-center transition-transform group-hover:scale-110">
+                       {getWeatherIcon(weather.daily.weathercode[i], 32)}
+                    </div>
+
+                    <div className="text-right min-w-[100px]">
+                        <p className="text-white font-black text-sm tracking-tight">
+                            {i === 0 ? 'اليوم' : new Date(date).toLocaleDateString('ar-EG', { weekday: 'long' })}
+                        </p>
+                        <p className="text-slate-500 text-[10px] font-bold mt-0.5">
+                            {new Date(date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                        </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </motion.div>
+  );
+};
+
+const ExpertScreen = ({ age }: { age: number }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<'جميع الأقسام' | ExpertTip['category']>('جميع الأقسام');
+
+  const categories: ('جميع الأقسام' | ExpertTip['category'])[] = [
+    'جميع الأقسام', 'حرارة', 'تهوية', 'تغذية', 'ماء', 'إضاءة', 'صحة', 'بطاريات', 'عام'
+  ];
+
+  const filteredTips = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    
+    // Enhanced Arabic normalization for more effective search
+    const normalize = (text: string) => text.toLowerCase()
+      .trim()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/ؤ/g, 'و')
+      .replace(/ئ/g, 'ي')
+      .replace(/[\u064B-\u0652]/g, ''); // Remove Tashkeel
+
+    const nQ = normalize(q);
+
+    return EXPERT_DATABASE.filter(tip => {
+      const matchesSearch = nQ === '' || 
+        normalize(tip.title).includes(nQ) || 
+        normalize(tip.content).includes(nQ);
+      
+      const matchesCategory = selectedCategory === 'جميع الأقسام' || tip.category === selectedCategory;
+      const isAgeRelevant = age >= tip.minAge && age <= tip.maxAge;
+      
+      // The user wants displayed recommendations to be specific to current chick age.
+      // We apply this strictly to keep the view focused.
+      return matchesSearch && matchesCategory && isAgeRelevant;
+    });
+  }, [searchQuery, selectedCategory, age]);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 text-right pb-24"
+    >
+      <div className="flex flex-col gap-4">
+        <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
+          اسأل الخبير
+          <MessageSquare size={24} className="text-blue-500" />
+        </h2>
+        <p className="text-slate-500 font-bold text-sm">قاعدة بيانات شاملة لتربية التسمين في البطاريات (1-35 يوم)</p>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="relative group">
+          <input 
+            type="text"
+            placeholder="ابحث عن نصائح، مشاكل، أو حلول..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-slate-900/60 border border-white/5 rounded-2xl w-full text-right px-12 py-4 text-white font-black text-sm focus:ring-2 focus:ring-blue-500/20 outline-none transition-all backdrop-blur-md shadow-xl"
+            dir="rtl"
+          />
+          <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 group-hover:text-blue-500 transition-colors" />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border",
+                selectedCategory === cat 
+                  ? "bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/20" 
+                  : "bg-slate-900/60 text-slate-500 border-white/5 hover:bg-slate-900"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Relevant Tips Header */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest">توصيات مخصصة لعمر {age} يوم</span>
+        </div>
+      </div>
+
+      {/* Tips List */}
+      <div className="grid gap-4">
+        {filteredTips.map((tip) => {
+          const isAgeRelevant = age >= tip.minAge && age <= tip.maxAge;
+          
+          return (
+            <motion.div 
+              layout
+              key={tip.id}
+              className={cn(
+                "p-6 rounded-[2rem] border transition-all duration-300 relative overflow-hidden group",
+                isAgeRelevant 
+                  ? "bg-slate-900/80 border-blue-500/20 shadow-xl" 
+                  : "bg-slate-900/40 border-white/5 opacity-80 shadow-inner"
+              )}
+            >
+              {isAgeRelevant && (
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 blur-[40px] -z-10" />
+              )}
+              
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 text-right">
+                  <div className="flex items-center justify-end gap-2 mb-2">
+                    <span className="bg-slate-950/60 px-2 py-1 rounded-lg text-[8px] font-black text-slate-500 border border-white/5">يوم {tip.minAge}-{tip.maxAge}</span>
+                    <span className="bg-blue-500/10 px-2 py-1 rounded-lg text-[8px] font-black text-blue-400 border border-blue-500/10">{tip.category}</span>
+                  </div>
+                  <h4 className="text-white font-black text-lg mb-3 leading-tight tracking-tight">{tip.title}</h4>
+                  <p className="text-slate-400 font-bold text-xs leading-relaxed">{tip.content}</p>
+                </div>
+                
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-transform group-hover:scale-105",
+                  isAgeRelevant ? "bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-blue-500/10 shadow-xl" : "bg-slate-950 border-white/10 text-slate-600 shadow-inner"
+                )}>
+                  {isAgeRelevant ? <Sparkles size={24} /> : <Info size={24} />}
+                </div>
+              </div>
+
+              {isAgeRelevant && (
+                <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-end gap-2">
+                  <span className="text-[9px] font-black text-blue-500/80 uppercase tracking-widest">توصية حرجة لعمرك الحالي</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+
+        {filteredTips.length === 0 && (
+          <div className="py-20 text-center space-y-4">
+            <div className="w-16 h-16 bg-slate-900/60 rounded-3xl flex items-center justify-center mx-auto text-slate-700 border border-white/5">
+              <Search size={32} />
+            </div>
+            <div>
+              <p className="text-white font-black">لا توجد نتائج بحث</p>
+              <p className="text-slate-500 font-bold text-xs mt-1">حاول البحث بكلمات مختلفة أو تغيير القسم</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+const MarketScreen = ({ sellingPrice, lastPriceUpdateAt }: { sellingPrice: number | string, lastPriceUpdateAt: string | null }) => {
+  const [exchangeRates, setExchangeRates] = useState<any>(null);
+  const [goldPrices, setGoldPrices] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMarketData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Fetch Currency
+      const curRes = await fetch('https://open.er-api.com/v6/latest/USD');
+      const curData = await curRes.json();
+      setExchangeRates(curData.rates);
+
+      // Fetch Gold Prices (from our server)
+      const goldRes = await fetch('/api/gold-price');
+      if (goldRes.ok) {
+        const goldData = await goldRes.json();
+        setGoldPrices(goldData.prices);
+      }
+    } catch (err) {
+      setError('فشل في جلب أسعار السوق');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMarketData();
+  }, [fetchMarketData]);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 text-right pb-24"
+    >
+      <div className="flex flex-col gap-4">
+        <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
+          بورصة الدواجن والأسواق
+          <TrendingUp size={24} className="text-emerald-500" />
+        </h2>
+        <p className="text-slate-500 font-bold text-sm">تحديثات حية للأسعار المحلية والعالمية المرتبطة بالدورة الإنتاجية</p>
+      </div>
+
+      {/* Poultry Price Card (From Internal API) */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-[2.5rem] border border-white/5 space-y-6 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-blue-600/5 blur-[80px] pointer-events-none" />
+        <div className="flex items-center justify-between">
+           <div className="bg-blue-500/10 p-2 rounded-xl text-blue-400">
+             <Bird size={20} />
+           </div>
+           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">بورصة الدواجن (لحم أبيض)</span>
+        </div>
+        
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-baseline gap-2">
+             <h1 className="text-6xl font-black text-white tabular-nums drop-shadow-xl">{sellingPrice}</h1>
+             <span className="text-lg font-black text-slate-500">ج.م</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-slate-400">آخر تحديث: {lastPriceUpdateAt || 'غير متوفر'}</span>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+           <div className="p-4 rounded-2xl bg-white/5 text-center">
+             <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">المنطقة</span>
+             <span className="text-white font-black text-xs">مزارع مصر - تنفيذ</span>
+           </div>
+           <div className="p-4 rounded-2xl bg-white/5 text-center">
+             <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">الحالة</span>
+             <span className="text-emerald-400 font-black text-xs">سعر مباشر</span>
+           </div>
+        </div>
+      </div>
+
+      {/* Economy Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         {/* Currency - USD/EGP */}
+         <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+               <Banknote size={20} className="text-amber-400" />
+               <h3 className="text-white font-black text-sm">أسعار العملات</h3>
+            </div>
+            
+            <div className="space-y-3">
+               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                  <span className="text-white font-black text-sm tabular-nums">
+                    {exchangeRates?.EGP ? (exchangeRates.EGP).toFixed(2) : '--.--'}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-slate-200 font-bold text-xs">دولار / جنيه</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">USD / EGP</span>
+                  </div>
+               </div>
+               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                  <span className="text-white font-black text-sm tabular-nums">
+                    {exchangeRates?.SAR ? (exchangeRates.SAR).toFixed(2) : '--.--'}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-slate-200 font-bold text-xs">دولار / ريال</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">USD / SAR</span>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Commodities - Simulated as real commodity APIs are expensive/hard to get free */}
+         <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+               <Layers size={20} className="text-amber-600" />
+               <h3 className="text-white font-black text-sm">بورصة الأعلاف (خامات)</h3>
+            </div>
+            
+            <div className="space-y-3">
+               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-white font-black text-sm tabular-nums">12,400</span>
+                    <span className="text-[8px] text-slate-500">ج.م</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-slate-200 font-bold text-xs">ذرة صفراء (برازيلي)</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Corn (BRZ)</span>
+                  </div>
+               </div>
+               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-white font-black text-sm tabular-nums">24,500</span>
+                    <span className="text-[8px] text-slate-500">ج.م</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-slate-200 font-bold text-xs">صويا 44% (محلي)</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Soy 44%</span>
+                  </div>
+               </div>
+            </div>
+            <p className="text-[8px] text-slate-600 text-center uppercase tracking-widest font-black">* أسعار تقديرية للمصانع</p>
+         </div>
+      </div>
+
+      {/* Gold Section */}
+      <div className="bg-amber-400/5 p-6 rounded-[2.5rem] border border-amber-400/10 space-y-5 relative group overflow-hidden">
+        <div className="flex items-center justify-between">
+           <div className="flex items-center gap-3">
+              <div className="bg-amber-500/20 p-2 rounded-xl text-amber-500 border border-amber-500/10">
+                  <Sparkles size={18} />
+              </div>
+              <div className="text-right">
+                 <h3 className="text-white font-black text-sm tracking-tight">أسعار الذهب</h3>
+                 <p className="text-slate-500 text-[10px] font-bold">عيارات التداول (تقديراً)</p>
+              </div>
+           </div>
+           <div className="bg-slate-950 p-2 rounded-xl border border-white/5">
+              <Wallet size={14} className="text-amber-500" />
+           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+           <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col items-center">
+              <span className="text-amber-500 font-black text-lg">
+                {goldPrices?.['21k'] ? goldPrices['21k'].toLocaleString() : '---'}
+              </span>
+              <span className="text-[9px] text-slate-500 font-bold mt-1">عيار 21 (ج.م)</span>
+           </div>
+           <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col items-center">
+              <span className="text-amber-500 font-black text-lg">
+                {goldPrices?.['24k'] ? goldPrices['24k'].toLocaleString() : '---'}
+              </span>
+              <span className="text-[9px] text-slate-500 font-bold mt-1">عيار 24 (ج.م)</span>
+           </div>
+        </div>
+      </div>
+
+      <div className="p-6 bg-slate-900/40 rounded-[2rem] border border-white/5 flex gap-4 items-start">
+         <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+           <Info size={18} />
+         </div>
+         <p className="text-[10px] text-slate-500 font-bold leading-relaxed text-right">
+           يتم تحديث هذه الأسعار عبر الربط المباشر مع الأسواق العالمية والمحلية. يرجى مراجعة الأسعار النهائية مع التاجر قبل التنفيذ.
+         </p>
+      </div>
+    </motion.div>
+  );
 };
 
 const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
@@ -132,7 +920,7 @@ const CUSTOM_MED_LIST = [
   { name: 'مضاد سموم فطرية', dose: 1, unit: 'سم³/لتر', duration: 12 },
   { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8 },
   { name: 'مثبت لقاح (حليب)', dose: 1, unit: 'جرام/لتر', duration: 2 },
-  { name: 'مياه فقط', dose: 0, unit: 'لتر', duration: 8 },
+  { name: 'ماء نقي', dose: 0, unit: 'لتر', duration: 2 },
 ];
 
 interface Bill { id: string; label: string; amount: number | string; startDay: number | string; endDay: number | string; entryDate: string; }
@@ -147,6 +935,20 @@ interface FeedBill {
   entryDate: string;
 }
 
+interface Fan {
+  id: string;
+  name: string;
+  capacity: number | string;
+  count: number | string;
+  isActive: boolean;
+}
+
+interface CoolingPad {
+  id: string;
+  name: string;
+  area: number | string;
+}
+
 interface AppState {
   id: string;
   name: string;
@@ -157,6 +959,7 @@ interface AppState {
   breedingSystem: 'Battery-3' | 'Floor';
   medDuration: 6 | 8 | 12 | 24;
   fanCapacity: number | string; // m3/hr
+  fans?: Fan[];
   cyclesPerHour: number | string;
   // Humidity/Cooling props
   externalTemp: number | string;
@@ -172,6 +975,10 @@ interface AppState {
   pumpOffTime: number | string; // mins
   medicationLogs: Record<string, string>; // age-medName -> startTime
   ventilationOffset: number;
+  manualTimerSeconds: number;
+  isManualTimerRunning: boolean;
+  coolingPadsCount: number;
+  coolingPads: CoolingPad[];
   emergencyMeds: {
     id: string;
     name: string;
@@ -190,6 +997,8 @@ interface AppState {
   batteryTiers: number | string;
   externalEquipment: boolean;
   batteryTierCounts?: (number | string)[];
+  dailyBatteryTierCounts?: Record<string, (number | string)[]>;
+  dailyBatteryTierFeed?: Record<string, (number | string)[]>;
   // Finance
   chickPrice: number | string;
   feedPrice: number | string;
@@ -230,6 +1039,8 @@ interface AppState {
   createdAt?: string;
   version?: number;
   medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number }>;
+  dailyInternalTemp?: Record<string, number | string>;
+  dailyHumidity?: Record<string, number | string>;
 }
 
 // --- Components ---
@@ -280,6 +1091,15 @@ const toNum = (val: any): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const formatTime = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h > 0 
+    ? `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    : `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
+
 const INITIAL_STATE: AppState = {
   id: '',
   name: 'دورة افتراضية',
@@ -290,6 +1110,9 @@ const INITIAL_STATE: AppState = {
   breedingSystem: 'Battery-3',
   medDuration: 8,
   fanCapacity: 5000,
+  fans: [
+    { id: 'fan-1', name: 'شفاط رئيسي 1', capacity: 5000, count: 1, isActive: true }
+  ],
   cyclesPerHour: 4,
   externalTemp: 25,
   internalTemp: 28,
@@ -304,6 +1127,16 @@ const INITIAL_STATE: AppState = {
   pumpOffTime: 8,
   medicationLogs: {},
   ventilationOffset: 0,
+  manualTimerSeconds: 0,
+  isManualTimerRunning: false,
+  coolingPadsCount: 4,
+  coolingPads: [
+    { id: 'cp-1', name: 'خلية يمين 1', area: 5 },
+    { id: 'cp-2', name: 'خلية يمين 2', area: 5 },
+    { id: 'cp-3', name: 'خلية يسار 1', area: 5 },
+    { id: 'cp-4', name: 'خلية يسار 2', area: 5 },
+    { id: 'cp-5', name: 'خلية مقدمة', area: 5 }
+  ],
   emergencyMeds: [],
   barnLength: 100,
   barnWidth: 12,
@@ -312,6 +1145,8 @@ const INITIAL_STATE: AppState = {
   batteryWidth: 0.5,
   batteryTiers: 3,
   batteryTierCounts: [50, 50, 50],
+  dailyBatteryTierCounts: { "1": [50, 50, 50] },
+  dailyBatteryTierFeed: {},
   externalEquipment: true,
   lastPriceUpdateAt: '',
   isManualPriceMode: false,
@@ -329,6 +1164,8 @@ const INITIAL_STATE: AppState = {
   feedBillsNahy: [],
   targetCycleDays: 35,
   dailyLogs: [],
+  dailyInternalTemp: {},
+  dailyHumidity: {},
   otherExpenses: [],
   cycleName: '',
   startDate: new Date().toISOString().split('T')[0],
@@ -370,6 +1207,7 @@ export default function App() {
   const [editTimerTime, setEditTimerTime] = useState({ h: 0, m: 0, s: 0 });
 
   const [billToDelete, setBillToDelete] = useState<{ id: string, section: string, label: string } | null>(null);
+  const [padToDelete, setPadToDelete] = useState<CoolingPad | null>(null);
 
   useEffect(() => {
     if (billToDelete) {
@@ -414,6 +1252,7 @@ export default function App() {
   const [newCycleNameInput, setNewCycleNameInput] = useState('');
   const [isLogoutConfirming, setIsLogoutConfirming] = useState(false);
   const [deletingCycleId, setDeletingCycleId] = useState<string | null>(null);
+  const [fanToDeleteId, setFanToDeleteId] = useState<string | null>(null);
   const [deleteStep, setDeleteStep] = useState(0); // 0: none, 1: warning, 2: final confirm
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
@@ -758,6 +1597,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (state.isManualTimerRunning) {
+      interval = setInterval(() => {
+        setState(prev => ({ ...prev, manualTimerSeconds: prev.manualTimerSeconds + 1 }));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [state.isManualTimerRunning]);
+
   const handleGoogleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -959,6 +1808,73 @@ export default function App() {
       alert('خطأ في تهيئة الاتصال بـ Google');
     }
   };
+  const autoDistributeTiers = useCallback((total: number, tiers: number, length: number, width: number, age: number, external: boolean) => {
+    const densityPerM2 = 
+      age <= 7 ? 45 :
+      age <= 14 ? 32 :
+      age <= 21 ? 22 :
+      age <= 28 ? 17 :
+      age <= 35 ? 14 : 12;
+    
+    const recPerTier = Math.floor(length * width * densityPerM2 * (external ? 1.15 : 1));
+    const n = toNum(tiers);
+    if (n <= 0) return [];
+
+    const mid = Math.floor((n - 1) / 2);
+    const sequence: number[] = [mid];
+    for (let i = 1; i < n; i++) {
+      const left = mid - i;
+      const right = mid + i;
+      if (left >= 0 && !sequence.includes(left)) sequence.push(left);
+      if (right < n && !sequence.includes(right)) sequence.push(right);
+    }
+
+    let remaining = toNum(total);
+    const counts: (number | string)[] = new Array(n).fill(0);
+    
+    // Fill up to recommendation starting from middle
+    for (const idx of sequence) {
+      const space = Math.min(remaining, recPerTier);
+      counts[idx] = space;
+      remaining -= space;
+    }
+    
+    // Distribute any leftovers equally
+    if (remaining > 0) {
+      let i = 0;
+      while (remaining > 0) {
+        const idx = sequence[i % n];
+        counts[idx] = toNum(counts[idx]) + 1;
+        remaining -= 1;
+        i++;
+      }
+    }
+    
+    return counts;
+  }, []);
+
+  // Auto-fill distribution if missing for current age
+  useEffect(() => {
+    if (screen === 'battery' && !state.dailyBatteryTierCounts?.[String(state.age)]) {
+      const distributed = autoDistributeTiers(
+        toNum(state.totalChicks),
+        toNum(state.batteryTiers),
+        toNum(state.batteryLength),
+        toNum(state.batteryWidth),
+        toNum(state.age),
+        state.externalEquipment
+      );
+      
+      setState(prev => ({
+        ...prev,
+        dailyBatteryTierCounts: {
+          ...(prev.dailyBatteryTierCounts || {}),
+          [String(prev.age)]: distributed
+        }
+      }));
+    }
+  }, [screen, state.age, state.totalChicks, state.batteryTiers, state.batteryLength, state.batteryWidth, state.externalEquipment, autoDistributeTiers]);
+
   const [openMedDropdown, setOpenMedDropdown] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -1386,9 +2302,9 @@ export default function App() {
       
       if (antibiotic || vitamin || water) {
         if (antibiotic) uniqueMeds.push({ ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 2 });
         if (vitamin) uniqueMeds.push({ ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 2 });
       }
     }
 
@@ -1484,9 +2400,9 @@ export default function App() {
       
       if (antibiotic || vitamin || water) {
         if (antibiotic) uniqueMeds.push({ ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 2 });
         if (vitamin) uniqueMeds.push({ ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 });
+        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 2 });
       }
     }
 
@@ -1754,9 +2670,9 @@ export default function App() {
       if (antibiotic && vitamin && water) {
         ageMeds = [
           { ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 },
-          { ...water, id: `${water.id || water.name}-1`, recommendedHours: 6 },
+          { ...water, id: `${water.id || water.name}-1`, recommendedHours: 2 },
           { ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 },
-          { ...water, id: `${water.id || water.name}-2`, recommendedHours: 6 }
+          { ...water, id: `${water.id || water.name}-2`, recommendedHours: 2 }
         ];
       }
     }
@@ -1902,7 +2818,7 @@ export default function App() {
     const isDarkness = lastPrev.type === 'darkness';
     const label = isDarkness ? 'آخر نشاط أمس' : 'آخر جرعة أمس';
     const medName = isDarkness ? `${lastPrev.name} (ختام اليوم)` : lastPrev.name;
-    const nextMedName = firstNext?.name || 'مياه فقط';
+    const nextMedName = firstNext?.name || 'ماء نقي';
 
     return {
       label,
@@ -1967,19 +2883,35 @@ export default function App() {
   const minVentilation = Math.round(herdBiomass * 1);
   const maxVentilation = Math.round(herdBiomass * 7);
 
-  const minFans = minVentilation / toNum(state.fanCapacity);
-  const maxFans = maxVentilation / toNum(state.fanCapacity);
+  const totalActiveCapacity = (state.fans || []).reduce((acc, f) => f.isActive ? acc + (toNum(f.capacity) * toNum(f.count)) : acc, 0) || toNum(state.fanCapacity);
+  const totalCoolingPadArea = (state.coolingPads || []).reduce((acc, cp) => acc + toNum(cp.area), 0);
+
+  const minFans = minVentilation / totalActiveCapacity;
+  const maxFans = maxVentilation / totalActiveCapacity;
 
   // Diagnostic Calculations
+  const currentAgeStr = String(state.age);
+  const effectiveTemp = state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp;
+  const effectiveRH = state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity;
+
   const targetHumidity = getTargetHumidity(toNum(state.age));
-  const tempDelta = toNum(state.internalTemp) - targetTemp;
+  const tempDelta = toNum(effectiveTemp) - targetTemp;
   
   // Wind Chill (Simple model: more ventilation capacity used = more cooling)
   // At min ventilation, we assume a basic airflow cooling effect
-  const coolingFactor = Math.min(5, (minVentilation / toNum(state.fanCapacity)) * 4);
-  const realFeelTemp = Math.round((toNum(state.internalTemp) - coolingFactor) * 10) / 10;
+  const coolingFactor = Math.min(5, (minVentilation / totalActiveCapacity) * 4);
+  const realFeelTemp = Math.round((toNum(effectiveTemp) - coolingFactor) * 10) / 10;
   
-  const thi = toNum(state.internalTemp) + toNum(state.currentHumidity);
+  const thi = Math.round((toNum(effectiveTemp) - (0.31 - 0.31 * (toNum(effectiveRH) / 100)) * (toNum(effectiveTemp) - 14.4)) * 10) / 10;
+  // Comfort THI based on target temperature and 50% relative humidity
+  const targetThi = Math.round((targetTemp - (0.31 - 0.31 * 0.5) * (targetTemp - 14.4)) * 10) / 10;
+  
+  const padsCount = state.coolingPadsCount || 4;
+  
+  // Cold Stress Logic (Wind Chill Factor)
+  const coldStress = targetTemp - realFeelTemp;
+  const isColdAlert = coldStress > 1.5;
+  const isColdDanger = coldStress > 3.5;
 
   const chartData = useMemo(() => {
     // Find all days with manual weight entries
@@ -1992,31 +2924,68 @@ export default function App() {
       const day = i + 1;
       const stats = getDailyStats(state.strain, day);
       
-      let finalWeight = stats.weight;
+      let actualWeight = null;
+      let projectedWeight = stats.weight;
+
+      // Actual point from manual logs
+      if (state.weightLogs?.[String(day)]) {
+        actualWeight = toNum(state.weightLogs[String(day)]);
+      }
+
+      // Projected Weight based on most recent manual entry
       if (manualDays.length > 0) {
-        // Find most recent manual entry before or on this chart day
-        const lastManual = [...manualDays].reverse().find(d => d <= day);
-        if (lastManual !== undefined) {
-          const manualWeight = toNum(state.weightLogs?.[String(lastManual)]);
-          const standardAtLastManual = getDailyStats(state.strain, lastManual).weight;
+        const lastManualDay = [...manualDays].reverse().find(d => d <= day);
+        if (lastManualDay !== undefined) {
+          const manualWeight = toNum(state.weightLogs?.[String(lastManualDay)]);
+          const standardAtLastManual = getDailyStats(state.strain, lastManualDay).weight;
           const factor = manualWeight / standardAtLastManual;
-          
-          if (lastManual === day) {
-            finalWeight = manualWeight;
-          } else {
-            finalWeight = Math.round(stats.weight * factor);
-          }
+          projectedWeight = Math.round(stats.weight * factor);
         }
       }
 
+      // Mortality calculation
+      const mortalityUpToDay = state.mortalityBills
+        .filter(m => toNum(m.ageAtDeath) <= day)
+        .reduce((sum, m) => sum + toNum(m.count), 0);
+
+      const survivalRate = state.totalChicks ? ((toNum(state.totalChicks) - mortalityUpToDay) / toNum(state.totalChicks)) * 100 : 0;
+      const mortalityRate = 100 - survivalRate;
+
+      // Cumulative feed up to today (projected)
+      const cumulativeFeed = Array.from({ length: day }, (_, idx) => getDailyStats(state.strain, idx + 1).dailyFeed).reduce((s, f) => s + f, 0);
+      
+      // Calculate FCR (Feed Conversion Ratio)
+      // Standard Weight starts at ~42g (chick weight)
+      const weightGain = projectedWeight - 42; 
+      const fcr = weightGain > 0 ? (cumulativeFeed / weightGain) : 0;
+      const standardWeightGain = stats.weight - 42;
+      const standardFcr = standardWeightGain > 0 ? (stats.cumFeed / standardWeightGain) : 0;
+
+      // European Production Efficiency Factor (EPEF)
+      // EPEF = [(Survival % * Live Weight kg) / (Age days * FCR)] * 100
+      const liveWeightKg = projectedWeight / 1000;
+      const epef = (day > 0 && fcr > 0) ? ((survivalRate * liveWeightKg) / (day * fcr)) * 100 : 0;
+
+      // Water/Feed Ratio (Ideally between 1.6 and 2.2)
+      const wfRatio = stats.dailyFeed > 0 ? stats.dailyWater / stats.dailyFeed : 0;
+
       return {
         day: day,
-        weight: finalWeight,
+        weight: projectedWeight,
+        actualWeight: actualWeight, // only exists on days with logs
+        standardWeight: stats.weight,
         feed: stats.dailyFeed,
-        water: stats.dailyWater
+        water: stats.dailyWater,
+        mortality: mortalityUpToDay,
+        mortalityRate: mortalityRate.toFixed(2),
+        fcr: fcr.toFixed(2),
+        standardFcr: standardFcr.toFixed(2),
+        epef: Math.round(epef),
+        wfRatio: wfRatio.toFixed(1),
+        cumulativeFeed: cumulativeFeed
       };
     });
-  }, [state.strain, state.weightLogs]);
+  }, [state.strain, state.weightLogs, state.mortalityBills, state.totalChicks]);
 
   // Medication Doses
   const medDoses = MEDICATIONS.map(med => ({
@@ -3918,7 +4887,7 @@ export default function App() {
                    }}
                    onUpdate={(id, field, val) => setState(prev => ({ ...prev, otherBills: prev.otherBills.map(b => b.id === id ? { ...b, [field]: val } : b) }))}
                 />
-                
+
                 {/* Mortality Tracking Section */}
                 <div className="bg-slate-900 border-white/5 p-6 rounded-3xl space-y-6 text-right">
                   <div className="flex items-center justify-between mb-2">
@@ -3939,7 +4908,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-4">
                     {state.mortalityBills.map(mort => {
                       const age = toNum(mort.ageAtDeath);
@@ -3969,7 +4938,7 @@ export default function App() {
                               className="bg-transparent text-xs font-black text-red-500 text-right outline-none w-1/2"
                             />
                           </div>
-
+                          
                           <div className="grid grid-cols-3 gap-3">
                             <div className="flex flex-col gap-1 text-center">
                               <label className="text-[9px] font-black text-slate-600 uppercase">العدد</label>
@@ -4007,18 +4976,15 @@ export default function App() {
                                         <span className="font-bold">سعر الكتكوت:</span>
                                       </div>
                                       <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg px-3">
-                                        <span className="text-white font-mono text-xs">{feedCost.toFixed(2)} ج.م</span>
-                                        <span className="font-bold">تكلفة العلف ({statsAtDeath.cumFeed} جرام):</span>
+                                        <span className="text-white font-mono text-xs">{((getDailyStats(state.strain, toNum(mort.ageAtDeath)).cumFeed / 1000) * toNum(state.feedPrice)).toFixed(2)} ج.م</span>
+                                        <span className="font-bold">تكلفة العلف:</span>
                                       </div>
                                       <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg px-3">
-                                        <span className="text-white font-mono text-xs">{resourcesCost.toFixed(2)} ج.م</span>
-                                        <span className="font-bold">نصيب الفواتير (Prorated):</span>
+                                        <span className="text-white font-mono text-xs">{calculateMortalityOverhead(toNum(mort.ageAtDeath)).toFixed(2)} ج.م</span>
+                                        <span className="font-bold">نصيب الفواتير:</span>
                                       </div>
                                       
-                                      <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                                        <p className="text-[9px] text-slate-400 leading-tight">
-                                          * تم حساب نصيب الفواتير بقسمة إجمالي الفواتير ({allBills.reduce((acc, b) => acc + toNum(b.amount), 0)}) على إجمالي "أيام-الطيور" في الدورة، مضروباً في عدد الأيام التي عاشها هذا النافق فعلياً.
-                                        </p>
+                                      <div className="mt-4 pt-4 border-t border-white/10">
                                         <div className="flex justify-between items-center bg-red-500/10 p-3 rounded-xl border border-red-500/20">
                                           <span className="text-red-400 font-mono text-sm">{individualCost.toFixed(2)} ج.م</span>
                                           <span className="font-black text-red-100 italic">إجمالي الخسارة للفرد:</span>
@@ -4036,209 +5002,23 @@ export default function App() {
                         </div>
                       );
                     })}
-                    {state.mortalityBills.length === 0 && (
-                      <p className="text-[10px] text-slate-600 font-bold text-center py-4">لا يوجد سجلات نافق حتى الآن</p>
-                    )}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          {screen === 'battery' && (
-            <motion.div 
-              key="battery"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <header className="flex items-center gap-3 px-2 mb-2">
-                <div className="w-10 h-10 bg-purple-400/10 rounded-xl flex items-center justify-center text-purple-500 shadow-inner">
-                  <Layers size={24} />
-                </div>
-                <h2 className="text-2xl font-black text-white tracking-tight">نظام البطاريات</h2>
-              </header>
 
-              <div className="grid grid-cols-1 gap-6">
-                <div className="bg-slate-900/60 border border-purple-500/20 p-5 rounded-3xl flex items-center justify-between group">
-                   <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
-                        state.externalEquipment ? "bg-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "bg-slate-800 text-slate-500"
-                      )}>
-                        <Wind size={24} />
-                      </div>
-                      <div className="text-right">
-                         <h4 className="text-sm font-black text-white">تجهيز خارجي متطور</h4>
-                         <p className="text-[10px] text-slate-500 font-bold">معالف خارجية + خطوط نبل معلقة</p>
-                      </div>
-                   </div>
-                   <button 
-                     onClick={() => setState(prev => ({ ...prev, externalEquipment: !prev.externalEquipment }))}
-                     className={cn(
-                       "w-14 h-8 rounded-full relative transition-all duration-300",
-                       state.externalEquipment ? "bg-emerald-500" : "bg-slate-700"
-                     )}
-                   >
-                     <div className={cn(
-                       "absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300 shadow-lg",
-                       state.externalEquipment ? "left-7" : "left-1"
-                     )} />
-                   </button>
-                </div>
-
-                <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 shadow-2xl relative overflow-hidden p-8">
-                   <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/5 blur-3xl -ml-16 -mt-16" />
-                   
-                   <div className="flex items-center justify-between mb-8 relative z-10 text-right">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">أبعاد الدور الواحد</span>
-                        <h3 className="text-xl font-black text-white">{state.batteryLength}م × {state.batteryWidth}م</h3>
-                      </div>
-                      <div className="p-3 bg-slate-900 rounded-2xl border border-white/5 text-purple-400 shadow-inner">
-                        <LayoutDashboard size={24} />
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 text-center">
-                         <span className="text-[8px] font-black text-slate-600 uppercase mb-1 block">المساحة السطحية</span>
-                         <p className="text-2xl font-black text-white">{(state.batteryLength * state.batteryWidth).toFixed(3)} <span className="text-xs text-slate-500">م²</span></p>
-                      </div>
-                      <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 text-center">
-                        <div className="flex items-center justify-center gap-1.5 mb-1" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
-                           {state.isManualOverride ? <Edit3 size={11} className="text-amber-500" /> : <RefreshCw size={11} className="text-purple-400 animate-spin-slow" />}
-                           <span className="text-[8px] font-black text-slate-600 uppercase">عمر الكتكوت</span>
-                        </div>
-                        <p className="text-2xl font-black text-purple-400">{state.age} <span className="text-xs text-slate-500">يوم</span></p>
-                      </div>
-                   </div>
-
-                   <div className="mb-6 p-4 bg-slate-950/50 rounded-2xl border border-white/10 relative z-10">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 text-right">التسكين الحالي (عدد الطيور)</label>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shrink-0 border border-blue-500/20">
-                          <Bird size={20} />
-                        </div>
-                        <input 
-                          type="text"
-                          inputMode="numeric"
-                          value={state.totalChicks ?? ''}
-                          onChange={e => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            setState(prev => ({ ...prev, totalChicks: val }));
-                          }}
-                          className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xl text-center focus:outline-none transition-all"
-                          placeholder="1000"
-                        />
-                      </div>
-
-                      <div className="mt-6 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">توزيع الطيور على الأدوار</span>
-                          <div className="h-px flex-1 bg-white/5 mx-4" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {Array.from({ length: Number(state.batteryTiers || 0) }).map((_, idx) => (
-                            <div key={idx} className="bg-slate-900/40 p-3 rounded-2xl border border-white/5 space-y-1.5 transition-all hover:border-purple-500/20">
-                               <div className="flex justify-between items-center px-1">
-                                 <span className="text-[8px] font-black text-slate-500 uppercase">الدور {idx + 1}</span>
-                                 {(() => {
-                                   const densityPerM2 = 
-                                      Number(state.age) <= 7 ? 45 :
-                                      Number(state.age) <= 14 ? 32 :
-                                      Number(state.age) <= 21 ? 22 :
-                                      Number(state.age) <= 28 ? 17 :
-                                      Number(state.age) <= 35 ? 14 : 12;
-                                   const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
-                                   const tierCount = toNum(state.batteryTierCounts?.[idx]);
-                                   const isTierOver = tierCount > recPerTier;
-                                   return (
-                                     <div className={cn("w-1.5 h-1.5 rounded-full", isTierOver ? "bg-red-500 animate-pulse" : "bg-emerald-500")} />
-                                   );
-                                 })()}
-                               </div>
-                               <input 
-                                 type="text"
-                                 inputMode="numeric"
-                                 value={state.batteryTierCounts?.[idx] ?? ''}
-                                 onChange={e => {
-                                   const val = e.target.value.replace(/\D/g, '');
-                                   const newCounts = [...(state.batteryTierCounts || [])];
-                                   newCounts[idx] = val;
-                                   const newTotal = newCounts.reduce((acc, curr) => acc + toNum(curr), 0);
-                                   setState(prev => ({ 
-                                     ...prev, 
-                                     batteryTierCounts: newCounts,
-                                     totalChicks: newTotal > 0 ? newTotal : prev.totalChicks
-                                   }));
-                                 }}
-                                 className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-2 py-2 text-white font-black text-center focus:outline-none focus:border-purple-500/30 transition-all text-sm"
-                                 placeholder="0"
-                                />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {(() => {
-                        const densityPerM2 = 
-                          Number(state.age) <= 7 ? 45 :
-                          Number(state.age) <= 14 ? 32 :
-                          Number(state.age) <= 21 ? 22 :
-                          Number(state.age) <= 28 ? 17 :
-                          Number(state.age) <= 35 ? 14 : 12;
-                        const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
-                        const recTotal = Number(state.batteryTiers) * recPerTier;
-                        const current = toNum(state.totalChicks);
-                        const isOver = current > recTotal;
-                        const percent = recTotal > 0 ? Math.round((current / recTotal) * 100) : 0;
-
-                        return (
-                          <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-3">
-                             <div className="flex items-center justify-between">
-                                <div className={cn(
-                                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                                  isOver ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                )}>
-                                  {isOver ? "كثافة زائدة" : "كثافة آمنة"}
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">نسبة الإشغال</span>
-                                  <p className={cn("text-sm font-black", isOver ? "text-red-400" : "text-emerald-400")}>{percent}%</p>
-                                </div>
-                             </div>
-                             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                <div 
-                                  className={cn("h-full transition-all duration-500", isOver ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "bg-emerald-500")}
-                                  style={{ width: `${Math.min(100, percent)}%` }}
-                                />
-                             </div>
-                             {isOver && (
-                               <p className="text-[9px] text-red-500 font-bold text-center bg-red-500/5 py-1.5 rounded-lg border border-red-500/10">أنت تتجاوز السعة الموصى بها بـ {current - recTotal} طائر</p>
-                             )}
-                          </div>
-                        );
-                      })()}
-                   </div>
-
-
-
-              <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 flex gap-4 items-start">
-                 <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
-                    <AlertCircle size={20} />
-                 </div>
-                 <div className="text-right">
-                    <h4 className="text-xs font-black text-white mb-1">توجيهات المساحة والتهوية</h4>
-                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                      في النظم الحديثة ذات العلافات الخارجية وخطوط النبل المعلقة، تزداد السعة الاستيعابية للمساحة الصافية بنسبة 15% نظراً لعدم وجود إشغالات داخل الدور، مما يحسن من حركة الطيور وتوزيع الهواء.
-                    </p>
-                 </div>
-              </div>
-           </Card>
-          </div>
-            </motion.div>
-          )}
+                  <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 flex gap-4 items-start">
+                     <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
+                        <AlertCircle size={20} />
+                     </div>
+                     <div className="text-right">
+                        <h4 className="text-xs font-black text-white mb-1">توجيهات المساحة والتهوية</h4>
+                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                          في النظم الحديثة ذات العلافات الخارجية وخطوط النبل المعلقة، تزداد السعة الاستيعابية للمساحة الصافية بنسبة 15% نظراً لعدم وجود إشغالات داخل الدور، مما يحسن من حركة الطيور وتوزيع الهواء.
+                        </p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </motion.div>
+        )}
 
           {screen === 'dashboard' && (
             <motion.div 
@@ -4574,7 +5354,422 @@ export default function App() {
             </motion.div>
           )}
 
-          {screen === 'medication' && (
+          {screen === 'battery' && (
+            <motion.div 
+              key="battery"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between px-2">
+                <div className="flex flex-col">
+                  <h2 className="text-2xl font-black text-white tracking-tight">توزيع البطاريات</h2>
+                  <p className="text-slate-500 text-xs font-bold">إدارة كثافة التسكين لكل دور</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const distributed = autoDistributeTiers(
+                        toNum(state.totalChicks),
+                        toNum(state.batteryTiers),
+                        toNum(state.batteryLength),
+                        toNum(state.batteryWidth),
+                        toNum(state.age),
+                        state.externalEquipment
+                      );
+                      setState(prev => ({
+                        ...prev,
+                        dailyBatteryTierCounts: {
+                          ...(prev.dailyBatteryTierCounts || {}),
+                          [String(prev.age)]: distributed
+                        }
+                      }));
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition-all border border-purple-500/20 text-[10px] font-black uppercase tracking-widest"
+                  >
+                    <RefreshCw size={14} />
+                    توزيع تلقائي
+                  </button>
+                  <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20 text-purple-400">
+                    <Layers size={24} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    <Scale size={14} className="text-purple-400" />
+                    أبعاد ومساحة الدور
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold text-slate-500">مساحة الدور</p>
+                      <h4 className="text-lg font-black text-white">
+                        {(toNum(state.batteryLength) * toNum(state.batteryWidth)).toFixed(2)} م²
+                      </h4>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-[10px] font-bold text-slate-500">الأبعاد (ط×ع)</p>
+                      <h4 className="text-lg font-black text-slate-300">
+                        {state.batteryLength} × {state.batteryWidth} م
+                      </h4>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    <Calendar size={14} className="text-purple-400" />
+                    معلومات القطيع
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold text-slate-500">العمر الحالي</p>
+                      <h4 className="text-lg font-black text-white">{state.age} يوم</h4>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-[10px] font-bold text-slate-500">السلالة</p>
+                      <h4 className="text-lg font-black text-slate-300">{state.strain}</h4>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Detailed Distribution Chart */}
+              <Card className="p-6 bg-slate-900/60 border-white/5 backdrop-blur-xl">
+                 <div className="flex items-center justify-between mb-8">
+                    <div className="flex flex-col">
+                       <h3 className="text-lg font-black text-white tracking-tight">رسم توضيحي للتوزيع</h3>
+                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">توزيع الكثافة حسب الأدوار</p>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5">
+                        <Thermometer size={14} className="text-red-400" />
+                        <span className="text-[10px] font-black text-slate-300">موصى به: {targetTemp}°م</span>
+                    </div>
+                 </div>
+
+                 <div className="space-y-4">
+                    {(() => {
+                        const currentAge = String(state.age);
+                        const days = Object.keys(state.dailyBatteryTierCounts || {}).map(Number).sort((a, b) => b - a);
+                        const lastDay = days.find(d => d <= toNum(state.age));
+                        const currentDayCounts = lastDay ? state.dailyBatteryTierCounts![String(lastDay)] : (state.batteryTierCounts || []);
+                        const totalChicks = toNum(state.totalChicks) || 1;
+
+                        const tierConfig = [
+                            { name: 'الدور العلوي', color: 'orange', text: 'text-orange-400', bg: 'bg-orange-500', barBg: 'bg-orange-500/20' },
+                            { name: 'الدور الأوسط', color: 'emerald', text: 'text-emerald-400', bg: 'bg-emerald-500', barBg: 'bg-emerald-500/20' },
+                            { name: 'الدور السفلي', color: 'sky', text: 'text-sky-400', bg: 'bg-sky-400', barBg: 'bg-sky-400/20' }
+                        ];
+
+                        return Array.from({ length: toNum(state.batteryTiers) }).map((_, idx) => {
+                            const count = toNum(currentDayCounts[idx] || 0);
+                            const percent = Math.round((count / totalChicks) * 100);
+                            const config = tierConfig[idx % 3] || { name: `دور ${idx + 1}`, text: 'text-slate-400', bg: 'bg-slate-500', barBg: 'bg-slate-500/20' };
+
+                            return (
+                                <div key={idx} className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn("w-2 h-2 rounded-full", config.bg)} />
+                                            <span className={cn("text-xs font-black", config.text)}>{config.name}</span>
+                                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
+                                                <Thermometer size={10} className="text-red-400" />
+                                                <span>{targetTemp}°م</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">{percent}%</span>
+                                            <span className="text-xs font-black text-white">{count.toLocaleString()} طائر</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${percent}%` }}
+                                            className={cn("h-full transition-all duration-1000", config.bg)}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        });
+                    })()}
+                 </div>
+              </Card>
+
+              <Card className="p-6 bg-slate-900/60 border-white/5 backdrop-blur-xl">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between bg-slate-950/50 p-4 rounded-2xl border border-white/5">
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">إجمالي الطيور</p>
+                      <h3 className="text-xl font-black text-white">{toNum(state.totalChicks).toLocaleString()} طائر</h3>
+                    </div>
+                    <div className="h-10 w-[1px] bg-white/5" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">عدد الأدوار</p>
+                      <h3 className="text-xl font-black text-purple-400">{state.batteryTiers} أدوار</h3>
+                    </div>
+                  </div>
+
+                  {/* خيار المعدات الخارجية */}
+                  <button 
+                    onClick={() => setState(prev => ({ ...prev, externalEquipment: !prev.externalEquipment }))}
+                    className={cn(
+                      "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300",
+                      state.externalEquipment 
+                        ? "bg-purple-600/10 border-purple-600 shadow-lg shadow-purple-500/10" 
+                        : "bg-slate-950/50 border-white/5 hover:border-white/10"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                        state.externalEquipment ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-500"
+                      )}>
+                        <Package size={20} />
+                      </div>
+                      <div className="text-right">
+                        <h4 className="text-sm font-black text-white">علافات خارجية + نبل معلق</h4>
+                        <p className="text-[10px] text-slate-500 font-bold">تفعيل زيادة سعة 15% للمعدات الخارجية</p>
+                      </div>
+                    </div>
+                    <div className={cn(
+                      "w-10 h-6 rounded-full relative transition-colors duration-300",
+                      state.externalEquipment ? "bg-purple-600" : "bg-slate-800"
+                    )}>
+                      <div className={cn(
+                        "absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300",
+                        state.externalEquipment ? "right-1" : "right-5"
+                      )} />
+                    </div>
+                  </button>
+
+                  <div className="grid gap-4">
+                    {Array.from({ length: toNum(state.batteryTiers) }).map((_, idx) => {
+                      const currentAge = String(state.age);
+                      // Get counts for current day, or fallback to the most recent day with data
+                      const getLatestCounts = () => {
+                        if (state.dailyBatteryTierCounts?.[currentAge]) {
+                          return state.dailyBatteryTierCounts[currentAge];
+                        }
+                        // Search backwards for the last available data
+                        const days = Object.keys(state.dailyBatteryTierCounts || {}).map(Number).sort((a, b) => b - a);
+                        const lastDay = days.find(d => d < toNum(state.age));
+                        return lastDay ? state.dailyBatteryTierCounts![String(lastDay)] : (state.batteryTierCounts || []);
+                      };
+
+                      const currentDayCounts = getLatestCounts();
+                      const currentDayFeed = state.dailyBatteryTierFeed?.[currentAge]?.[idx] || 0;
+                      
+                      const densityPerM2 = 
+                        Number(state.age) <= 7 ? 45 :
+                        Number(state.age) <= 14 ? 32 :
+                        Number(state.age) <= 21 ? 22 :
+                        Number(state.age) <= 28 ? 17 :
+                        Number(state.age) <= 35 ? 14 : 12;
+                      
+                      const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
+                      const currentCount = toNum(currentDayCounts?.[idx] || 0);
+                      const isOver = currentCount > recPerTier;
+                      
+                      const tierBorderColors = [
+                        'border-orange-500/30',
+                        'border-emerald-500/30',
+                        'border-sky-500/30'
+                      ];
+                      const borderClass = tierBorderColors[idx % 3] || 'border-white/5';
+
+                      return (
+                        <div key={idx} className={cn(
+                          "relative p-4 rounded-2xl border transition-all duration-300",
+                          isOver ? "bg-red-500/5 border-red-500/40 shadow-lg shadow-red-500/5" : cn("bg-white/5", borderClass)
+                        )}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs",
+                                isOver ? "bg-red-500 text-white" : "bg-slate-800 text-slate-400"
+                              )}>
+                                {idx + 1}
+                              </div>
+                              <span className="text-xs font-black text-white">الدور {idx + 1}</span>
+                            </div>
+                            <div className="text-left">
+                               <span className="text-[9px] font-bold text-slate-500 block mb-0.5">السعة الموصى بها</span>
+                               <span className="text-xs font-black text-slate-300">{recPerTier} طائر</span>
+                            </div>
+                          </div>
+
+                          <div className="relative group">
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              value={currentDayCounts?.[idx] ?? ''}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                const newDailyCounts = { ...(state.dailyBatteryTierCounts || {}) };
+                                const dayCounts = [...currentDayCounts];
+                                dayCounts[idx] = val;
+                                newDailyCounts[currentAge] = dayCounts;
+                                
+                                // Calculate total from this specific day's numbers
+                                const newTotal = dayCounts.reduce((acc, curr) => acc + toNum(curr), 0);
+                                
+                                setState(prev => ({ 
+                                  ...prev, 
+                                  dailyBatteryTierCounts: newDailyCounts,
+                                  batteryTierCounts: dayCounts, // Keep as latest backup
+                                  totalChicks: newTotal > 0 ? newTotal : prev.totalChicks
+                                }));
+                              }}
+                              className={cn(
+                                "w-full bg-slate-950/50 border rounded-xl px-4 py-3 text-white font-black text-center focus:outline-none transition-all text-sm",
+                                isOver ? "border-red-500/30 focus:border-red-500" : "border-white/10 focus:border-purple-500/30"
+                              )}
+                              placeholder="أدخل عدد الطيور..."
+                            />
+                            {isOver && (
+                              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg shadow-red-500/20">
+                                تجاوزت السعة!
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between mb-0.5">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block me-1">العلف المستهلك (كجم)</label>
+                                    <button 
+                                      onClick={() => {
+                                        const targetVal = ((currentCount * dailyStats.dailyFeed) / 1000).toFixed(2);
+                                        const newDailyFeed = { ...(state.dailyBatteryTierFeed || {}) };
+                                        const dayFeed = [...(newDailyFeed[currentAge] || new Array(toNum(state.batteryTiers)).fill(0))];
+                                        dayFeed[idx] = targetVal;
+                                        newDailyFeed[currentAge] = dayFeed;
+                                        setState(prev => ({ ...prev, dailyBatteryTierFeed: newDailyFeed }));
+                                      }}
+                                      className="text-emerald-500 hover:text-emerald-400 transition-colors"
+                                      title="ضبط حسب المستهدف القياسي"
+                                    >
+                                      <Zap size={10} fill="currentColor" />
+                                    </button>
+                                </div>
+                                <input 
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={currentDayFeed}
+                                  onChange={e => {
+                                    const val = e.target.value.replace(/[^\d.]/g, '');
+                                    const newDailyFeed = { ...(state.dailyBatteryTierFeed || {}) };
+                                    const dayFeed = [...(newDailyFeed[currentAge] || new Array(toNum(state.batteryTiers)).fill(0))];
+                                    dayFeed[idx] = val;
+                                    newDailyFeed[currentAge] = dayFeed;
+                                    
+                                    setState(prev => ({ 
+                                      ...prev, 
+                                      dailyBatteryTierFeed: newDailyFeed
+                                    }));
+                                  }}
+                                  className="w-full bg-slate-950/30 border border-white/5 rounded-xl px-3 py-2 text-white font-black text-center focus:outline-none focus:border-purple-500/30 transition-all text-xs"
+                                  placeholder="0.0"
+                                />
+                                <div className="flex items-center justify-between px-1">
+                                    <span className="text-[8px] font-bold text-slate-600">المستهدف:</span>
+                                    <span className="text-[8px] font-black text-slate-400">
+                                        {((currentCount * dailyStats.dailyFeed) / 1000).toFixed(2)} كجم
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-end items-end text-left">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">معدل الاستهلاك</span>
+                                {(() => {
+                                  const actualRate = currentCount > 0 ? (toNum(currentDayFeed) * 1000) / currentCount : 0;
+                                  const diff = actualRate - dailyStats.dailyFeed;
+                                  const isChecking = toNum(currentDayFeed) > 0;
+                                  
+                                  return (
+                                    <div className={cn(
+                                      "flex flex-col gap-1 w-full p-2 rounded-xl border transition-all",
+                                      !isChecking ? "bg-slate-900/50 border-white/5" :
+                                      Math.abs(diff) < dailyStats.dailyFeed * 0.1 ? "bg-emerald-500/5 border-emerald-500/10" : "bg-red-500/5 border-red-500/10"
+                                    )}>
+                                      <div className="flex items-baseline gap-1 justify-center">
+                                          <span className={cn(
+                                            "text-sm font-black",
+                                            !isChecking ? "text-slate-500" :
+                                            Math.abs(diff) < dailyStats.dailyFeed * 0.1 ? "text-emerald-400" : "text-red-400"
+                                          )}>
+                                              {actualRate.toFixed(1)}
+                                          </span>
+                                          <span className="text-[8px] font-bold text-slate-600 uppercase">جم/طائر</span>
+                                      </div>
+                                      {isChecking && (
+                                        <div className="flex items-center justify-center gap-1">
+                                          {diff > 0 ? <ChevronUp size={8} className="text-red-400" /> : <ChevronDown size={8} className="text-emerald-400" />}
+                                          <span className={cn("text-[7px] font-black", diff > 0 ? "text-red-400" : "text-emerald-400")}>
+                                            {Math.abs(diff).toFixed(1)} عن القياسي
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5">
+                    <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-2xl flex gap-4 items-start">
+                      <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                        <AlertCircle size={18} />
+                      </div>
+                      <div className="text-right">
+                        <h4 className="text-[11px] font-black text-white mb-1">معيار الكثافة الحالي (عمر {state.age} يوم)</h4>
+                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+                          الكثافة الموصى بها لهذا العمر هي {
+                            Number(state.age) <= 7 ? 45 :
+                            Number(state.age) <= 14 ? 32 :
+                            Number(state.age) <= 21 ? 22 :
+                            Number(state.age) <= 28 ? 17 :
+                            Number(state.age) <= 35 ? 14 : 12
+                          } طائر لكل متر مربع.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+            {screen === 'weather' && (
+              <motion.div
+                key="weather-screen"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <WeatherScreen age={toNum(state.age)} thi={thi} targetThi={targetThi} />
+              </motion.div>
+            )}
+
+            {screen === 'market' && (
+              <motion.div
+                key="market-screen"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <MarketScreen sellingPrice={state.sellingPrice} lastPriceUpdateAt={state.lastPriceUpdateAt} />
+              </motion.div>
+            )}
+
+            {screen === 'medication' && (
             <motion.div 
               key="medication"
               initial={{ opacity: 0, x: 20 }}
@@ -4709,6 +5904,9 @@ export default function App() {
                         {unifiedTimeline.map((item: any, i) => {
                           const nextItem = unifiedTimeline[i + 1];
                           const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? nextDayFirstMed : null;
+                          const itemKey = item.type === 'darkness' ? `${toNum(state.age)}-darkness` : 
+                                          item.type === 'emergency' ? `emergency-${item.id}` : 
+                                          `${toNum(state.age)}-${item.id || item.name}-${i}`;
 
                           if (item.type === 'darkness') {
                             const darknessKey = `${toNum(state.age)}-darkness`;
@@ -4716,7 +5914,7 @@ export default function App() {
 
                             const colors = getCategoryColorClasses('راحة', 'إظلام');
                             return (
-                              <div key="darkness-card" className={cn("bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-s-4 overflow-hidden relative group", colors.border)}>
+                              <div key={itemKey} className={cn("bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-s-4 overflow-hidden relative group", colors.border)}>
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
                                 
                                 <div className="flex items-center justify-between relative z-10">
@@ -5229,7 +6427,7 @@ export default function App() {
                             const nextAct = nextItem || localNextDayFirstMed;
 
                             return (
-                              <div key={i} className={cn(
+                              <div key={itemKey} className={cn(
                                 "bg-slate-900 shadow-xl border-t border-white/5 p-5 rounded-3xl flex flex-col gap-4 border-s-4 transition-all duration-300",
                                 colors.border,
                                 med.isRest && "opacity-80"
@@ -5746,15 +6944,19 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.98 }}
               className="space-y-6"
             >
-               <h2 className="text-2xl font-black text-white tracking-tight px-2">بيانات النمو والاحترافية</h2>
+               <h2 className="text-2xl font-black text-white tracking-tight px-2">لوحة التحليلات المتقدمة</h2>
                
-               <Card className="h-72 border-white/5 pt-8">
+               {/* Growth Curve */}
+               <Card className="h-80 border-white/5 pt-8">
                 <div className="flex items-center justify-between mb-8 px-2">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">هدف النمو (جم)</p>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">منحنى النمو (جم)</p>
+                    <p className="text-[9px] text-emerald-400 font-bold">مقارنة الأداء الفعلي بالمعايير العالمية</p>
+                  </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                      <span className="text-[9px] font-black text-emerald-500 uppercase">الفعلي</span>
+                      <span className="text-[9px] font-black text-emerald-500 uppercase">المتوقع</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
@@ -5762,15 +6964,15 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height="75%">
-                  <AreaChart data={chartData}>
+                <ResponsiveContainer width="100%" height="70%">
+                  <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 7, 45))}>
                     <defs>
                       <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
                     <XAxis dataKey="day" reversed hide />
                     <YAxis hide />
                     <Tooltip 
@@ -5778,31 +6980,166 @@ export default function App() {
                       contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
                       labelFormatter={(value) => `اليوم: ${value}`}
                       labelClassName="font-black text-slate-500 text-[10px] uppercase mb-1"
-                      itemStyle={{ color: '#fff', fontSize: '14px', fontWeight: '900' }}
+                      itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: '900' }}
                     />
-                    <Area type="monotone" name="الوزن" dataKey="weight" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorWeight)" animationDuration={1500} />
+                    <Area type="monotone" name="المتوقع" dataKey="weight" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorWeight)" animationDuration={1000} />
+                    <Line type="monotone" name="المعياري" dataKey="standardWeight" stroke="#475569" strokeWidth={2} strokeDasharray="5 5" dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
                </Card>
 
-               <Card className="h-70 border-white/5 pt-8">
-                <p className="text-[10px] font-black text-slate-500 uppercase mb-8 px-2 tracking-[0.2em]">العلف اليومي (جم/طائر)</p>
-                <ResponsiveContainer width="100%" height="75%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#1e293b" />
-                    <XAxis dataKey="day" reversed hide />
-                    <YAxis hide />
-                    <Tooltip 
-                      isAnimationActive={false}
-                      contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
-                      labelFormatter={(value) => `اليوم: ${value}`}
-                      labelClassName="font-black text-slate-500 text-[10px] uppercase mb-1"
-                      itemStyle={{ color: '#fff', fontSize: '14px', fontWeight: '900' }}
-                    />
-                    <Line type="monotone" name="العلف" dataKey="feed" stroke="#f59e0b" strokeWidth={4} dot={false} animationDuration={2000} />
-                  </LineChart>
-                </ResponsiveContainer>
-               </Card>
+               {/* Bio-Metrics Grid */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="h-64 border-white/5 pt-6 group transition-all hover:bg-slate-900/40">
+                    <div className="flex items-center justify-between mb-6 px-4">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">تتبع المدخلات الحيوية</p>
+                        <p className="text-[9px] text-blue-400 font-bold">الاستهلاك اليومي: علف (جم) و ماء (مل)</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
+                          نسبة الماء/العلف: {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.wfRatio}
+                        </div>
+                        <Droplets size={14} className="text-blue-500" />
+                      </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height="70%">
+                      <LineChart data={chartData.slice(0, Math.min(toNum(state.age) + 3, 45))}>
+                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#1e293b" />
+                        <XAxis dataKey="day" reversed hide />
+                        <YAxis hide />
+                        <Tooltip 
+                          isAnimationActive={false}
+                          contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
+                        />
+                        <Line type="step" name="العلف (جم)" dataKey="feed" stroke="#f59e0b" strokeWidth={3} dot={false} strokeOpacity={0.8} />
+                        <Line type="step" name="الماء (مل)" dataKey="water" stroke="#3b82f6" strokeWidth={3} dot={false} strokeOpacity={0.8} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Card>
+
+                  <Card className="h-64 border-white/5 pt-6 relative overflow-hidden group transition-all hover:bg-slate-900/40">
+                    <div className="flex items-center justify-between mb-6 px-4 relative z-10">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">معدل التراكمي للنافق</p>
+                        <p className="text-[9px] text-red-400 font-bold">كلما انخفضت النسبة زاد مؤشر النجاح (%)</p>
+                      </div>
+                      <AlertTriangle size={14} className="text-red-500" />
+                    </div>
+                    <ResponsiveContainer width="100%" height="70%" className="relative z-10">
+                      <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 1, 45))}>
+                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#1e293b" />
+                        <XAxis dataKey="day" reversed hide />
+                        <YAxis hide />
+                        <Tooltip 
+                          isAnimationActive={false}
+                          contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
+                        />
+                        <Area type="stepAfter" name="النافق (%)" dataKey="mortalityRate" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Card>
+               </div>
+
+               {/* Advanced Performance Scoring */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* EPEF Card */}
+                  <Card className="col-span-1 md:col-span-1 bg-indigo-600/10 border-indigo-500/20 p-6 flex flex-col justify-between overflow-hidden relative group">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">معامل الكفاءة الأوروبي (EPEF)</span>
+                        <Zap size={16} className="text-indigo-400" />
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="text-4xl font-black text-white italic">
+                          {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0}
+                        </h3>
+                        <span className="text-[10px] font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 rounded-lg">درجة</span>
+                      </div>
+                      <div className="mt-4 flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${Math.min((chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0) / 450 * 100, 100)}%` }}
+                             className="h-full bg-indigo-500"
+                           />
+                        </div>
+                        <span className="text-[8px] font-black text-slate-500 uppercase">الهدف 400+</span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-4 leading-relaxed font-bold">هذا المؤشر يدمج معدلات (النمو، التحويل الغذائي، والنافق) في رقم واحد لتقييم الاحترافية.</p>
+                  </Card>
+
+                  {/* FCR Analysis Card */}
+                  <Card className="col-span-1 md:col-span-2 bg-slate-900/60 border-white/5 p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                           <Scale size={18} />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-white text-sm tracking-tight">تحليل معامل التحويل الغذائي (FCR)</h4>
+                          <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">معدل تحويل العلف إلى لحم</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                         <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الوضع الحالي</span>
+                         <span className={cn(
+                           "text-lg font-black",
+                           toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) <= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr) ? "text-emerald-400" : "text-amber-400"
+                         )}>
+                           {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr || '0.00'}
+                         </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                          <div className="flex justify-between text-[9px] font-black uppercase">
+                            <span className="text-slate-500">الفعلي</span>
+                            <span className="text-white">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr}</span>
+                          </div>
+                          <div className="h-6 bg-slate-800 rounded-lg overflow-hidden flex items-center px-1 border border-white/5">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: `${Math.min(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) / 2 * 100, 100)}%` }}
+                               className="h-4 bg-orange-500 rounded-sm"
+                             />
+                          </div>
+                          <div className="flex justify-between text-[9px] font-black uppercase">
+                            <span className="text-slate-500">المعياري للسلالة</span>
+                            <span className="text-slate-400">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr}</span>
+                          </div>
+                       </div>
+                       <div className="bg-slate-950/40 rounded-2xl p-4 border border-white/5">
+                          <div className="flex items-start gap-3">
+                            <Info size={14} className="text-indigo-400 mt-1 shrink-0" />
+                            <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
+                              كلما كان الرقم <span className="text-emerald-400 italic">أقل</span> من الرقم المعياري ({chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr})، زادت أرباحك الصافية نتيجة توفير العلف.
+                            </p>
+                          </div>
+                       </div>
+                    </div>
+                  </Card>
+               </div>
+
+               {/* Performance Summary Cards */}
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'الوزن الحالي', value: Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight)).toLocaleString(), unit: 'جم', color: 'text-white' },
+                    { label: 'انحراف الوزن', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) > 0 ? '+' : '') + Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight)), unit: 'جم', color: toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) >= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) ? "text-emerald-400" : "text-red-400" },
+                    { label: 'نسبة النافق', value: chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate || '0.00', unit: '%', color: toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate) > 5 ? "text-red-400" : "text-emerald-400" },
+                    { label: 'العلف التراكمي', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.cumulativeFeed) / 1000).toFixed(2), unit: 'كجم', color: 'text-white' }
+                  ].map((stat, i) => (
+                    <Card key={i} className="p-4 bg-slate-900/40 border-white/5 space-y-1">
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                      <p className={cn("text-xl font-black italic", stat.color)}>
+                        {stat.value} <span className="text-[10px] opacity-40 non-italic">{stat.unit}</span>
+                      </p>
+                    </Card>
+                  ))}
+               </div>
             </motion.div>
           )}
 
@@ -6046,7 +7383,7 @@ export default function App() {
                                 <div className="bg-blue-900/40 p-3 rounded-xl border border-white/5 text-right">
                                    <p className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-1">التشغيل الحالي</p>
                                    <div className="flex items-baseline gap-1 justify-end">
-                                      <span className="text-xl font-black text-white">{(((minVentilation / state.fanCapacity) * 60) / toNum(state.cyclesPerHour)).toFixed(1)}</span>
+                                      <span className="text-xl font-black text-white">{(((minVentilation / totalActiveCapacity) * 60) / toNum(state.cyclesPerHour)).toFixed(1)}</span>
                                       <span className="text-[10px] font-bold text-blue-400">د/دورة</span>
                                    </div>
                                 </div>
@@ -6055,7 +7392,7 @@ export default function App() {
                                    <div className="flex items-baseline gap-1 justify-end">
                                       <span className="text-xl font-black text-white">
                                          {(() => {
-                                            const currentOn = ((minVentilation / state.fanCapacity) * 60) / toNum(state.cyclesPerHour);
+                                            const currentOn = ((minVentilation / totalActiveCapacity) * 60) / toNum(state.cyclesPerHour);
                                             const maxOn = 60 / toNum(state.cyclesPerHour);
                                             if (tempDelta > 1) return maxOn.toFixed(1);
                                             if (tempDelta > 0) return Math.min(maxOn, currentOn + (tempDelta * 3)).toFixed(1);
@@ -6139,25 +7476,108 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Input Side */}
                   <div className="space-y-4">
-                    <div className="p-4 bg-slate-950/50 rounded-3xl border border-white/5 space-y-4">
-                       <div>
-                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">قدرة الشفاط (م³/ساعة)</label>
-                         <input 
-                           type="text"
-                           inputMode="decimal"
-                           value={state.fanCapacity}
-                           onChange={e => {
-                             const val = e.target.value;
-                             if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                               setState(prev => ({ ...prev, fanCapacity: val }));
-                             }
-                           }}
-                           className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xl focus:border-emerald-500/50 focus:ring-0 transition-all"
-                         />
-                       </div>
+                     <div className="p-4 bg-slate-950/50 rounded-3xl border border-white/5 space-y-4">
+                        <div className="flex items-center justify-between">
+                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">قائمة الشفاطات</label>
+                           <button 
+                             onClick={() => {
+                               const newFan: Fan = { id: `fan-${Date.now()}`, name: `شفاط جديد`, capacity: 5000, count: 1, isActive: true };
+                               setState(prev => ({ ...prev, fans: [...(prev.fans || []), newFan] }));
+                             }}
+                             className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-[8px] font-black hover:bg-emerald-600/30 transition-all"
+                           >
+                             <Plus size={10} />
+                             إضافة شفاط
+                           </button>
+                        </div>
 
-                       <div>
-                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">عدد مرات التشغيل بالساعة</label>
+                        <div className="space-y-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                           {(state.fans || []).map((fan, idx) => (
+                             <div key={fan.id} className={cn("p-3 rounded-2xl border transition-all", fan.isActive ? "bg-slate-900 border-white/10" : "bg-slate-950/50 border-white/5 opacity-60")}>
+                               <div className="flex items-center justify-between mb-3">
+                                 <input 
+                                   type="text"
+                                   value={fan.name}
+                                   onChange={e => {
+                                     const newFans = [...(state.fans || [])];
+                                     newFans[idx].name = e.target.value;
+                                     setState(prev => ({ ...prev, fans: newFans }));
+                                   }}
+                                   className="bg-transparent border-none p-0 text-[11px] font-black text-white focus:ring-0 w-32"
+                                 />
+                                 <div className="flex items-center gap-2">
+                                   <button 
+                                     onClick={() => {
+                                       const newFans = [...(state.fans || [])];
+                                       newFans[idx].isActive = !newFans[idx].isActive;
+                                       setState(prev => ({ ...prev, fans: newFans }));
+                                     }}
+                                     className={cn("w-8 h-4 rounded-full relative transition-colors", fan.isActive ? "bg-emerald-600" : "bg-slate-800")}
+                                   >
+                                     <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", fan.isActive ? "left-4.5" : "left-0.5")} />
+                                   </button>
+                                   <button 
+                                       onClick={() => setFanToDeleteId(fan.id)}
+                                       className="text-slate-600 hover:text-red-500 transition-colors p-1"
+                                     >
+                                       <Trash2 size={12} />
+                                     </button>
+                                 </div>
+                               </div>
+                               <div className="grid grid-cols-2 gap-3">
+                                 <div>
+                                   <label className="text-[7px] font-black text-slate-600 uppercase block mb-1">القدرة (م³/س)</label>
+                                   <input 
+                                     type="text"
+                                     inputMode="decimal"
+                                     value={fan.capacity}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                          const newFans = [...(state.fans || [])];
+                                          newFans[idx].capacity = val;
+                                          setState(prev => ({ ...prev, fans: newFans }));
+                                        }
+                                      }}
+                                       className="w-full bg-slate-950 border border-white/5 rounded-lg px-2 py-1.5 text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[7px] font-black text-slate-600 uppercase block mb-1">العدد</label>
+                                    <input 
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={fan.count}
+                                     onChange={e => {
+                                       const val = e.target.value;
+                                       if (val === '' || /^\d*$/.test(val)) {
+                                         const newFans = [...(state.fans || [])];
+                                         newFans[idx].count = val;
+                                         setState(prev => ({ ...prev, fans: newFans }));
+                                       }
+                                     }}
+                                     className="w-full bg-slate-950 border border-white/5 rounded-lg px-2 py-1.5 text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
+                                   />
+                                 </div>
+                               </div>
+                             </div>
+                           ))}
+                           {(state.fans || []).length === 0 && (
+                             <div className="py-4 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                               <p className="text-[8px] font-black text-slate-600 uppercase">لا توجد شفاطات مضافة</p>
+                             </div>
+                           )}
+                        </div>
+
+                        <div className="pt-2">
+                          <div className="flex justify-between items-center px-1">
+                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">إجمالي القدرة المتاحة:</span>
+                            <span className="text-xs font-black text-emerald-400">{totalActiveCapacity.toLocaleString()} <span className="text-[7px] opacity-60">م³/س</span></span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">عدد مرات التشغيل بالساعة</label>
                          <div className="flex items-center gap-4">
                             <input 
                               type="range"
@@ -6198,7 +7618,7 @@ export default function App() {
                         <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
                         
                         {(() => {
-                           const onRatio = Math.min(1, minVentilation / state.fanCapacity);
+                           const onRatio = Math.min(1, minVentilation / totalActiveCapacity);
                            const cycles = Math.max(1, toNum(state.cyclesPerHour));
                            const cycleDeg = 360 / cycles;
                            const onDeg = cycleDeg * onRatio;
@@ -6250,38 +7670,38 @@ export default function App() {
                             const totalSecs = (now.getMinutes() * 60 + now.getSeconds() + (typeof state.ventilationOffset === 'number' ? state.ventilationOffset : 0));
                             const cycles = Math.max(1, toNum(state.cyclesPerHour));
                             const cycleSecs = 3600 / cycles; 
-                            const onRatio = minVentilation / (toNum(state.fanCapacity) || 1);
+                            const onRatio = minVentilation / (totalActiveCapacity || 1);
                             const onSecs = onRatio * cycleSecs;
                             const progress = ((totalSecs % cycleSecs) + cycleSecs) % cycleSecs;
                             const active = progress < onSecs;
                             const remaining = active ? onSecs - progress : cycleSecs - progress;
                             
-                            const formatFullTime = (s: number) => {
-                               const h = Math.floor(s / 3600);
-                               const m = Math.floor((s % 3600) / 60);
-                               const sc = Math.floor(s % 60);
-                               return { h, m, s: sc };
-                            };
+                             const formatFullTime = (s: number) => {
+                                const h = Math.floor(s / 3600);
+                                const m = Math.floor((s % 3600) / 60);
+                                const sc = Math.floor(s % 60);
+                                return { h, m, s: sc };
+                             };
 
-                            const timeObj = formatFullTime(remaining);
+                             const timeObj = formatFullTime(remaining);
 
-                            if (isEditingTimer) {
-                              return (
-                                <div className="text-center bg-slate-900/90 backdrop-blur-sm p-4 rounded-3xl border border-emerald-500/30 z-10 shadow-2xl scale-110 pointer-events-auto">
-                                   <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-3">تعديل المؤقت</p>
-                                   <div className="flex items-center gap-1 justify-center mb-4">
-                                      <div className="flex flex-col items-center">
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, h: Math.min(99, p.h + 1) }))} className="text-slate-500 hover:text-white pb-1"><ChevronUp size={14} /></button>
-                                         <input 
-                                           type="text" 
-                                           value={editTimerTime.h.toString().padStart(2, '0')}
-                                           onFocus={(e) => e.target.select()}
-                                           onChange={e => {
-                                             const v = parseInt(e.target.value.replace(/\D/g, '')) || 0;
-                                             setEditTimerTime(p => ({ ...p, h: Math.min(99, v) }));
-                                           }}
-                                           className="w-8 bg-slate-800 border border-white/10 rounded-md text-center text-sm font-black py-1 focus:border-emerald-500 outline-none"
-                                         />
+                             if (isEditingTimer) {
+                               return (
+                                 <div className="text-center bg-slate-900/90 backdrop-blur-sm p-4 rounded-3xl border border-emerald-500/30 z-10 shadow-2xl scale-110 pointer-events-auto">
+                                    <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-3">تعديل المؤقت</p>
+                                    <div className="flex items-center gap-1 justify-center mb-4">
+                                       <div className="flex flex-col items-center">
+                                          <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, h: Math.min(99, p.h + 1) }))} className="text-slate-500 hover:text-white pb-1"><ChevronUp size={14} /></button>
+                                          <input 
+                                            type="text" 
+                                            value={editTimerTime.h.toString().padStart(2, '0')}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={e => {
+                                              const v = parseInt(e.target.value.replace(/\D/g, '')) || 0;
+                                              setEditTimerTime(p => ({ ...p, h: Math.min(99, v) }));
+                                            }}
+                                            className="w-8 bg-slate-800 border border-white/10 rounded-md text-center text-sm font-black py-1 focus:border-emerald-500 outline-none"
+                                          />
                                          <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, h: Math.max(0, p.h - 1) }))} className="text-slate-500 hover:text-white pt-1"><ChevronDown size={14} /></button>
                                       </div>
                                       <span className="text-slate-500 font-bold">:</span>
@@ -6342,82 +7762,65 @@ export default function App() {
                               );
                             }
                             return (
-                              <div 
-                                className="text-center group cursor-pointer pointer-events-auto"
-                                onClick={() => {
-                                  setEditTimerTime(timeObj);
-                                  setIsEditingTimer(true);
-                                }}
-                              >
+                              <div className="text-center pointer-events-auto">
                                  <div className={cn(
-                                   "mb-2 px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] inline-block transition-all hover:scale-105",
+                                   "mb-2 px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] inline-block transition-all",
                                    active ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 animate-pulse" : "bg-red-500/20 text-red-400 border border-red-500/10"
                                  )}>
                                    {active ? "يتم التشغيل الآن" : "في دورة السكون"}
                                  </div>
-                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-emerald-400 transition-colors">
-                                   {active ? "باقي على الإيقاف" : "باقي على التشغيل"}
+                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                                    مؤقت التشغيل الرقمي
                                  </p>
-                                 <div className="relative">
-                                   <p className="text-3xl font-black text-white font-mono transition-transform group-hover:scale-110">
-                                     {timeObj.h > 0 ? `${timeObj.h.toString().padStart(2, '0')}:${timeObj.m.toString().padStart(2, '0')}:${timeObj.s.toString().padStart(2, '0')}` : `${timeObj.m.toString().padStart(2, '0')}:${timeObj.s.toString().padStart(2, '0')}`}
+                                 <div className="relative mb-4">
+                                   <p className="text-4xl font-black text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                                     {formatTime(state.manualTimerSeconds)}
                                    </p>
-                                   <div className="absolute -inset-2 border-2 border-dashed border-emerald-500/0 group-hover:border-emerald-500/30 rounded-xl pointer-events-none transition-all" />
                                  </div>
-                                 <p className="text-[7px] font-bold text-slate-600 mt-2">انقر للتعديل • دورة الـ {(cycleSecs / 60).toFixed(0)} دقيقة</p>
-                                 {state.ventilationOffset !== 0 && (
-                                   <button 
-                                     type="button" 
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       setState(prev => ({ ...prev, ventilationOffset: 0 }));
-                                     }}
-                                     className="mt-2 text-[6px] font-black text-slate-500 uppercase hover:text-emerald-400 pointer-events-auto"
-                                   >
-                                     إعادة ضبط للوقت الفعلي
-                                   </button>
-                                 )}
+
+                                 <div className="flex items-center justify-center gap-2">
+                                    <button 
+                                      onClick={() => setState(prev => ({ ...prev, isManualTimerRunning: !prev.isManualTimerRunning }))}
+                                      className={cn(
+                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg",
+                                        state.isManualTimerRunning ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-emerald-600 text-white shadow-emerald-500/20"
+                                      )}
+                                    >
+                                      {state.isManualTimerRunning ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
+                                    </button>
+                                    
+                                    <button 
+                                      onClick={() => setState(prev => ({ ...prev, manualTimerSeconds: 0, isManualTimerRunning: false }))}
+                                      className="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center border border-white/10 hover:bg-slate-700 transition-all active:scale-95"
+                                    >
+                                      <RotateCcw size={16} />
+                                    </button>
+                                 </div>
+
+                                 <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
+                                   <div className="text-[7px] font-bold text-slate-600 uppercase tracking-tighter">
+                                     {active ? "باقي على الإيقاف" : "باقي على التشغيل"}: {timeObj.h > 0 ? `${timeObj.h}:${timeObj.m.toString().padStart(2, '0')}:${timeObj.s.toString().padStart(2, '0')}` : `${timeObj.m}:${timeObj.s.toString().padStart(2, '0')}`}
+                                   </div>
+                                   <div className="text-[6px] font-bold text-slate-700 italic cursor-pointer hover:text-emerald-500 transition-colors" onClick={() => setIsEditingTimer(true)}>
+                                      انقر للتعديل • دورة الـ {(cycleSecs / 60).toFixed(0)} دقيقة
+                                   </div>
+                                   {state.ventilationOffset !== 0 && (
+                                     <button 
+                                       type="button" 
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         setState(prev => ({ ...prev, ventilationOffset: 0 }));
+                                       }}
+                                       className="block w-full text-[6px] font-black text-slate-500 uppercase hover:text-emerald-400 mt-1"
+                                     >
+                                       إعادة ضبط للوقت الفعلي
+                                     </button>
+                                   )}
+                                 </div>
                               </div>
                             );
                          })()}
                       </div>
-                    </div>
-
-                    <div className="flex-1 space-y-6 w-full">
-                       <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 space-y-4">
-                          <div className="flex justify-between items-center text-center">
-                             <div className="flex-1">
-                                <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">صافي التشغيل/س</p>
-                                <p className="text-xl font-black text-white">{((minVentilation / state.fanCapacity) * 60).toFixed(1)} <span className="text-[10px] text-slate-500">دقيقة</span></p>
-                             </div>
-                             <div className="w-px h-10 bg-white/5" />
-                             <div className="flex-1">
-                                <p className="text-[10px] font-black text-red-500 uppercase mb-1">صافي الإيقاف/س</p>
-                                <p className="text-xl font-black text-white">{(60 - (minVentilation / state.fanCapacity) * 60).toFixed(1)} <span className="text-[10px] text-slate-500">دقيقة</span></p>
-                             </div>
-                          </div>
-                          
-                          <div className="pt-4 border-t border-white/5">
-                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 text-center">نمط الدورة (كل {(60 / toNum(state.cyclesPerHour)).toFixed(0)} دقيقة)</p>
-                             <div className="flex gap-2">
-                                <div className="flex-1 py-3 bg-emerald-500/10 rounded-2xl text-center border border-emerald-500/10">
-                                   <p className="text-[8px] font-bold text-emerald-400 uppercase">تشغيل</p>
-                                   <p className="text-lg font-black text-white">{(((minVentilation / state.fanCapacity) * 60) / toNum(state.cyclesPerHour)).toFixed(1)} <span className="text-[10px] text-emerald-600">د</span></p>
-                                </div>
-                                <div className="flex-1 py-3 bg-red-500/10 rounded-2xl text-center border border-red-500/10">
-                                   <p className="text-[8px] font-bold text-red-400 uppercase">إيقاف</p>
-                                   <p className="text-lg font-black text-white">{( (60 / toNum(state.cyclesPerHour)) - ((minVentilation / state.fanCapacity) * 60) / toNum(state.cyclesPerHour)).toFixed(1)} <span className="text-[10px] text-red-600">د</span></p>
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-
-                       <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 flex items-center gap-3">
-                          <Activity size={16} className="text-blue-400" />
-                          <p className="text-[10px] text-blue-200/60 font-bold leading-tight text-right">
-                            التهوية موزعة على {state.cyclesPerHour} دورات لضمان ثبات نسبة الأكسجين والتخلص من الأمونيا بشكل مستمر.
-                          </p>
-                       </div>
                     </div>
                   </div>
                 </div>
@@ -6428,348 +7831,712 @@ export default function App() {
           {screen === 'humidity' && (
              <motion.div 
              key="humidity"
-             initial={{ opacity: 0, x: 20 }}
-             animate={{ opacity: 1, x: 0 }}
-             exit={{ opacity: 0, x: -20 }}
-             className="space-y-6"
+             initial={{ opacity: 0, scale: 0.98 }}
+             animate={{ opacity: 1, scale: 1 }}
+             exit={{ opacity: 0, scale: 1.02 }}
+             className="space-y-6 pb-24"
            >
-              <header className="flex items-center justify-between px-2">
-                <div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">إدارة الرطوبة والتبريد</h2>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">التحكم في أنظمة التبريد التبخيري</p>
+              <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
+                <div className="flex items-center gap-4 px-4 sm:px-6">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                    <Droplets size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white tracking-tight leading-none">مؤشر الإجهاد والرطوبة</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5 grayscale opacity-70">
+                      <Settings size={10} /> تشخيص الحالة الحرارية الحالية للعنبر
+                    </p>
+                  </div>
                 </div>
-                <Droplets size={24} className="text-cyan-500" />
               </header>
 
-              {/* THI SECTION */}
-              <Card className="bg-slate-900 border-white/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl -z-10" />
-                <div className="flex flex-col md:flex-row gap-8 items-center p-6">
-                  <div className="flex-1 w-full space-y-6">
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <h4 className="text-xl font-black text-white flex items-center gap-2">
-                          مؤشر الإجهاد الحراري (THI)
-                        </h4>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">المعادلة: الحرارة + الرطوبة</p>
+              {/* DASHBOARD GRID */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* 1. INPUT & GAUGE SECTION */}
+                <div className="lg:col-span-8 space-y-6">
+                  
+                  {/* MAIN STATUS CARD */}
+                  <Card className="bg-slate-900 border-white/5 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[100px] -z-10 transition-all duration-1000" />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+                      {/* Gauge Area */}
+                      <div className="flex flex-col items-center justify-center space-y-6 bg-slate-950/40 p-6 rounded-3xl border border-white/5 shadow-inner">
+                        <div className="relative w-48 h-48">
+                          <svg className="w-full h-full transform -rotate-225" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" strokeDasharray="198 264" strokeLinecap="round" />
+                            <motion.circle 
+                              cx="50" cy="50" r="42" fill="none" 
+                              stroke={thi < targetThi - 0.5 ? "#3b82f6" : thi < targetThi + 1.5 ? "#10b981" : thi <= targetThi + 4 ? "#f59e0b" : "#ef4444"} 
+                              strokeWidth="10" 
+                              strokeDasharray={`${Math.max(0, Math.min(198, (thi / 100) * 198))} 264`} 
+                              strokeLinecap="round" 
+                              className="transition-all duration-1000 ease-out"
+                              initial={{ strokeDasharray: "0 264" }}
+                              animate={{ strokeDasharray: `${Math.max(0, Math.min(198, (thi / 100) * 198))} 264` }}
+                            />
+                            <motion.circle 
+                              cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" 
+                              strokeDasharray="1 264" strokeDashoffset={-((targetThi / 100) * 198)} strokeLinecap="round"
+                            />
+                          </svg>
+
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">المؤشر الحالي</p>
+                            <div className="flex items-baseline gap-0.5">
+                              <span className={cn(
+                                "text-4xl font-black tracking-tighter",
+                                thi < targetThi - 0.5 ? "text-blue-400" : thi < targetThi + 1.5 ? "text-emerald-400" : thi <= targetThi + 4 ? "text-orange-400" : "text-red-500"
+                              )}>
+                                {Math.round(thi)}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-600">THI</span>
+                            </div>
+                            <div className={cn(
+                              "mt-2 px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border",
+                              thi < targetThi - 2 ? "bg-blue-600/10 border-blue-500/20 text-blue-400" :
+                              thi < targetThi - 0.5 ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" :
+                              thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : 
+                              thi <= targetThi + 4 ? "bg-orange-500/10 border-orange-500/20 text-orange-400" :
+                              "bg-red-500/10 border-red-500/20 text-red-500"
+                            )}>
+                              {thi < targetThi - 2 ? "برودة شديدة" : thi < targetThi - 0.5 ? "مائل للبرودة" : thi < targetThi + 1.5 ? "مثالي" : thi <= targetThi + 4 ? "تنبيه" : "خطر"}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="w-full space-y-3">
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-slate-500">المؤشر المستهدف للعمر</span>
+                            <span className="text-white">{targetThi} THI</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                             <div 
+                               className="h-full bg-cyan-500 transition-all duration-500" 
+                               style={{ width: `${Math.min(100, (targetThi / 120) * 100)}%` }}
+                             />
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className={cn(
-                          "text-4xl font-black",
-                          (state.internalTemp + state.currentHumidity) < 100 ? "text-emerald-400" :
-                          (state.internalTemp + state.currentHumidity) <= 155 ? "text-orange-400" : "text-red-500 underline decoration-2 underline-offset-8"
+
+                      {/* Inputs Area */}
+                      <div className="flex flex-col justify-center space-y-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
+                               <Thermometer size={16} />
+                             </div>
+                             <h4 className="text-sm font-black text-white">قراءة العنبر الحالية</h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block pr-2">درجة الحرارة المستمرة</label>
+                               <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
+                                  <button onClick={() => {
+                                    const currentVal = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp);
+                                    const newVal = (currentVal - 0.1).toFixed(1);
+                                    setState(prev => ({ 
+                                      ...prev, 
+                                      dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: newVal },
+                                      internalTemp: newVal // Update global too for first-time sync
+                                    }));
+                                  }} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-orange-500/5 group/btn shrink-0"><Minus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
+                                  <input type="text" inputMode="decimal" value={state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp} onChange={e => { 
+                                    const val = e.target.value; 
+                                    if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
+                                      setState(prev => ({ 
+                                        ...prev, 
+                                        dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: val },
+                                        internalTemp: val // Update global too for first-time sync
+                                      }));
+                                    }
+                                  }} className="bg-transparent text-center font-black text-white text-2xl flex-1 outline-none font-mono min-w-0" />
+                                  <button onClick={() => {
+                                    const currentVal = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp);
+                                    const newVal = (currentVal + 0.1).toFixed(1);
+                                    setState(prev => ({ 
+                                      ...prev, 
+                                      dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: newVal },
+                                      internalTemp: newVal // Update global too for first-time sync
+                                    }));
+                                  }} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-orange-500/5 group/btn shrink-0"><Plus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
+                               </div>
+                            </div>
+
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block pr-2">الرطوبة النسبية (%)</label>
+                               <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
+                                  <button onClick={() => {
+                                    const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
+                                    const newVal = Math.max(0, currentVal - 1).toFixed(0);
+                                    setState(prev => ({ 
+                                      ...prev, 
+                                      dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
+                                      currentHumidity: newVal // Update global too for first-time sync
+                                    }));
+                                  }} className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-cyan-500/5 group/btn shrink-0"><Minus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
+                                  <input type="text" inputMode="decimal" value={state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity} onChange={e => { 
+                                    const val = e.target.value; 
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                      setState(prev => ({ 
+                                        ...prev, 
+                                        dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: val },
+                                        currentHumidity: val // Update global too for first-time sync
+                                      }));
+                                    }
+                                  }} className="bg-transparent text-center font-black text-white text-2xl flex-1 outline-none font-mono min-w-0" />
+                                  <button onClick={() => {
+                                    const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
+                                    const newVal = Math.min(100, currentVal + 1).toFixed(0);
+                                    setState(prev => ({ 
+                                      ...prev, 
+                                      dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
+                                      currentHumidity: newVal // Update global too for first-time sync
+                                    }));
+                                  }} className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-cyan-500/5 group/btn shrink-0"><Plus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
+                               </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-white/5">
+                           <div className="text-[9px] font-black text-slate-500 leading-relaxed">
+                            * أدخل القراءات الحالية التي تظهر على لوحة التحكم أو الحساسات في العنبر للحصول على تشخيص دقيق.
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* DIAGNOSTIC ALERT SECTION */}
+                  <AnimatePresence mode="wait">
+                    <motion.div 
+                      key={`${state.age}-${thi < targetThi - 0.5 ? "cold" : "heat"}`}
+                      initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      className={cn(
+                        "p-6 rounded-[2.5rem] border backdrop-blur-md shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center gap-6",
+                        thi < targetThi - 2 ? "bg-blue-500/5 border-blue-500/20" :
+                        thi < (targetThi + 1.5) ? "bg-emerald-500/5 border-emerald-500/20" :
+                        "bg-red-500/5 border-red-500/20"
+                      )}
+                    >
+                      {/* Status Accent Bar */}
+                      <div className={cn(
+                        "absolute top-0 bottom-0 left-0 w-1.5 opacity-40",
+                        thi < targetThi - 2 ? "bg-blue-500" : thi < targetThi + 1.5 ? "bg-emerald-500" : "bg-red-500"
+                      )} />
+
+                      <div className="flex items-center gap-5 flex-1 w-full">
+                        <div className={cn(
+                          "w-16 h-16 rounded-3xl flex items-center justify-center shrink-0 border",
+                          thi < targetThi - 2 ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
+                          thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                          "bg-red-500/10 border-red-500/20 text-red-400"
                         )}>
-                          {state.internalTemp + state.currentHumidity}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="h-3 bg-slate-950 rounded-full overflow-hidden flex shadow-inner">
-                      <div className="h-full bg-emerald-500" style={{ width: '33%' }} />
-                      <div className="h-full bg-orange-500" style={{ width: '33%' }} />
-                      <div className="h-full bg-red-600" style={{ width: '34%' }} />
-                    </div>
-
-                    <div className="flex justify-between text-[8px] font-black text-slate-600 uppercase tracking-widest">
-                      <span>مثالي (&lt; 100)</span>
-                      <span>تنبيه (100-150)</span>
-                      <span>خطر (&gt; 160)</span>
-                    </div>
-
-                    <div className={cn(
-                      "p-4 rounded-2xl border flex items-center gap-4 transition-colors",
-                      (toNum(state.internalTemp) + toNum(state.currentHumidity)) < 100 ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400" :
-                      (toNum(state.internalTemp) + toNum(state.currentHumidity)) <= 155 ? "bg-orange-500/5 border-orange-500/10 text-orange-400" : "bg-red-500/5 border-red-500/10 text-red-500"
-                    )}>
-                      <AlertCircle size={20} />
-                      <p className="text-xs font-black leading-tight">
-                        {(toNum(state.internalTemp) + toNum(state.currentHumidity)) < 100 ? "الوضع مثالي، لا حاجة للتبريد حالياً." :
-                         (toNum(state.internalTemp) + toNum(state.currentHumidity)) <= 155 ? "تنبيه: مؤشر حرج، ينصح ببدء تشغيل خلايا التبريد." : "خطر نفوق عالي! شغل الشفاطات بأقصى طاقة وراقب التبريد فوراً."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row gap-4 w-full">
-                    <div className="flex-1 bg-slate-950/80 p-5 rounded-3xl border border-white/5 text-center transition-all shadow-inner group hover:border-orange-500/20">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <Thermometer size={14} className="text-orange-400" />
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الحرارة</p>
+                          <AlertCircle size={32} />
                         </div>
-                        <div className="flex items-baseline justify-center gap-1">
-                          <input 
-                            type="text" 
-                            inputMode="decimal"
-                            value={state.internalTemp}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
-                                setState(prev => ({ ...prev, internalTemp: val }));
-                              }
-                            }}
-                            className="text-3xl font-black text-white bg-transparent w-full max-w-[60px] text-center outline-none focus:text-orange-400"
-                          />
-                          <span className="text-xs font-black text-slate-600">°م</span>
+                        
+                        <div className="space-y-1.5 text-right sm:text-right flex-1">
+                           <div className="flex items-center justify-between sm:justify-start gap-2">
+                             <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 mb-1 block">تحليل الحالة لعمر {state.age} يوم</span>
+                           </div>
+                           <h4 className="text-base font-black text-white leading-tight">
+                              {thi < targetThi - 2 ? (
+                                <>الوضع <span className="text-blue-400">تحت النطاق المستهدف</span></>
+                              ) : thi < targetThi - 0.5 ? (
+                                <>الوضع <span className="text-cyan-400">أبرد من المطلوب</span></>
+                              ) : thi < targetThi + 1.5 ? (
+                                <>الوضع <span className="text-emerald-400">ضمن النطاق المثالي</span></>
+                              ) : (
+                                <>الوضع <span className="text-red-400">يتجاوز النطاق الآمن</span></>
+                              )}
+                           </h4>
+                           <p className="text-[11px] text-slate-400 font-bold leading-relaxed max-w-sm">
+                              {thi < targetThi - 2 ? "يجب زيادة التدفئة فوراً وإغلاق أي تسريبات هواء بارد لمنع الإجهاد البردي." :
+                               thi < targetThi - 0.5 ? "تأكد من عدم وجود تيارات هوائية مباشرة على الكتاكيت ورفع الحرارة تدريجياً." :
+                               thi < targetThi + 1.5 ? "الطيور في حالة راحة تامة. استمر في مراقبة النظام والتهوية بانتظام." :
+                               "خطر إجهاد حراري! يجب زيادة سرعة الهواء وتفعيل تبريد الخلايا فوراً."}
+                           </p>
                         </div>
                       </div>
+                      
+                      {/* Metric Comparison Box */}
+                      <div className="flex flex-col items-center justify-center bg-slate-950/50 px-6 py-4 rounded-3xl border border-white/5 shrink-0 w-full sm:w-auto">
+                         <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">الفرق عن الهدف</div>
+                         <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "text-3xl font-black tabular-nums tracking-tighter",
+                              Math.abs(thi - targetThi) < 1.5 ? "text-emerald-400" : 
+                              thi > targetThi ? "text-red-400" : "text-blue-400"
+                            )}>
+                              {thi > targetThi ? "+" : ""}{(thi - targetThi).toFixed(1)}
+                            </div>
+                            <div className={cn(
+                              "w-1.5 h-10 rounded-full",
+                              thi > targetThi ? "bg-red-500" : "bg-blue-500"
+                            )} />
+                         </div>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+
+                {/* 2. TARGET PROFILE SECTION */}
+                <div className="lg:col-span-4 space-y-6">
+                  <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-cyan-500">
+                     <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                          <Target size={20} />
+                        </div>
+                        <h3 className="text-lg font-black text-white">الاحتياج المثالي لهذا العمر</h3>
+                     </div>
+
+                     <div className="space-y-6">
+                        <div className="p-4 rounded-2xl bg-slate-950/50 border border-white/5 space-y-4">
+                           <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الحرارة المستهدفة</span>
+                              <span className="text-orange-400 font-black">{targetTemp}°م</span>
+                           </div>
+                           <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
+                              <div className="h-full bg-orange-500" style={{ width: `${(targetTemp / 40) * 100}%` }} />
+                           </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-slate-950/50 border border-white/5 space-y-4">
+                           <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الرطوبة المستهدفة</span>
+                              <span className="text-cyan-400 font-black">{targetHumidity.min}-{targetHumidity.max}%</span>
+                           </div>
+                           <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
+                              <div className="h-full bg-cyan-500" style={{ width: `${(targetHumidity.min + targetHumidity.max) / 2}%` }} />
+                           </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 space-y-3">
+                           <h5 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                             <Info size={12} /> معلومة حيوية
+                           </h5>
+                           <p className="text-[11px] text-slate-400 font-bold leading-relaxed">
+                            في هذا العمر ({state.age} يوم)، يحتاج الطائر لبيئة حرارية مستقرة. مؤشر {targetThi} هو الذي يضمن عدم استنزاف طاقة الطائر في تنظيم حرارة جسمه، وتوجيهها بدلاً من ذلك للنمو.
+                           </p>
+                        </div>
+                        
+                        <div className="pt-4 mt-4 border-t border-white/5 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-slate-500 uppercase">يوم الدورة</span>
+                            <span className="bg-slate-800 px-3 py-1 rounded-full text-xs font-black text-white">{state.age} يوم</span>
+                        </div>
+                     </div>
+                  </Card>
+
+                  {/* WIND CHILL CARD */}
+                  <Card className="bg-slate-900 border-white/5 p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-orange-600/5 blur-[50px] -z-10 group-hover:bg-orange-600/10 transition-all" />
+                    
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                        <Wind size={18} />
+                      </div>
+                      <h4 className="text-[11px] font-black text-white uppercase tracking-widest">إحساس البرودة (Wind Chill)</h4>
                     </div>
 
-                    <div className="flex-1 bg-slate-950/80 p-5 rounded-3xl border border-white/5 text-center transition-all shadow-inner group hover:border-cyan-500/20">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <Droplets size={14} className="text-cyan-400" />
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الرطوبة</p>
+                    <div className="space-y-6">
+                      <div className="flex items-baseline justify-between">
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">سرعة الهواء المطلوبة</p>
+                          <p className="text-4xl font-black text-white tracking-tighter">
+                            {toNum(state.currentHumidity) > 75 ? "2.5" : toNum(state.currentHumidity) > 60 ? "2.0" : "1.5"}
+                            <span className="text-[10px] text-slate-600 font-bold ms-2 uppercase">م/ثانية</span>
+                          </p>
                         </div>
-                        <div className="flex items-baseline justify-center gap-1">
-                          <input 
-                            type="text" 
-                            inputMode="decimal"
-                            value={state.currentHumidity}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                setState(prev => ({ ...prev, currentHumidity: val }));
-                              }
-                            }}
-                            className="text-3xl font-black text-white bg-transparent w-full max-w-[60px] text-center outline-none focus:text-cyan-400"
-                          />
-                          <span className="text-xs font-black text-slate-600">%</span>
+                        <div className="text-right space-y-1">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">خفض حرارة شعوري</p>
+                          <p className="text-2xl font-black text-orange-500">-{coolingFactor.toFixed(1)} <span className="text-xs">°م</span></p>
+                        </div>
+                      </div>
+
+                      <div className="h-2 bg-slate-950 rounded-full overflow-hidden flex gap-1 p-0.5">
+                         {[1, 2, 3, 4, 5].map(i => (
+                           <div key={i} className={cn(
+                             "flex-1 rounded-full transition-all duration-700",
+                             (toNum(state.currentHumidity) > 60 && i <= 3) || (toNum(state.currentHumidity) > 75 && i <= 5) || (toNum(state.currentHumidity) <= 60 && i <= 2)
+                             ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                             : "bg-slate-800"
+                           )} />
+                         ))}
+                      </div>
+
+                      <div className="p-4 bg-slate-950/40 rounded-2xl border border-white/5">
+                        <p className="text-[11px] text-slate-400 font-bold leading-relaxed text-right italic">
+                          {toNum(state.currentHumidity) > 75 
+                            ? "⚠️ الرطوبة المرتفعة تمنع تبخر العرق. يجب زيادة سرعة الهواء لتبريد الطيور بالحمل الحراري."
+                            : "الرطوبة في نطاق يسمح بالتبريد بتبخير الماء، سرعة هوائية معتدلة كافية."}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* SMART ALERTS PANEL */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">تنبيهات النظام الذكية</h4>
+                       <div className="flex gap-1">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", toNum(state.currentHumidity) > 75 ? "bg-red-500 animate-pulse" : "bg-slate-700")} />
+                          <div className={cn("w-1.5 h-1.5 rounded-full", toNum(state.internalTemp) > 33 ? "bg-orange-500 animate-pulse" : "bg-slate-700")} />
+                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <AnimatePresence mode="popLayout">
+                        {toNum(state.currentHumidity) > 75 && (
+                          <motion.div 
+                            key="high-humidity-alert"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-start gap-3 group hover:bg-red-500/10 transition-colors"
+                          >
+                             <div className="p-2 bg-red-500/20 rounded-xl text-red-500 shadow-lg shadow-red-500/10 transition-transform group-hover:scale-110">
+                                <Droplets size={16} />
+                             </div>
+                             <div>
+                                <p className="text-xs font-black text-red-400">تنبيه الرطوبة الحرجة</p>
+                                <p className="text-[10px] text-slate-400 font-bold mt-1 leading-snug">أوقف طلمبات التبريد فوراً لمنع اختناق الطيور. اعتمد على سحب الشفاطات فقط.</p>
+                             </div>
+                          </motion.div>
+                        )}
+
+                        {toNum(state.internalTemp) > 30 && toNum(state.currentHumidity) > 65 && (
+                          <motion.div 
+                            key="condensation-alert"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl flex items-start gap-3 group hover:bg-orange-500/10 transition-colors"
+                          >
+                             <div className="p-2 bg-orange-500/20 rounded-xl text-orange-500 shadow-lg shadow-orange-500/10 transition-transform group-hover:scale-110">
+                                <Thermometer size={16} />
+                             </div>
+                             <div>
+                                <p className="text-xs font-black text-orange-400">خطر تكثيف المياه</p>
+                                <p className="text-[10px] text-slate-400 font-bold mt-1 leading-snug">احتمالية عالية لتبلل الفرشة. ارفع درجة حرارة حساس التبريد +1 درجة.</p>
+                             </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="p-5 bg-gradient-to-br from-slate-900/80 to-slate-950 border border-white/5 rounded-[2rem] shadow-xl relative overflow-hidden group">
+                        <div className="absolute -top-4 -right-4 w-12 h-12 bg-blue-500/10 rounded-full blur-xl group-hover:w-20 group-hover:h-20 transition-all duration-700" />
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
+                             <Info size={18} />
+                           </div>
+                           <div className="flex-1">
+                             <p className="text-[11px] text-white font-black leading-tight">توصية الخبير</p>
+                             <p className="text-[9px] text-slate-500 font-bold mt-1 leading-relaxed">
+                                {thi > targetThi + 2 
+                                  ? "يفضل تقديم فيتامين C في ماء الشرب لمساعدة الطيور على تحمل الإجهاد الناتج عن الرطوبة العالية."
+                                  : "حافظ على دورية عمل شفاطات التهوية الدنيا لضمان تبدل الهواء دون تبريد مفاجئ."}
+                             </p>
+                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* COOLING PAD LOGIC */}
-                <Card className="bg-slate-900 border-white/5 border-t-4 border-t-blue-500 p-6 flex flex-col justify-between">
-                   <div className="flex items-center gap-4 mb-6">
-                      <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner">
-                        <ScaleIcon size={20} />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-lg text-white">كفاءة خلايا التبريد</h4>
-                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">مطابقة المساحة مع قوة السحب</p>
-                      </div>
-                   </div>
-
-                   <div className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">مساحة الخلايا الإجمالية (م²)</label>
-                          <input 
-                            type="text"
-                            inputMode="decimal"
-                            value={state.coolingPadArea}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                setState(prev => ({ ...prev, coolingPadArea: val }));
-                              }
-                            }}
-                            className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xl focus:border-blue-500/50 outline-none"
-                          />
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">القدرة المطلوبة</p>
-                           <p className="text-xl font-black text-white">{(state.fanCapacity / 5000).toFixed(1)} <span className="text-[10px] text-slate-600 uppercase">م²</span></p>
-                        </div>
+              {/* SECONDARY TOOLS SECTION */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* COOLING PADS EFFICIENCY */}
+                <Card className="bg-slate-900 border-white/5 border-b-4 border-b-blue-600/50 p-6 flex flex-col group">
+                  <div className="flex items-center justify-between mb-8">
+                     <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner ring-1 ring-white/5">
+                             <Layers size={20} />
+                           </div>
+                           <div>
+                             <h4 className="font-black text-lg text-white">كفاءة خلايا التبريد</h4>
+                             <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">توازن الضغط والسحب</p>
+                           </div>
+                         </div>
+                         <button 
+                           onClick={() => {
+                             const newPad: CoolingPad = { id: `cp-${Date.now()}`, name: `خلية ${state.coolingPads.length + 1}`, area: 5 };
+                             setState(prev => ({ ...prev, coolingPads: [...prev.coolingPads, newPad] }));
+                           }}
+                           className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-500 flex items-center justify-center hover:bg-blue-600/20 transition-all active:scale-95 border border-blue-500/20"
+                         >
+                           <Plus size={16} />
+                         </button>
                       </div>
 
-                      {(() => {
-                        const requiredArea = state.fanCapacity / 5000;
-                        const sufficiency = state.coolingPadArea >= requiredArea;
-                        return (
-                          <div className={cn(
-                            "p-4 rounded-2xl flex items-center gap-3 border",
-                            sufficiency ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400" : "bg-red-500/5 border-red-500/10 text-red-500"
-                          )}>
-                             {sufficiency ? <Activity size={18} /> : <AlertCircle size={18} />}
-                             <p className="text-xs font-black">
-                                {sufficiency 
-                                  ? "✅ مساحة الخلايا كافية لسحب الشفاطات الحالي." 
-                                  : "❌ المساحة صغيرة جداً! سيحدث ضغط سالب عالٍ مما يقلل كفاءة الشفاطات."}
-                             </p>
+                      <div className="space-y-3 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                        {state.coolingPads.map((pad, idx) => (
+                          <div key={pad.id} className="p-3 bg-slate-950/30 rounded-xl border border-white/5 group transition-all hover:border-blue-500/30 flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center text-[10px] font-black text-slate-600 border border-white/5">
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1">
+                              <input 
+                                type="text"
+                                value={pad.name}
+                                onChange={e => {
+                                  const newName = e.target.value;
+                                  setState(prev => ({ ...prev, coolingPads: prev.coolingPads.map(p => p.id === pad.id ? { ...p, name: newName } : p) }));
+                                }}
+                                className="bg-transparent border-none text-[11px] font-black text-slate-300 w-full focus:outline-none focus:text-white"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 focus-within:border-blue-500/50 transition-colors">
+                                <input 
+                                  type="text" inputMode="decimal" value={pad.area}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                      setState(prev => ({ ...prev, coolingPads: prev.coolingPads.map(p => p.id === pad.id ? { ...p, area: val } : p) }));
+                                    }
+                                  }}
+                                  className="w-12 bg-transparent border-none text-right font-black text-white focus:outline-none text-xs"
+                                />
+                                <span className="text-[8px] font-black text-slate-500">م²</span>
+                              </div>
+                              <button 
+                                onClick={() => setPadToDelete(pad)}
+                                className="w-7 h-7 rounded-lg bg-red-500/5 text-slate-500 flex items-center justify-center hover:bg-red-500/20 hover:text-red-500 transition-all active:scale-90"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })()}
-                   </div>
-                </Card>
+                        ))}
+                      </div>
 
-                {/* PUMP TIMER */}
-                <Card className="bg-slate-900 border-white/5 border-t-4 border-t-cyan-500 p-6">
-                   <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-cyan-600/10 rounded-xl flex items-center justify-center text-cyan-500 shadow-inner">
+                      <div className="mt-auto space-y-4 pt-4 border-t border-white/5">
+                         <div className="flex items-end justify-between">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الإجمالي الحالي</p>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-black text-white">{totalCoolingPadArea.toFixed(1)}</span>
+                                <span className="text-[10px] font-bold text-slate-600">M²</span>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-1">
+                              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">المطلوب للسحب</p>
+                              <div className="flex items-baseline justify-end gap-1">
+                                <span className="text-xl font-black text-slate-400">{(totalActiveCapacity / 5000).toFixed(1)}</span>
+                                <span className="text-[10px] font-bold text-slate-600">M²</span>
+                              </div>
+                            </div>
+                         </div>
+
+                         {(() => {
+                           const requiredArea = totalActiveCapacity / 5000;
+                           const balance = (totalCoolingPadArea / requiredArea) * 100;
+                           const sufficiency = totalCoolingPadArea >= requiredArea;
+                           return (
+                             <div className="space-y-3">
+                               <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden flex">
+                                 <motion.div 
+                                   initial={{ width: 0 }}
+                                   animate={{ width: `${Math.min(100, balance)}%` }}
+                                   className={cn(
+                                     "h-full transition-all duration-1000",
+                                     sufficiency ? "bg-emerald-500" : "bg-red-500"
+                                   )}
+                                 />
+                               </div>
+                               <div className={cn(
+                                 "p-3 rounded-xl border flex items-center gap-3 transition-all",
+                                 sufficiency ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500/80" : "bg-red-500/5 border-red-500/10 text-red-400"
+                               )}>
+                                 {sufficiency ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                                 <p className="text-[10px] font-black leading-tight uppercase tracking-wide">
+                                   {sufficiency ? "تم تحقيق المساحة المطلوبة" : "مساحة الخلايا غير كافية للسحب الحالي"}
+                                 </p>
+                               </div>
+                             </div>
+                           );
+                         })()}
+                      </div>
+                    </Card>
+
+                    {/* PUMP TIMER CONTROL */}
+                    <Card className="bg-slate-900 border-white/5 border-b-4 border-b-cyan-600/50 p-6 flex flex-col">
+                      <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 bg-cyan-600/10 rounded-xl flex items-center justify-center text-cyan-500 shadow-inner ring-1 ring-white/5">
                           <Clock size={20} />
                         </div>
                         <div>
-                          <h4 className="font-black text-lg text-white">مؤقت الطلمبة المتقطع</h4>
-                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">منع زيادة الرطوبة الناتجة عن التبخير</p>
+                          <h4 className="font-black text-lg text-white">مؤقت الطلمبة</h4>
+                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">التحكم في مستويات الرطوبة</p>
                         </div>
                       </div>
-                   </div>
 
-                   <div className="flex flex-col md:flex-row items-center gap-8">
-                      <div className="relative w-36 h-36 flex-shrink-0">
-                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                            {(() => {
-                               const cycleMins = 60;
-                               const sumTimes = toNum(state.pumpOnTime) + toNum(state.pumpOffTime);
-                               const onRatio = sumTimes > 0 ? toNum(state.pumpOnTime) / sumTimes : 0;
-                               const cycles = sumTimes > 0 ? 60 / sumTimes : 0;
-                               const cycleDeg = 360 / cycles;
-                               const onDeg = cycleDeg * onRatio;
-                               
-                               return Array.from({ length: Math.floor(cycles) }).map((_, i) => {
-                                 const startAngle = i * cycleDeg;
-                                 const splitAngle = startAngle + onDeg;
-                                 return (
-                                   <g key={i}>
+                      <div className="flex-1 flex flex-col items-center justify-center py-4">
+                        <div className="relative w-40 h-40">
+                           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                              <circle cx="60" cy="60" r="56" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" strokeDasharray="314 314" />
+                              
+                              {(() => {
+                                 const sumTimes = toNum(state.pumpOnTime) + toNum(state.pumpOffTime);
+                                 if (sumTimes <= 0) return null;
+                                 const cycles = 60 / sumTimes;
+                                 const cycleDeg = 360 / cycles;
+                                 const onRatio = toNum(state.pumpOnTime) / sumTimes;
+                                 const onDeg = cycleDeg * onRatio;
+                                 
+                                 return Array.from({ length: Math.ceil(cycles) }).map((_, i) => {
+                                   const startAngle = i * cycleDeg;
+                                   const endAngle = startAngle + onDeg;
+                                   return (
                                      <path 
-                                       d={describeArc(60, 60, 48, splitAngle, startAngle + cycleDeg)} 
-                                       className="fill-red-500/5 stroke-red-500/10" 
-                                       strokeWidth="0.5"
+                                       key={i}
+                                       d={describeArc(60, 60, 50, startAngle, endAngle)} 
+                                       className="fill-none stroke-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
+                                       strokeWidth="6"
+                                       strokeLinecap="round"
                                      />
-                                     <path 
-                                       d={describeArc(60, 60, 48, startAngle, splitAngle)} 
-                                       className="fill-cyan-500 stroke-cyan-400 shadow-lg" 
-                                       strokeWidth="0.5"
-                                     />
-                                   </g>
-                                 );
-                               });
-                            })()}
-                            {/* Inner countdown for pump */}
-                         </svg>
-                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                            <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">الوضع</p>
-                            <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mb-1" />
-                          </div>
+                                   );
+                                 });
+                              })()}
+                           </svg>
+                           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                              <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping mb-2 shadow-[0_0_15px_rgba(6,182,212,1)]" />
+                              <p className="text-[10px] font-black text-white uppercase tracking-widest">تلقائي</p>
+                              <p className="text-[8px] font-bold text-slate-500 mt-0.5">{(toNum(state.pumpOnTime) + toNum(state.pumpOffTime)) > 0 ? (60 / (toNum(state.pumpOnTime) + toNum(state.pumpOffTime))).toFixed(0) : 0} دورات/س</p>
+                           </div>
+                        </div>
                       </div>
 
-                      <div className="flex-1 w-full space-y-4">
-                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                               <p className="text-[8px] font-black text-emerald-500 uppercase mb-2">وقت العمل (د)</p>
-                               <input 
-                                 type="text"
-                                 inputMode="decimal"
-                                 value={state.pumpOnTime}
-                                 onChange={e => {
-                                   const val = e.target.value;
-                                   if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                     setState(prev => ({ ...prev, pumpOnTime: val }));
-                                   }
-                                 }}
-                                 className="bg-transparent text-lg font-black text-white w-full outline-none"
-                               />
-                            </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                               <p className="text-[8px] font-black text-red-500 uppercase mb-2">وقت الفصل (د)</p>
-                               <input 
-                                 type="text"
-                                 inputMode="decimal"
-                                 value={state.pumpOffTime}
-                                 onChange={e => {
-                                   const val = e.target.value;
-                                   if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                     setState(prev => ({ ...prev, pumpOffTime: val }));
-                                   }
-                                 }}
-                                 className="bg-transparent text-lg font-black text-white w-full outline-none"
-                               />
-                            </div>
-                         </div>
-                         <p className="text-[9px] text-slate-500 font-bold text-center italic">
-                            يتم تكرار الدورة {(toNum(state.pumpOnTime) + toNum(state.pumpOffTime)) > 0 ? Math.floor(60 / (toNum(state.pumpOnTime) + toNum(state.pumpOffTime))) : 0} مرات في الساعة.
-                         </p>
+                      <div className="grid grid-cols-2 gap-4 mt-6">
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest block text-center">تشغيل (دقيقة)</label>
+                           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-inner">
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, pumpOnTime: Math.max(0, toNum(prev.pumpOnTime) - 0.5) }))}
+                                className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:text-white hover:bg-emerald-500 transition-all border border-emerald-500/20 active:scale-90 shrink-0"
+                              >
+                                <Minus size={14} strokeWidth={3} />
+                              </button>
+                              <div className="flex-1 flex justify-center items-center px-1 overflow-hidden">
+                                <input 
+                                  type="text" inputMode="decimal" value={state.pumpOnTime}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) setState(prev => ({ ...prev, pumpOnTime: val }));
+                                  }}
+                                  className="bg-transparent text-center font-black text-white text-xl outline-none w-full"
+                                />
+                              </div>
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, pumpOnTime: (toNum(prev.pumpOnTime) + 0.5) }))}
+                                className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:text-white hover:bg-emerald-500 transition-all border border-emerald-500/20 active:scale-90 shrink-0"
+                              >
+                                <Plus size={14} strokeWidth={3} />
+                              </button>
+                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block text-center">إيقاف (دقيقة)</label>
+                           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-red-500/20 transition-all shadow-inner">
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, pumpOffTime: Math.max(0, toNum(prev.pumpOffTime) - 0.5) }))}
+                                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-500/20 active:scale-90 shrink-0"
+                              >
+                                <Minus size={14} strokeWidth={3} />
+                              </button>
+                              <div className="flex-1 flex justify-center items-center px-1 overflow-hidden">
+                                <input 
+                                  type="text" inputMode="decimal" value={state.pumpOffTime}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) setState(prev => ({ ...prev, pumpOffTime: val }));
+                                  }}
+                                  className="bg-transparent text-center font-black text-white text-xl outline-none w-full"
+                                />
+                              </div>
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, pumpOffTime: (toNum(prev.pumpOffTime) + 0.5) }))}
+                                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-500/20 active:scale-90 shrink-0"
+                              >
+                                <Plus size={14} strokeWidth={3} />
+                              </button>
+                           </div>
+                        </div>
                       </div>
-                   </div>
-                </Card>
-              </div>
-
-              {/* WIND CHILL & SMART ALERTS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-slate-900 border-white/5 p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Wind size={20} className="text-orange-400" />
-                    <h4 className="text-sm font-black text-white uppercase tracking-widest">معدل سرعة الهواء المطلوب (Wind Chill)</h4>
+                    </Card>
                   </div>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-4xl font-black text-white">
-                        {state.currentHumidity > 75 ? "2.5" : state.currentHumidity > 60 ? "2.0" : "1.5"}
-                        <span className="text-sm text-slate-500 ms-2">م/ثانية</span>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">التبريد المتوقع</p>
-                      <p className="text-sm font-black text-orange-400">-4.5 °م</p>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-bold leading-relaxed border-t border-white/5 pt-3">
-                    {state.currentHumidity > 75 
-                      ? "⚠️ الرطوبة مرتفعة جداً، التبريد بالماء غير فعال. يجب رفع سرعة الهواء فوق الطيور لتعويض الحرارة."
-                      : "نظراً لاستقرار الرطوبة، سرعة هواء متوسطة كافية لإحساس الطائر بالراحة الحرارية."}
-                  </p>
-                </Card>
 
-                <div className="space-y-4">
-                   <div className="flex items-center gap-3 px-2">
-                     <AlertCircle size={18} className="text-red-500" />
-                     <h4 className="text-[10px] font-black text-white uppercase tracking-widest">تنبيهات النظام الذكية</h4>
-                   </div>
-                   
-                   <AnimatePresence>
-                     {state.currentHumidity > 75 && (
-                       <motion.div 
-                         initial={{ opacity: 0, x: 20 }}
-                         animate={{ opacity: 1, x: 0 }}
-                         className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-4"
-                       >
-                          <div className="p-2 bg-red-500/20 rounded-lg text-red-500">
-                             <Droplets size={16} />
-                          </div>
-                          <div>
-                             <p className="text-xs font-black text-red-400">تنبيه الرطوبة العالية (Critical)</p>
-                             <p className="text-[10px] text-slate-300 font-bold mt-1 uppercase">أوقف طلمبات التبريد فوراً واعتمد على قوة سحب الشفاطات فقط.</p>
-                          </div>
-                       </motion.div>
-                     )}
-
-                     {state.internalTemp > 33 && (
-                       <motion.div 
-                         initial={{ opacity: 0, x: 20 }}
-                         animate={{ opacity: 1, x: 0 }}
-                         className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-start gap-4"
-                       >
-                          <div className="p-2 bg-orange-500/20 rounded-lg text-orange-500">
-                             <Thermometer size={16} />
-                          </div>
-                          <div>
-                             <p className="text-xs font-black text-orange-400">خطر التكثف وتبلل الفرشة</p>
-                             <p className="text-[10px] text-slate-300 font-bold mt-1 uppercase">ارفع درجة حرارة مستشعر التبريد درجتين لمنع التبلل.</p>
-                          </div>
-                       </motion.div>
-                     )}
-                   </AnimatePresence>
-
-                   <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center gap-4">
-                      <Settings size={18} className="text-blue-400" />
-                      <p className="text-[10px] text-blue-200/60 font-bold uppercase tracking-widest leading-tight">
-                         يتم تحديث التوصيات تلقائياً بناءً على حساسات الحرارة والرطوبة الافتراضية.
-                      </p>
-                   </div>
-                </div>
-              </div>
+              </motion.div>
+          )}
+          {screen === 'expert' && (
+            <motion.div 
+              key="expert"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <ExpertScreen age={toNum(state.age)} />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Global Modals Container */}
+      <AnimatePresence>
+        {fanToDeleteId && (
+          <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setFanToDeleteId(null)}
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full sm:max-w-xs bg-slate-900 border-x border-t sm:border border-white/10 rounded-t-[2.5rem] sm:rounded-3xl p-8 sm:p-6 shadow-2xl space-y-6 text-center"
+            >
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto border border-red-500/30 mb-2">
+                <Trash2 size={32} className="text-red-400" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-white">تأكيد الحذف</h3>
+                <p className="text-sm text-slate-400 font-bold leading-relaxed px-4 sm:px-0">
+                  هل أنت متأكد من حذف الشفاط <span className="text-white">"{state.fans?.find(f => f.id === fanToDeleteId)?.name}"</span>؟ لا يمكن التراجع عن هذا الإجراء.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 pt-4 sm:pt-2 pb-6 sm:pb-0">
+                <button 
+                  onClick={() => {
+                    setState(prev => ({ ...prev, fans: (prev.fans || []).filter(f => f.id !== fanToDeleteId) }));
+                    setFanToDeleteId(null);
+                  }}
+                  className="w-full py-4 sm:py-3.5 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-red-600/20 active:scale-[0.98]"
+                >
+                  نعم، احذف الشفاط
+                </button>
+                <button 
+                  onClick={() => setFanToDeleteId(null)}
+                  className="w-full py-4 sm:py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black rounded-2xl transition-all border border-white/5 active:scale-[0.98]"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Day Navigation Arrows */}
       {screen !== 'landing' && screen !== 'finances' && (
@@ -6862,6 +8629,15 @@ export default function App() {
           label="المناخ" 
         />
         <NavButton 
+          active={screen === 'weather'} 
+          onClick={() => {
+            setScreen('weather');
+            setIsNavVisible(true);
+          }} 
+          icon={Cloud} 
+          label="الطقس" 
+        />
+        <NavButton 
           active={screen === 'ventilation'} 
           onClick={() => {
             setScreen('ventilation');
@@ -6896,6 +8672,24 @@ export default function App() {
           }} 
           icon={Wallet} 
           label="الأرباح" 
+        />
+        <NavButton 
+          active={screen === 'expert'} 
+          onClick={() => {
+            setScreen('expert');
+            setIsNavVisible(true);
+          }} 
+          icon={MessageSquare} 
+          label="اسأل خبير" 
+        />
+        <NavButton 
+          active={screen === 'market'} 
+          onClick={() => {
+            setScreen('market');
+            setIsNavVisible(true);
+          }} 
+          icon={TrendingUp} 
+          label="البورصة" 
         />
       </motion.nav>
 
@@ -7042,6 +8836,56 @@ export default function App() {
                   className="py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all active:scale-95 font-sans"
                 >
                   حذف
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {padToDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+            onClick={() => setPadToDelete(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-slate-900 border border-white/5 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 text-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto ring-8 ring-red-500/5">
+                <AlertCircle size={40} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-white">تأكيد حذف الخلية</h3>
+                <p className="text-slate-400 text-sm font-bold leading-relaxed px-2">
+                  هل أنت متأكد من رغبتك في حذف <span className="text-white">"{padToDelete.name}"</span>؟ سيؤثر هذا على إجمالي مساحة التبريد المحسوبة.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setPadToDelete(null)}
+                  className="py-4 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  onClick={() => {
+                    setState(prev => ({ 
+                      ...prev, 
+                      coolingPads: prev.coolingPads.filter(p => p.id !== padToDelete.id) 
+                    }));
+                    setPadToDelete(null);
+                  }}
+                  className="py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all active:scale-95"
+                >
+                  تأكيد الحذف
                 </button>
               </div>
             </motion.div>

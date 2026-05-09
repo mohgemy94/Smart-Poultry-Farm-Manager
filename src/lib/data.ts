@@ -148,7 +148,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [1], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'راحة للكلى والكبد من الإضافات الدوائية، وضمان غسيل طبيعي للأمعاء لتجهيزها للجرعة التالية.',
@@ -176,7 +176,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [1], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'فترة راحة لتأمين قدرة الامتصاص المعوي بشكل طبيعي بدون مجهود كيميائي إضافي.',
@@ -184,7 +184,7 @@ export const MEDICATIONS = [
     technicalSequence: 'تأمين استقرار الحالة الصحية بين جرعة التأسيس الأولى وجرعة اليوم الثاني.'
   },
 
-  // Day 2: فيتامين + مضاد حيوي (بان فلور)
+  // Day 2: فيتامين + مضاد حيوي (معوي+تنفسي)
   { 
     id: 'd2-vitc', 
     name: 'فيتامين C', 
@@ -206,7 +206,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [2], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'تنظيف خطوط النيبل من بقايا الفيتامينات السكرية لمنع نمو الفطريات.',
@@ -215,17 +215,17 @@ export const MEDICATIONS = [
   },
   { 
     id: 'd2-panflor', 
-    name: 'مضاد حيوي (بان فلور)', 
+    name: 'مضاد حيوي (معوي+تنفسي)', 
     unit: 'سم³/لتر', 
-    doseValue: 0.5, 
+    doseValue: 1, 
     category: 'وقائي', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 12, 
     targetDays: [2, 3, 4], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], 
     isAntibiotic: true,
     scientificExplanation: 'مضاد حيوي واسع المدى فعال ضد الميكوبلازما والسالمونيلا، يستخدم للوقاية من العدوى المبكرة.',
-    mixingRules: 'يرج جيداً قبل الاستخدام؛ يضاف بمعدل 0.5 سم لكل لتر ماء شرب.',
+    mixingRules: 'يرج جيداً قبل الاستخدام؛ يضاف بمعدل 1 سم لكل لتر ماء شرب.',
     technicalSequence: 'يقدم لمدة 3 أيام متتالية كجرعة وقائية أولية في الأسبوع الأول.'
   },
   { 
@@ -235,7 +235,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [2], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'تقليل التركيز الدوائي في كلى الطائر أثناء فترة النوم.',
@@ -243,7 +243,7 @@ export const MEDICATIONS = [
     technicalSequence: 'ختام اليوم لضمان امتصاص الجرعة السابقة بهدوء.'
   },
 
-  // Days 3 & 4: أد3هـ + بان فلور
+  // Days 3 & 4: أد3هـ + مضاد حيوي (معوي+تنفسي)
   { 
     id: 'd34-ad3e', 
     name: 'فيتامينات أد3هـ', 
@@ -265,7 +265,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [3, 4], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'غسيل طبيعي للكبد من نواتج تمثيل الفيتامينات الزيتية.',
@@ -279,7 +279,7 @@ export const MEDICATIONS = [
     doseValue: 0, 
     category: 'راحة', 
     usageType: 'ضروري', 
-    recommendedHours: 6, 
+    recommendedHours: 2, 
     targetDays: [3, 4], 
     climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'],
     scientificExplanation: 'فترة استراحة هضمية قبل جرعة المضاد الحيوي الليلية.',
@@ -302,7 +302,7 @@ export const MEDICATIONS = [
     mixingRules: 'لا يخلط مع أي مضادات حيوية أو مطهرات في الماء (تقتل البكتيريا النافعة).',
     technicalSequence: 'يقدم بعد انتهاء جرعة المضادات الحيوية لإعادة التوازن الميكروبي.'
   },
-  { id: 'd5-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تطهير الامعاء من بقايا المضاد الحيوي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل بيولوجي.' },
+  { id: 'd5-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تطهير الامعاء من بقايا المضاد الحيوي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل بيولوجي.' },
   { 
     id: 'd5-ad3e', 
     name: 'فيتامينات أد3هـ', 
@@ -317,7 +317,7 @@ export const MEDICATIONS = [
     mixingRules: 'يقلب جيداً في جردل خارجي قبل إضافته للخزان الرئيسي.',
     technicalSequence: 'جرعة تكميلية للنمو السريع.'
   },
-  { id: 'd5-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه شرب.', technicalSequence: 'تجهيز لجرعة الأملاح.' },
+  { id: 'd5-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه شرب.', technicalSequence: 'تجهيز لجرعة الأملاح.' },
   { 
     id: 'd5-elec', 
     name: 'إليكتروليت (أملاح)', 
@@ -332,7 +332,7 @@ export const MEDICATIONS = [
     mixingRules: 'يذاب جيداً لضمان عدم ترسب الأملاح في نهاية خطوط الشرب (النيبل).',
     technicalSequence: 'يعطى في الساعات المتأخرة لتثبيت السوائل في الجسم.'
   },
-  { id: 'd5-water3', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd5-water3', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [5], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 6: بروبيوتك + هـ سيلينيوم + إليكتروليت
   { 
@@ -349,7 +349,7 @@ export const MEDICATIONS = [
     mixingRules: 'يستخدم ماء مقطر أو مفلتر لضمان حيوية مستعمرات البكتيريا.',
     technicalSequence: 'مهم جداً قبل تحصين اليوم السابع لتهيئة الأمعاء.'
   },
-  { id: 'd6-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة استراحة هضمية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل قبل الفيتامينات.' },
+  { id: 'd6-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة استراحة هضمية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل قبل الفيتامينات.' },
   { 
     id: 'd6-ese', 
     name: 'فيتامينات هـ + سيلينيوم', 
@@ -364,7 +364,7 @@ export const MEDICATIONS = [
     mixingRules: 'يفضل خلطه مع ماء ذو درجة حموضة معتدلة؛ لا يوضع مع أحماض قوية.',
     technicalSequence: 'يقدم قبل التحصينات بـ 24 ساعة لتحقيق أقصى استجابة مناعية لللقاح.'
   },
-  { id: 'd6-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تأمين استقرار حيوي قبل جرعة الأملاح.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd6-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تأمين استقرار حيوي قبل جرعة الأملاح.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
   { 
     id: 'd6-elec', 
     name: 'إليكتروليت (أملاح)', 
@@ -379,7 +379,7 @@ export const MEDICATIONS = [
     mixingRules: 'يذاب تماماً في كمية ماء صغيرة قبل وضعه فى التانك.',
     technicalSequence: 'يقدم لضمان شرب مياه كافية قبل يوم التحصين المجهد.'
   },
-  { id: 'd6-water3', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd6-water3', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [6], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 7: التحصين الأول (هيتشنر + أي بي)
   { 
@@ -424,7 +424,7 @@ export const MEDICATIONS = [
     mixingRules: 'يفتح الأمبول تحت سطح الماء المبرد (5-10 درجة)؛ يمنع لمس اللقاح باليد مباشرة.',
     technicalSequence: 'يجب أن يشرب منه 100% من الطيور خلال ساعة واحدة من التقديم.'
   },
-  { id: 'd7-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4.5, targetDays: [7], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تأمين استقرار الفيروس في الجهاز الهضمي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'راحة ما بعد التحصين.' },
+  { id: 'd7-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [7], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تأمين استقرار الفيروس في الجهاز الهضمي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'راحة ما بعد التحصين.' },
   { 
     id: 'd7-ad3e', 
     name: 'فيتامينات أد3هـ', 
@@ -439,7 +439,7 @@ export const MEDICATIONS = [
     mixingRules: 'يضاف للخزان بعد غسيل الخطوط من بقايا اللقاح والحليب.',
     technicalSequence: 'جرعة ليلية طويلة لدعم القطيع بعد يوم مجهد.'
   },
-  { id: 'd7-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 6, targetDays: [7], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd7-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [7], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 8: غسيل ومنشط
   { 
@@ -456,9 +456,9 @@ export const MEDICATIONS = [
     mixingRules: 'يفضل تقديمه في ساعات الصباح الباكر؛ لا يتعارض مع معظم الفيتامينات.',
     technicalSequence: 'جرعة أساسية في بداية الأسبوع الثاني لمواجهة زيادة سحب العلف.'
   },
-  { id: 'd8-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [8], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة للكلى.', mixingRules: 'مياه شرب.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd8-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [8], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة للكلى.', mixingRules: 'مياه شرب.', technicalSequence: 'فاصل راحة.' },
   { id: 'd8-ad3e', name: 'فيتامين أد3هـ', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 6, targetDays: [8], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'دعم الهيكل العظمي.', mixingRules: 'خلط جيد.', technicalSequence: 'جرعة نمو.' },
-  { id: 'd8-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [8], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل قبل الكبد.' },
+  { id: 'd8-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [8], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل قبل الكبد.' },
   { 
     id: 'd8-hepato', 
     name: 'جرعة منشط كبد', 
@@ -508,7 +508,7 @@ export const MEDICATIONS = [
     mixingRules: 'يستخدم نفس معدل اليوم السابق (1 سم/لتر).',
     technicalSequence: 'جرعة ثابتة فى منتصف دورة التحول الهرموني للكتكوت.'
   },
-  { id: 'd10-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [10], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'يوم راحة معوية.', mixingRules: 'مياه عذبة فقط.', technicalSequence: 'راحة طويلة.' },
+  { id: 'd10-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [10], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'يوم راحة معوية.', mixingRules: 'مياه عذبة فقط.', technicalSequence: 'راحة طويلة.' },
 
   // Day 11: هـ سيلينيوم (12 ساعة)
   { 
@@ -558,15 +558,15 @@ export const MEDICATIONS = [
     mixingRules: 'مياه مبردة + لبن منزوع الدسم؛ إذابة الأمبول داخل الماء.',
     technicalSequence: 'مهم جداً الالتزام بالساعة الواحدة للانتهاء من الشرب.'
   },
-  { id: 'd12-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 3, targetDays: [12], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'استقرار معوي.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة ما بعد التحصين.' },
+  { id: 'd12-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [12], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'استقرار معوي.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة ما بعد التحصين.' },
   { id: 'd12-ad3e', name: 'فيتامينات أد3هـ (لرفع الإجهاد)', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 8, targetDays: [12], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'دعم المناعة المخاطية.', mixingRules: 'خلط جيد.', technicalSequence: 'جرعة رفع إجهاد ليلية.' },
-  { id: 'd12-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 6, targetDays: [12], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd12-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [12], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 13
   { id: 'd13-vitc', name: 'جرعة فيتامين C', unit: 'جرام/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 4, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'مضاد إجهاد حراري نهارى.', mixingRules: 'إذابة كلية.', technicalSequence: 'جرعة صباحية نهارية.' },
-  { id: 'd13-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل كلوي طبيعي.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd13-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل كلوي طبيعي.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
   { id: 'd13-elec', name: 'جرعة إليكتروليت', unit: 'جرام/لتر', doseValue: 1, category: 'داعم', usageType: 'ضروري', recommendedHours: 8, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'توازن أسموزي للخلايا.', mixingRules: 'إذابة تامة.', technicalSequence: 'تجهيز لليوم الرابع عشر.' },
-  { id: 'd13-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd13-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [13], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 14: غسيل ومنشط
   { 
@@ -583,15 +583,15 @@ export const MEDICATIONS = [
     mixingRules: 'يضاف للخزان بمعدل 1 سم / لتر.',
     technicalSequence: 'جرعة ختام الأسبوع الثاني لتنظيف الجسم.'
   },
-  { id: 'd14-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [14], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة غسيل خطوط.', mixingRules: 'مياه ناصعة.', technicalSequence: 'فاصل قبل المنشط.' },
+  { id: 'd14-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [14], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة غسيل خطوط.', mixingRules: 'مياه ناصعة.', technicalSequence: 'فاصل قبل المنشط.' },
   { id: 'd14-hepato', name: 'جرعة منشط كبد', unit: 'سم³/لتر', doseValue: 1, category: 'كلوي/كبد', usageType: 'ضروري', recommendedHours: 8, targetDays: [14], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تجديد خلايا الكبد التالفة.', mixingRules: 'يقلب جيداً.', technicalSequence: 'جرعة مسائية.' },
-  { id: 'd14-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [14], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام الأسبوع الثاني.' },
+  { id: 'd14-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [14], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام الأسبوع الثاني.' },
 
   // Day 15
   { id: 'd15-ese', name: 'فيتامين هـ + سيلينيوم', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 8, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تقوية عضلات الصدر.', mixingRules: 'خلط متجانس.', technicalSequence: 'جرعة صباحية.' },
-  { id: 'd15-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 6, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة للكبد.', mixingRules: 'مياه مفلترة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd15-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة للكبد.', mixingRules: 'مياه مفلترة.', technicalSequence: 'فاصل راحة.' },
   { id: 'd15-vitc', name: 'فيتامين C', unit: 'جرام/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 4, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تخفيف حدة الإجهاد الزحامى المتزايد.', mixingRules: 'إذابة تامة.', technicalSequence: 'جرعة مسائية.' },
-  { id: 'd15-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 6, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل طبيعي للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd15-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [15], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل طبيعي للأمعاء.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
 
   // Days 16, 17, 18: كوكسيديا وكلوستريديا
   { 
@@ -608,7 +608,7 @@ export const MEDICATIONS = [
     mixingRules: 'يذاب تماماً لضمان وصول الجرعة الفعالة لكل طائر.',
     technicalSequence: 'كورس علاجي وقائي مكثف لمدة 3 أيام لضمان سلامة الأمعاء.'
   },
-  { id: 'd1618-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [16, 17, 18], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فاصل كيميائي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'راحة بين الدوائين.' },
+  { id: 'd1618-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [16, 17, 18], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فاصل كيميائي.', mixingRules: 'مياه نظيفة.', technicalSequence: 'راحة بين الدوائين.' },
   { 
     id: 'd1618-clos', 
     name: 'مضاد كلوستريديا', 
@@ -623,11 +623,11 @@ export const MEDICATIONS = [
     mixingRules: 'يمكن استخدامه بالتبادل مع مضاد الكوكسيديا.',
     technicalSequence: 'جرعة ليلية لمنع الانقلاب المعوي المفاجئ.'
   },
-  { id: 'd1618-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [16, 17, 18], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام أيام الكورس.' },
+  { id: 'd1618-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [16, 17, 18], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام أيام الكورس.' },
 
   // Day 19
   { id: 'd19-renal', name: 'جرعة غسيل كلوي', unit: 'سم³/لتر', doseValue: 1, category: 'كلوي/كبد', usageType: 'ضروري', recommendedHours: 8, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'إزالة نواتج كورس الكوكسيديا.', mixingRules: 'خلط جيد.', technicalSequence: 'جرعة تنظيف صباحية.' },
-  { id: 'd19-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه ناصعة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd19-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة هضمية.', mixingRules: 'مياه ناصعة.', technicalSequence: 'فاصل راحة.' },
   { id: 'd19-hepato', name: 'جرعة منشط كبد', unit: 'سم³/لتر', doseValue: 1, category: 'كلوي/كبد', usageType: 'ضروري', recommendedHours: 8, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تنشيط الكبد بعد الأدوية.', mixingRules: 'يقلب جيداً.', technicalSequence: 'جرعة مسائية.' },
   { id: 'd19-pro', name: 'جرعة بروبيوتك', unit: 'جرام/لتر', doseValue: 1, category: 'تأسيس', usageType: 'ضروري', recommendedHours: 6, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تعويض البكتيريا النافعة المفقودة.', mixingRules: 'استخدام ماء خالي من الكلور.', technicalSequence: 'جرعة ليلية لإعادة التوازن الميكروبي.' },
   { id: 'd19-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [19], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'ختام اليوم.' },
@@ -647,9 +647,9 @@ export const MEDICATIONS = [
     mixingRules: 'يضاف للماء مباشرة؛ مع مراعاة برودة المياه.',
     technicalSequence: 'جرعة صباحية لتنشيط الهضم طوال اليوم.'
   },
-  { id: 'd20-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [20], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة ترويق.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd20-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [20], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'فترة ترويق.', mixingRules: 'مياه عذبة.', technicalSequence: 'فاصل راحة.' },
   { id: 'd20-bk', name: 'جرعة فيتامين B-K كولين', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 8, targetDays: [20], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'حماية جدران الأمعاء.', mixingRules: 'خلط متوازن.', technicalSequence: 'جرعة مسائية هادئة.' },
-  { id: 'd20-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [20], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام الأسبوع الثالث.' },
+  { id: 'd20-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [20], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام الأسبوع الثالث.' },
 
   // Day 21
   { 
@@ -666,7 +666,7 @@ export const MEDICATIONS = [
     mixingRules: 'يذاب في التانك مباشرة.',
     technicalSequence: 'جرعة صباحية طويلة.'
   },
-  { id: 'd21-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [21], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'يوم راحة معوية.', mixingRules: 'مياه شرب فقط.', technicalSequence: 'راحة ليلية.' },
+  { id: 'd21-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [21], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'يوم راحة معوية.', mixingRules: 'مياه شرب فقط.', technicalSequence: 'راحة ليلية.' },
 
   // Day 22 & 23: غسيل + منشط + ب.ك كولين
   { 
@@ -730,7 +730,7 @@ export const MEDICATIONS = [
     mixingRules: 'إذابة تامة فى الماء.',
     technicalSequence: 'جرعة نهارية طويلة.'
   },
-  { id: 'd2425-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [24, 25], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة معوية ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة راحة.' },
+  { id: 'd2425-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [24, 25], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة معوية ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة راحة.' },
 
   // Day 26
   { 
@@ -747,7 +747,7 @@ export const MEDICATIONS = [
     mixingRules: 'يذاب تماماً.',
     technicalSequence: 'جرعة صباحية نهارية.'
   },
-  { id: 'd26-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [26], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه شرب.', technicalSequence: 'راحة.' },
+  { id: 'd26-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [26], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه شرب.', technicalSequence: 'راحة.' },
 
   // Day 27
   { 
@@ -764,16 +764,16 @@ export const MEDICATIONS = [
     mixingRules: 'يخلط مع العلف بمعدل 1 كجم للطن.',
     technicalSequence: 'حماية مستمرة طوال الـ 24 ساعة.'
   },
-  { id: 'd27-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 24, targetDays: [27], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'مياه بيضاء عذبة.', mixingRules: 'نظيفة جداً.', technicalSequence: 'يوم راحة مائية.' },
+  { id: 'd27-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [27], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'مياه بيضاء عذبة.', mixingRules: 'نظيفة جداً.', technicalSequence: 'يوم راحة مائية.' },
 
   // Day 28
   { id: 'd28-ad3e', name: 'فيتامينات أد3هـ', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 12, targetDays: [28], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'دعم الهيكل العظمي للأوزان الثقيلة.', mixingRules: 'خلط متجانس.', technicalSequence: 'جرعة صباحية.' },
-  { id: 'd28-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [28], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة.' },
+  { id: 'd28-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [28], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة.' },
 
   // Day 29
   { id: 'd29-tox', name: 'مضاد سموم فطرية بيولوجي (علف)', unit: 'جرام/كجم', doseValue: 1, category: 'سموم', usageType: 'إختياري', recommendedHours: 24, targetDays: [29], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'حماية متجددة للأمعاء.', mixingRules: 'يخلط بالعلف.', technicalSequence: 'حماية علفية.' },
   { id: 'd29-ad3e', name: 'فيتامينات أد3هـ', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 12, targetDays: [29], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تحفيز القوة البدنية للطيور.', mixingRules: 'إذابة كلية.', technicalSequence: 'جرعة نهارية.' },
-  { id: 'd29-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [29], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه شرب.', technicalSequence: 'راحة.' },
+  { id: 'd29-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [29], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه شرب.', technicalSequence: 'راحة.' },
 
   // Day 30
   { 
@@ -790,7 +790,7 @@ export const MEDICATIONS = [
     mixingRules: 'يضاف للخزان.',
     technicalSequence: 'جرعة صباحية.'
   },
-  { id: 'd30-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [30], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل راحة.' },
+  { id: 'd30-water1', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [30], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه نظيفة.', technicalSequence: 'فاصل راحة.' },
   { 
     id: 'd30-hepato', 
     name: 'منشط كبد', 
@@ -805,12 +805,12 @@ export const MEDICATIONS = [
     mixingRules: 'يرج جيداً.',
     technicalSequence: 'جرعة مسائية.'
   },
-  { id: 'd30-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 4, targetDays: [30], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd30-water2', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [30], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'غسيل خطوط.', mixingRules: 'مياه شرب.', technicalSequence: 'ختام اليوم.' },
 
   // Day 31
   { id: 'd31-tox', name: 'مضاد سموم فطرية بيولوجي (علف)', unit: 'جرام/كجم', doseValue: 1, category: 'سموم', usageType: 'إختياري', recommendedHours: 24, targetDays: [31], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'حماية الأمعاء قبل مرحلة سحب الأدوية.', mixingRules: 'خلط علفي.', technicalSequence: 'حماية مستمرة.' },
   { id: 'd31-vitc', name: 'فيتامين C', unit: 'جرام/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 4, targetDays: [31], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تثبيت الحالة الصحية العامة.', mixingRules: 'إذابة تامة.', technicalSequence: 'جرعة نهارية.' },
-  { id: 'd31-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [31], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
+  { id: 'd31-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [31], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة عضوية.', mixingRules: 'مياه عذبة.', technicalSequence: 'ختام اليوم.' },
 
   // Day 32
   { id: 'd32-renal', name: 'غسيل كلوي', unit: 'سم³/لتر', doseValue: 1, category: 'كلوي/كبد', usageType: 'ضروري', recommendedHours: 8, targetDays: [32], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تنظيف نهائي للكلى.', mixingRules: '1 سم/لتر.', technicalSequence: 'جرعة صباحية.' },
@@ -823,16 +823,16 @@ export const MEDICATIONS = [
   // Day 33
   { id: 'd33-tox', name: 'مضاد سموم فطرية بيولوجي (علف)', unit: 'جرام/كجم', doseValue: 1, category: 'سموم', usageType: 'إختياري', recommendedHours: 24, targetDays: [33], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'حماية الأمعاء في المرحلة النهائية.', mixingRules: 'خلط علفي.', technicalSequence: 'حماية علفية مستمرة.' },
   { id: 'd33-bk', name: 'فيتامين B-K كولين', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 8, targetDays: [33], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'تأمين صحة الأمعاء.', mixingRules: 'إذابة تامة.', technicalSequence: 'جرعة نهارية.' },
-  { id: 'd33-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [33], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة.' },
+  { id: 'd33-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [33], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'راحة ليلية.', mixingRules: 'مياه عذبة.', technicalSequence: 'راحة.' },
 
   // Day 34
   { id: 'd34-bk', name: 'فيتامين B-K كولين', unit: 'سم³/لتر', doseValue: 1, category: 'فيتامينات', usageType: 'ضروري', recommendedHours: 8, targetDays: [34], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'آخر جرعة فيتامينات لضمان جودة الجلد واللحم.', mixingRules: 'خلط متجانس.', technicalSequence: 'جرعة نهارية.' },
-  { id: 'd34-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 12, targetDays: [34], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'بدء فترة السحب الحيوية.', mixingRules: 'مياه شرب نظيفة.', technicalSequence: 'راحة ليلية.' },
+  { id: 'd34-water', name: 'ماء نقي', unit: 'لتر', doseValue: 0, category: 'راحة', usageType: 'ضروري', recommendedHours: 2, targetDays: [34], climates: ['بارد جدا', 'بارد', 'معتدل', 'حار', 'حار جدا'], scientificExplanation: 'بدء فترة السحب الحيوية.', mixingRules: 'مياه شرب نظيفة.', technicalSequence: 'راحة ليلية.' },
 
   // Day 35
   { 
     id: 'd35-water', 
-    name: 'مياه فقط (فترة سحب)', 
+    name: 'ماء نقي (فترة سحب)', 
     unit: 'لتر', 
     doseValue: 0, 
     category: 'راحة', 

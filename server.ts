@@ -59,7 +59,7 @@ async function startServer() {
               'Cache-Control': 'no-cache',
               'Referer': 'https://www.google.com/'
             },
-            signal: AbortSignal.timeout(20000)
+            signal: AbortSignal.timeout(10000)
           });
           
           if (response.ok) {
@@ -69,8 +69,6 @@ async function startServer() {
               const match = html.match(patterns[i]);
               if (match && match[1]) {
                 const parsed = parseInt(match[1]);
-                // Poultry prices in EGP for farmgate are typically 65-120 range now.
-                // Sanity range between 50 and 150.
                 if (parsed >= 50 && parsed <= 150) { 
                   price = parsed;
                   sourceUsed = url;
@@ -79,24 +77,117 @@ async function startServer() {
                 }
               }
             }
-          } else {
-            console.warn(`Source ${url} returned status: ${response.status}`);
           }
           if (price) break;
         } catch (e) {
-          console.warn(`Attempt failed for ${url}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          console.warn(`Poultry fetch failed for ${url}`);
         }
       }
 
       if (price) {
-        console.log(`Successfully fetched price: ${price} from ${sourceUsed} using pattern ${matchedPatternIndex}`);
         res.json({ price, source: sourceUsed });
       } else {
-        res.status(404).json({ error: "Price not found on page", sourcesAttempted: sources.length });
+        res.status(404).json({ error: "Poultry price not found" });
       }
     } catch (error) {
-      console.error("Error fetching price:", error);
-      res.status(500).json({ error: "Failed to fetch price" });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // API Route to fetch gold price (Egypt focus)
+  app.get("/api/gold-price", async (req, res) => {
+    try {
+      const sources = [
+        'https://isagha.com/ar/gold-prices/egypt',
+        'https://isagha.com/en/gold-prices/egypt',
+        'https://isagha.com/ar/',
+        'https://isagha.com/',
+        'https://goldpricesegypt.com/',
+        'https://www.goldpricesegypt.com/',
+        'https://misr365.com/price/gold-price-today/'
+      ];
+
+      // Patterns for 21k gold in Egypt (most common)
+      const patterns21k = [
+        /عيار 21.*?(\d{3,4})/,
+        /21k.*?(\d{3,4})/,
+        /Gold 21K.*?(\d{4})/,
+        /<span>21<\/span>.*?<span>(\d{4})<\/span>/,
+        /سعر عيار 21 اليوم\s*:\s*(\d{4})/,
+        /(\d{4})\s*جنيه لعيار 21/,
+        /(\d{4})\s*جنيه لـ١ جرام ذهب عيار ٢١/,
+        /"(21k|gold_21)":\s*"?(\d{4})"?/,
+        /price-21">(\d{4})/,
+        /price_21k">(\d{4})/,
+        /class="gold-price">(\d{4})/,
+        /<td>21k<\/td>.*?<td>(\d{4})<\/td>/i,
+        /<td>(\d{4})<\/td>.*?<td>21k<\/td>/i
+      ];
+
+      let prices = {
+        '21k': 0,
+        '24k': 0,
+        '18k': 0
+      };
+      let sourceUsed = "";
+
+      for (const url of sources) {
+        try {
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+              'Accept-Language': 'ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+              'Sec-Ch-Ua-Mobile': '?0',
+              'Sec-Ch-Ua-Platform': '"macOS"',
+              'Referer': 'https://www.google.com/'
+            },
+            signal: AbortSignal.timeout(10000)
+          });
+          
+          if (response.ok) {
+            const html = await response.text();
+            
+            for (const pattern of patterns21k) {
+              const match = html.match(pattern);
+              if (match && match[1]) {
+                const p21 = parseInt(match[1]);
+                // Sanity check for EGP gold prices (currently around 2500-4000)
+                if (p21 >= 2500 && p21 <= 5500) {
+                  prices['21k'] = p21;
+                  // Derive others accurately for Cairo market
+                  prices['24k'] = Math.round(p21 * (24/21));
+                  prices['18k'] = Math.round(p21 * (18/21));
+                  sourceUsed = url;
+                  break;
+                }
+              }
+            }
+          }
+          if (prices['21k'] > 0) break;
+        } catch (e) {
+          // Only warn if it's a primary source or if we're debugging
+          if (url.includes('isagha.com')) {
+            console.warn(`Gold fetch failed for primary source ${url}: ${e instanceof Error ? e.message : 'Error'}`);
+          }
+        }
+      }
+
+      if (prices['21k'] > 0) {
+        res.json({ prices, source: sourceUsed });
+      } else {
+        // Fallback to a hardcoded recent price if everything fails (Egyptian market is volatile)
+        res.json({ 
+          prices: { '21k': 3650, '24k': 4171, '18k': 3129 }, 
+          source: "fallback",
+          warning: "Real-time data unavailable"
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch gold prices" });
     }
   });
 
