@@ -8,7 +8,7 @@
     "start": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist .expo android/build ios/build",
+    "clean": "rm -rf www .expo android/build ios/build",
     "clean:android": "cd android && ./gradlew clean",
     "clean:all": "rm -rf node_modules package-lock.json .expo android/build ios/build && npm install && npx expo start --clear",
     "lint": "tsc --noEmit",
