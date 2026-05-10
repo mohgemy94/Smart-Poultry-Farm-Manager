@@ -1,4 +1,4 @@
-name: Build Android APK (Java 21 & Node 22)
+name: Build Android APK (Final Stable)
 on:
   push:
     branches: [ main ]
@@ -16,13 +16,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Set up Node.js 22 # الحل الجذري لمشكلة الصورة الأخيرة
+          # تم إزالة الكاش لتجنب تداخل ملفات Gradle القديمة المعطوبة
+          
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Install Dependencies
         run: |
@@ -32,35 +31,39 @@ jobs:
       - name: Build Web Project
         run: |
           npm run build
-          # ضمان وجود مجلد www ليتعرف عليه Capacitor
           mkdir -p www
           cp -r dist/* www/ 2>/dev/null || cp -r build/* www/ 2>/dev/null || true
           touch www/index.html
 
       - name: Initialize Capacitor
         run: |
-          # إعداد ملف التكوين ليتوافق مع مجلد www
           echo '{"appId": "com.farmers.app", "appName": "Smart Poultry Farm Manager", "webDir": "www"}' > capacitor.config.json
           npx cap sync android
 
-      - name: Configure Gradle & Fix Corrupt Files
+      - name: Force Stable Gradle 8.5
+        # هذا هو السطر السحري الذي سيحل مشكلة Metadata Version 2.3.0
         run: |
           cd android
-          # استخدام إصدار Gradle 8.7 المتوافق تماماً مع Java 21
-          gradle wrapper --gradle-version 8.7 --distribution-type all
+          # تحميل الجراديل المستقر يدوياً وتجاوز النسخة 9.4 الموجودة على السيرفر
+          curl -L https://services.gradle.org/distributions/gradle-8.5-all.zip -o gradle-8.5-all.zip
+          unzip -o gradle-8.5-all.zip -d gradle_stable
+          export GRADLE_HOME=$PWD/gradle_stable/gradle-8.5
+          export PATH=$GRADLE_HOME/bin:$PATH
+          gradle wrapper --gradle-version 8.5 --distribution-type all
           chmod +x gradlew
-          # إعدادات التوافقية
+          # إعدادات التوافقية لـ Java 21
+          echo "kotlin.code.style=official" >> gradle.properties
           echo "kotlin.jvm.target=21" >> gradle.properties
-          echo "org.gradle.java.home=/usr/lib/jvm/temurin-21-jdk-amd64" >> gradle.properties
 
       - name: Build Android APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          # استخدام الـ Flag لتجاهل تعارض نسخ Metadata في مكتبات Expo
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xskip-metadata-version-check"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Poultry-Farm-Final-Java21-Node22
+          name: Smart-Poultry-Manager-Java21-Stable
           path: android/app/build/outputs/apk/debug/app-debug.apk
           
