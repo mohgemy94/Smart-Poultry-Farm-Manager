@@ -1,8 +1,12 @@
-name: Build Android APK (Final Stable)
+name: Build Android APK (Node 24 & Java 21)
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
+env:
+  # تفعيل استخدام Node 24 للأكشنز كما طلب التحذير
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -16,12 +20,11 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          # تم إزالة الكاش لتجنب تداخل ملفات Gradle القديمة المعطوبة
-          
-      - name: Set up Node.js 22
+
+      - name: Set up Node.js 24 # التحديث إلى الإصدار القادم المستقر
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install Dependencies
         run: |
@@ -41,29 +44,25 @@ jobs:
           npx cap sync android
 
       - name: Force Stable Gradle 8.5
-        # هذا هو السطر السحري الذي سيحل مشكلة Metadata Version 2.3.0
         run: |
           cd android
-          # تحميل الجراديل المستقر يدوياً وتجاوز النسخة 9.4 الموجودة على السيرفر
           curl -L https://services.gradle.org/distributions/gradle-8.5-all.zip -o gradle-8.5-all.zip
           unzip -o gradle-8.5-all.zip -d gradle_stable
           export GRADLE_HOME=$PWD/gradle_stable/gradle-8.5
           export PATH=$GRADLE_HOME/bin:$PATH
           gradle wrapper --gradle-version 8.5 --distribution-type all
           chmod +x gradlew
-          # إعدادات التوافقية لـ Java 21
           echo "kotlin.code.style=official" >> gradle.properties
           echo "kotlin.jvm.target=21" >> gradle.properties
 
       - name: Build Android APK
         run: |
           cd android
-          # استخدام الـ Flag لتجاهل تعارض نسخ Metadata في مكتبات Expo
           ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xskip-metadata-version-check"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Smart-Poultry-Manager-Java21-Stable
+          name: Smart-Poultry-Manager-Node24-Java21
           path: android/app/build/outputs/apk/debug/app-debug.apk
           
