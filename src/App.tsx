@@ -697,7 +697,7 @@ const ExpertScreen = ({ age }: { age: number }) => {
   );
 };
 
-const MarketScreen = ({ sellingPrice, lastPriceUpdateAt }: { sellingPrice: number | string, lastPriceUpdateAt: string | null }) => {
+const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellingPrice: number | string, lastPriceUpdateAt: string | null, priceSource?: string }) => {
   const [exchangeRates, setExchangeRates] = useState<any>(null);
   const [goldPrices, setGoldPrices] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -761,6 +761,9 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt }: { sellingPrice: numbe
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-bold text-slate-400">آخر تحديث: {lastPriceUpdateAt || 'غير متوفر'}</span>
           </div>
+          {priceSource && (
+            <p className="text-[9px] font-bold text-blue-400/60 mt-1">المصدر الحالي: {priceSource.replace('https://', '').split('/')[0]}</p>
+          )}
         </div>
 
         <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
@@ -1034,6 +1037,7 @@ interface AppState {
   feedBillsNahy: FeedBill[];
   targetCycleDays: number | string;
   lastPriceUpdateAt?: string;
+  priceSource?: string;
   isManualPriceMode?: boolean;
   dailyLogs?: any[]; // Added to fix discrepancy in exportCSV
   chickCount?: number;
@@ -1159,6 +1163,7 @@ const INITIAL_STATE: AppState = {
   dailyBatteryTierFeed: {},
   externalEquipment: true,
   lastPriceUpdateAt: '',
+  priceSource: '',
   isManualPriceMode: false,
   chickPrice: 20,
   feedPrice: 22,
@@ -1347,6 +1352,7 @@ export default function App() {
       
       const data = await response.json();
       const officialFarmPrice = data.price; 
+      const source = data.source;
       
       if (!officialFarmPrice) throw new Error('Price not found in response');
 
@@ -1365,6 +1371,7 @@ export default function App() {
         ...prev, 
         sellingPrice: officialFarmPrice,
         lastPriceUpdateAt: formattedDate,
+        priceSource: source,
         isManualPriceMode: false
       }));
     } catch (error: any) {
@@ -6020,7 +6027,11 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <MarketScreen sellingPrice={state.sellingPrice} lastPriceUpdateAt={state.lastPriceUpdateAt} />
+              <MarketScreen 
+                sellingPrice={state.sellingPrice} 
+                lastPriceUpdateAt={state.lastPriceUpdateAt} 
+                priceSource={state.priceSource}
+              />
               </motion.div>
             )}
 
