@@ -793,6 +793,15 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt }: { sellingPrice: numbe
                     <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">USD / EGP</span>
                   </div>
                </div>
+               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 shadow-inner">
+                  <span className="text-emerald-400 font-black text-sm tabular-nums">
+                    {exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--'}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-slate-200 font-bold text-xs">ريال / جنيه</span>
+                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">SAR / EGP</span>
+                  </div>
+               </div>
                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                   <span className="text-white font-black text-sm tabular-nums">
                     {exchangeRates?.SAR ? (exchangeRates.SAR).toFixed(2) : '--.--'}
@@ -1191,6 +1200,10 @@ export default function App() {
   });
   const [gatewayEmail, setGatewayEmail] = useState('');
   const [gatewayPassword, setGatewayPassword] = useState('');
+  const [rememberMeGateway, setRememberMeGateway] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMeLogin, setRememberMeLogin] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isDriveLoading, setIsDriveLoading] = useState(false);
@@ -1257,6 +1270,40 @@ export default function App() {
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   const [selectedMedInfo, setSelectedMedInfo] = useState<{ title: string, text: string } | null>(null);
+
+  useEffect(() => {
+    const savedGateway = localStorage.getItem('poultry_gateway_credentials');
+    if (savedGateway) {
+      try {
+        const { email, password } = JSON.parse(savedGateway);
+        setGatewayEmail(email);
+        setGatewayPassword(password);
+        setRememberMeGateway(true);
+      } catch (e) {
+        localStorage.removeItem('poultry_gateway_credentials');
+      }
+    } else {
+      setGatewayEmail('');
+      setGatewayPassword('');
+      setRememberMeGateway(false);
+    }
+
+    const savedLogin = localStorage.getItem('poultry_login_credentials');
+    if (savedLogin) {
+      try {
+        const { email, password } = JSON.parse(savedLogin);
+        setLoginEmail(email);
+        setLoginPassword(password);
+        setRememberMeLogin(true);
+      } catch (e) {
+        localStorage.removeItem('poultry_login_credentials');
+      }
+    } else {
+      setLoginEmail('');
+      setLoginPassword('');
+      setRememberMeLogin(false);
+    }
+  }, [screen]); // Re-sync when returning to login screens
 
   // Scroll to top when switching screens
   useEffect(() => {
@@ -1627,10 +1674,17 @@ export default function App() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const email = (e.target as any).email.value;
-    const password = (e.target as any).password.value;
+    const email = loginEmail;
+    const password = loginPassword;
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      
+      if (rememberMeLogin) {
+        localStorage.setItem('poultry_login_credentials', JSON.stringify({ email, password }));
+      } else {
+        localStorage.removeItem('poultry_login_credentials');
+      }
+      
       setScreen('landing');
     } catch (error: any) {
       alert(`حدث خطأ أثناء تسجيل الدخول: ${error.message}`);
@@ -1643,7 +1697,8 @@ export default function App() {
     // قاعدة البيانات الداخلية (أوف لاين)
     const usersDatabase = [
       { user: "mohamed.gemy84@yahoo.com", pass: "250226#@koko" },
-      { user: "Moh.gem9898@gmail.com", pass: "25260257" }
+      { user: "Moh.gem9898@gmail.com", pass: "25260257" },
+      { user: "smartpoultry1@manager.com", pass: "2026" }
     ];
 
     const userFound = usersDatabase.find(
@@ -1651,6 +1706,11 @@ export default function App() {
     );
 
     if (userFound) {
+      if (rememberMeGateway) {
+        localStorage.setItem('poultry_gateway_credentials', JSON.stringify({ email: gatewayEmail, password: gatewayPassword }));
+      } else {
+        localStorage.removeItem('poultry_gateway_credentials');
+      }
       sessionStorage.setItem('poultry_gateway_passed', 'true');
       setScreen('landing');
     } else {
@@ -1666,6 +1726,22 @@ export default function App() {
     sessionStorage.removeItem('poultry_gateway_passed');
     localStorage.removeItem('poultry_app_screen');
     signOut(auth).catch(() => {});
+    
+    // Clear states if not remembered
+    const savedGateway = localStorage.getItem('poultry_gateway_credentials');
+    if (!savedGateway) {
+      setGatewayEmail('');
+      setGatewayPassword('');
+      setRememberMeGateway(false);
+    }
+
+    const savedLogin = localStorage.getItem('poultry_login_credentials');
+    if (!savedLogin) {
+      setLoginEmail('');
+      setLoginPassword('');
+      setRememberMeLogin(false);
+    }
+
     setScreen('gateway');
     setIsLogoutConfirming(false);
   };
@@ -1980,6 +2056,65 @@ export default function App() {
       isScientific: true 
     };
   }, [state.strain, state.age, state.weightLogs]);
+
+  const yesterdayStats = useMemo(() => {
+    const prevAge = Math.max(0, toNum(state.age) - 1);
+    if (prevAge === 0) return { age: 0, weight: 42, dailyFeed: 0, cumFeed: 0, dailyWater: 0 };
+    
+    const standardStats = getDailyStats(state.strain, prevAge);
+    const weightLogs = state.weightLogs || {};
+    const manualWeight = toNum(weightLogs[String(prevAge)]);
+
+    if (manualWeight > 0) {
+      return { ...standardStats, weight: manualWeight };
+    }
+
+    const manualDays = Object.keys(weightLogs)
+      .map(Number)
+      .filter(day => day > 0 && toNum(weightLogs[String(day)]) > 0)
+      .sort((a, b) => a - b);
+
+    if (manualDays.length > 0) {
+      const pastManualDays = manualDays.filter(day => day < prevAge);
+      if (pastManualDays.length > 0) {
+        const lastManualDay = Math.max(...pastManualDays);
+        const lastManualWeight = toNum(weightLogs[String(lastManualDay)]);
+        const standardWeightAtThatDay = getDailyStats(state.strain, lastManualDay).weight;
+        const performanceFactor = lastManualWeight / standardWeightAtThatDay;
+        return { ...standardStats, weight: Math.round(standardStats.weight * performanceFactor) };
+      }
+    }
+    
+    return standardStats;
+  }, [state.strain, state.age, state.weightLogs]);
+
+  const kpis = useMemo(() => {
+    const age = toNum(state.age);
+    const weightToday = dailyStats.weight;
+    const weightYesterday = yesterdayStats.weight;
+    
+    // ADG (Average Daily Gain since day 0)
+    const adgSinceStart = age > 0 ? (weightToday / age).toFixed(1) : '0';
+    // Daily Gain (Last 24h)
+    const dailyGain = weightToday - weightYesterday;
+    
+    // FCR (Feed Conversion Ratio)
+    const fcr = weightToday > 0 ? (dailyStats.cumFeed / weightToday).toFixed(3) : '0.000';
+    
+    // Standard comparison
+    const standardStats = getDailyStats(state.strain, age);
+    const standardFcr = standardStats.weight > 0 ? (standardStats.cumFeed / standardStats.weight).toFixed(3) : '0.000';
+    const standardAdg = age > 0 ? (standardStats.weight / age).toFixed(1) : '0';
+
+    return { 
+      adg: adgSinceStart, 
+      dailyGain,
+      standardAdg,
+      fcr, 
+      standardFcr,
+      fcrDiff: (parseFloat(fcr) - parseFloat(standardFcr)).toFixed(3)
+    };
+  }, [dailyStats, yesterdayStats, state.strain, state.age]);
 
   // --- Mortality Calculation Helpers ---
   const allBills = useMemo(() => [
@@ -3096,6 +3231,28 @@ export default function App() {
               />
             </div>
 
+            <label className="flex items-center gap-3 cursor-pointer group select-none">
+              <div className="relative">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMeGateway}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setRememberMeGateway(checked);
+                    if (!checked) {
+                      localStorage.removeItem('poultry_gateway_credentials');
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-6 h-6 bg-slate-950/50 border-2 border-white/10 rounded-lg transition-all peer-checked:bg-blue-600 peer-checked:border-blue-500 group-hover:border-blue-400"></div>
+                <div className="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform">
+                  <Check size={14} strokeWidth={4} />
+                </div>
+              </div>
+              <span className="text-sm font-bold text-slate-400 group-hover:text-slate-300 transition-colors">تذكرني</span>
+            </label>
+
             <motion.button 
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
@@ -3144,6 +3301,8 @@ export default function App() {
               <input 
                 name="email"
                 type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="البريد الإلكتروني"
                 required
                 className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
@@ -3151,10 +3310,35 @@ export default function App() {
               <input 
                 name="password"
                 type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="كلمة المرور"
                 required
                 className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
               />
+              
+              <label className="flex items-center gap-3 cursor-pointer group select-none">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMeLogin}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setRememberMeLogin(checked);
+                      if (!checked) {
+                        localStorage.removeItem('poultry_login_credentials');
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-6 h-6 bg-slate-900 border-2 border-white/10 rounded-lg transition-all peer-checked:bg-blue-600 peer-checked:border-blue-500 group-hover:border-blue-400"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform">
+                    <Check size={14} strokeWidth={4} />
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-slate-400 group-hover:text-slate-300 transition-colors">تذكر بياناتي</span>
+              </label>
+
               <div className="flex gap-2">
                 <button 
                   type="submit"
@@ -5102,6 +5286,62 @@ export default function App() {
                   subLabel="حسب العمر"
                   subValue={`${toNum(state.age)} يوم`}
                 />
+              </div>
+
+              {/* KPI Quick View */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900/60 p-5 rounded-[2rem] border border-emerald-500/10 backdrop-blur-md relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-500/10 transition-colors" />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                      <TrendingUp size={20} />
+                    </div>
+                    <div className="text-right">
+                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">متوسط الزيادة (ADG)</h4>
+                      <p className="text-[9px] font-bold text-emerald-500/60">جم / يوم</p>
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-2 justify-end mb-2">
+                    <span className="text-3xl font-black text-white tabular-nums tracking-tighter">{kpis.adg}</span>
+                    <span className="text-[10px] font-black text-slate-500">جم</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                    <span className="text-[9px] font-bold text-slate-600">المعيار: {kpis.standardAdg}</span>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black",
+                      parseFloat(kpis.adg) >= parseFloat(kpis.standardAdg) ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                    )}>
+                      {parseFloat(kpis.adg) >= parseFloat(kpis.standardAdg) ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      {Math.abs(parseFloat(kpis.adg) - parseFloat(kpis.standardAdg)).toFixed(1)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 p-5 rounded-[2rem] border border-blue-500/10 backdrop-blur-md relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 blur-2xl -mr-10 -mt-10 group-hover:bg-blue-500/10 transition-colors" />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                      <Zap size={20} />
+                    </div>
+                    <div className="text-right">
+                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">معامل التحويل (FCR)</h4>
+                      <p className="text-[9px] font-bold text-blue-500/60">الكفاءة الغذائية</p>
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-2 justify-end mb-2">
+                    <span className="text-3xl font-black text-white tabular-nums tracking-tighter">{kpis.fcr}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                    <span className="text-[9px] font-bold text-slate-600">المعيار: {kpis.standardFcr}</span>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black",
+                      parseFloat(kpis.fcr) <= parseFloat(kpis.standardFcr) ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                    )}>
+                      {parseFloat(kpis.fcr) <= parseFloat(kpis.standardFcr) ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
+                      {Math.abs(parseFloat(kpis.fcrDiff)).toFixed(3)}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 shadow-2xl relative overflow-hidden">

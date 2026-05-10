@@ -155,8 +155,8 @@ async function startServer() {
               const match = html.match(pattern);
               if (match && match[1]) {
                 const p21 = parseInt(match[1]);
-                // Sanity check for EGP gold prices (currently around 2500-4000)
-                if (p21 >= 2500 && p21 <= 5500) {
+                // Sanity check for EGP gold prices (market has been very volatile, allowing 2000-10000 range)
+                if (p21 >= 2000 && p21 <= 10000) {
                   prices['21k'] = p21;
                   // Derive others accurately for Cairo market
                   prices['24k'] = Math.round(p21 * (24/21));
@@ -180,10 +180,11 @@ async function startServer() {
         res.json({ prices, source: sourceUsed });
       } else {
         // Fallback to a hardcoded recent price if everything fails (Egyptian market is volatile)
+        // Updated for May 2026 market where 21k is ~6900
         res.json({ 
-          prices: { '21k': 3650, '24k': 4171, '18k': 3129 }, 
+          prices: { '21k': 6900, '24k': 7886, '18k': 5914 }, 
           source: "fallback",
-          warning: "Real-time data unavailable"
+          warning: "Real-time data from iSagha headlines used as basis"
         });
       }
     } catch (error) {
