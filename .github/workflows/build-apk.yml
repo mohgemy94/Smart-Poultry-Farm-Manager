@@ -1,0 +1,46 @@
+name: Android Build APK
+
+on:
+  push:
+    branches: [ main ] # اغير اسم الفرع إذا كنت تستخدم فرعاً آخر
+  workflow_dispatch: # للسماح بتشغيل البناء يدوياً من واجهة جيت هاب
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24 # استخدام Node 24 كما طلبت
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21' # استخدام Java 21 (JDK 21)
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web artifact
+        run: npm run build # بناء ملفات الويب ليتم تضمينها في التطبيق
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
