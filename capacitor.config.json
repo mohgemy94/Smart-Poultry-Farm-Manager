@@ -1,0 +1,9 @@
+{
+  "appId": "com.mohamedgemy.poultrymanager",
+  "appName": "Smart Poultry Farm Manager",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
