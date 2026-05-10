@@ -1,0 +1,65 @@
+name: Build Android APK (Java 21)
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install @capacitor/cli@latest @capacitor/core@latest @capacitor/android@latest
+
+      - name: Build Web Project
+        run: |
+          npm run build
+          mkdir -p www
+          cp -r dist/* www/ 2>/dev/null || cp -r build/* www/ 2>/dev/null || true
+          touch www/index.html
+
+      - name: Initialize Capacitor
+        run: |
+          echo '{"appId": "com.farmers.app", "appName": "Smart Poultry Farm Manager", "webDir": "www"}' > capacitor.config.json
+          npx cap sync android
+
+      - name: Configure Gradle for Java 21
+        # Java 21 تتطلب Gradle 8.5 على الأقل
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.5 --distribution-type all
+          chmod +x gradlew
+          # إعدادات لضمان توافق لغة Kotlin مع Java 21
+          echo "org.gradle.java.home=/usr/lib/jvm/temurin-21-jdk-amd64" >> gradle.properties
+          echo "kotlin.jvm.target=21" >> gradle.properties
+          echo "android.nonTransitiveRClass=true" >> gradle.properties
+
+      - name: Build Android APK
+        run: |
+          cd android
+          # تشغيل البناء مع إجبار النظام على استخدام Java 21 وتجاوز فحص الميتا-داتا
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=/usr/lib/jvm/temurin-21-jdk-amd64
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Poultry-Farm-Manager-Java21
+          path: android/app/build/outputs/apk/debug/app-debug.apk
