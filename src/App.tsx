@@ -706,19 +706,86 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellin
   const fetchMarketData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch Currency
-      const curRes = await fetch('https://open.er-api.com/v6/latest/USD');
-      const curData = await curRes.json();
-      setExchangeRates(curData.rates);
+      // 1. Fetch from Google Sheet (Primary Data Source)
+      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
+      const sheetRes = await fetch(SHEET_URL);
+      
+      let sheetExchangeRates: any = null;
+      let sheetGoldPrices: any = null;
+      let sheetDataFound = false;
 
-      // Fetch Gold Prices (from our server)
-      const goldRes = await fetch('/api/gold-price');
-      if (goldRes.ok) {
-        const goldData = await goldRes.json();
-        setGoldPrices(goldData.prices);
+      if (sheetRes.ok) {
+        const csvText = await sheetRes.text();
+        const rows = csvText.split('\n').map(row => row.split(',').map(cell => cell?.trim()));
+        
+        // Helper to find value by keyword in the second column (with aggressive cleaning)
+        const findVal = (keyword: string) => {
+          const row = rows.find(r => {
+            const label = r[1] ? r[1].trim() : '';
+            return label.includes(keyword.trim());
+          });
+          if (row && row[0]) {
+            const val = parseFloat(row[0].replace(/[^\d.]/g, ''));
+            return isNaN(val) ? null : val;
+          }
+          return null;
+        };
+
+        const gold21 = findVal('الذهب عيار 21');
+        const gold24 = findVal('الذهب عيار 24');
+        const usdEgp = findVal('الدولار/الجنيه');
+        const sarEgp = findVal('الريال/الجنيه');
+        const usdSar = findVal('الدولار/الريال');
+
+        // Update Gold Prices from Sheet
+        if (gold21 || gold24) {
+          sheetGoldPrices = {
+            '21k': gold21 || 0,
+            '24k': gold24 || 0
+          };
+          setGoldPrices(sheetGoldPrices);
+          sheetDataFound = true;
+        }
+
+        // Update Exchange Rates from Sheet
+        if (usdEgp || sarEgp || usdSar) {
+          sheetExchangeRates = {
+            EGP: usdEgp || 0, // Using common keys
+            SAR: sarEgp ? (usdEgp ? usdEgp / sarEgp : 0) : 0, 
+            EGP_USD: usdEgp || 0,
+            EGP_SAR: sarEgp || 0,
+            SAR_USD: usdSar || 0
+          };
+          setExchangeRates(sheetExchangeRates);
+          sheetDataFound = true;
+        }
+      }
+
+      // 2. Fetch from external APIs as secondary source
+      try {
+        const curRes = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (curRes.ok) {
+          const curData = await curRes.json();
+          setExchangeRates((prev: any) => ({
+            ...curData.rates,
+            ...prev // Google Sheet data takes absolute priority
+          }));
+        }
+      } catch (e) {
+        console.warn("External currency API failed, using sheet/local data");
+      }
+
+      // Gold Price fallback if not in Google Sheet
+      if (!sheetGoldPrices) {
+        const goldRes = await fetch('/api/gold-price');
+        if (goldRes.ok) {
+          const goldData = await goldRes.json();
+          setGoldPrices(goldData.prices);
+        }
       }
     } catch (err) {
-      setError('فشل في جلب أسعار السوق');
+      console.error("Market data fetch error:", err);
+      setError('فشل في جلب بعض بيانات السوق، جارٍ استخدام البيانات المتاحة');
     } finally {
       setLoading(false);
     }
@@ -783,14 +850,26 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellin
          {/* Currency - USD/EGP */}
          <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-white/5 space-y-4">
             <div className="flex items-center justify-between">
-               <Banknote size={20} className="text-amber-400" />
-               <h3 className="text-white font-black text-sm">أسعار العملات</h3>
+               <div className="flex items-center gap-2">
+                 <Banknote size={20} className="text-amber-400" />
+                 <h3 className="text-white font-black text-sm">أسعار العملات</h3>
+               </div>
+               <button 
+                 onClick={() => {
+                   fetchMarketData();
+                 }}
+                 disabled={loading}
+                 className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors flex items-center gap-1.5"
+               >
+                 <span className="text-[10px] font-bold">تحديث</span>
+                 <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+               </button>
             </div>
             
             <div className="space-y-3">
                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                   <span className="text-white font-black text-sm tabular-nums">
-                    {exchangeRates?.EGP ? (exchangeRates.EGP).toFixed(2) : '--.--'}
+                    {exchangeRates?.EGP_USD ? Number(exchangeRates.EGP_USD).toFixed(2) : (exchangeRates?.EGP ? Number(exchangeRates.EGP).toFixed(2) : '--.--')}
                   </span>
                   <div className="flex flex-col items-end">
                     <span className="text-slate-200 font-bold text-xs">دولار / جنيه</span>
@@ -799,7 +878,7 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellin
                </div>
                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 shadow-inner">
                   <span className="text-emerald-400 font-black text-sm tabular-nums">
-                    {exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--'}
+                    {exchangeRates?.EGP_SAR ? Number(exchangeRates.EGP_SAR).toFixed(2) : (exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--')}
                   </span>
                   <div className="flex flex-col items-end">
                     <span className="text-slate-200 font-bold text-xs">ريال / جنيه</span>
@@ -808,7 +887,7 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellin
                </div>
                <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
                   <span className="text-white font-black text-sm tabular-nums">
-                    {exchangeRates?.SAR ? (exchangeRates.SAR).toFixed(2) : '--.--'}
+                    {exchangeRates?.SAR_USD ? Number(exchangeRates.SAR_USD).toFixed(2) : (exchangeRates?.SAR ? Number(exchangeRates.SAR).toFixed(2) : '--.--')}
                   </span>
                   <div className="flex flex-col items-end">
                     <span className="text-slate-200 font-bold text-xs">دولار / ريال</span>
@@ -863,8 +942,18 @@ const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellin
                  <p className="text-slate-500 text-[10px] font-bold">عيارات التداول (تقديراً)</p>
               </div>
            </div>
-           <div className="bg-slate-950 p-2 rounded-xl border border-white/5">
-              <Wallet size={14} className="text-amber-500" />
+           <div className="flex items-center gap-2">
+              <button 
+                onClick={fetchMarketData}
+                disabled={loading}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-amber-500/60 transition-colors flex items-center gap-1.5 border border-white/5"
+              >
+                <span className="text-[10px] font-bold">تحديث</span>
+                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              </button>
+              <div className="bg-slate-950 p-2 rounded-xl border border-white/5">
+                 <Wallet size={14} className="text-amber-500" />
+              </div>
            </div>
         </div>
 
@@ -1337,25 +1426,48 @@ export default function App() {
 
   const fetchChickenPrice = async (force = false) => {
     setIsFetchingPrice(true);
-    try {
-      // Use relative path for same-origin requests, absolute for others
-      const response = await fetch('/api/poultry-price', {
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const officialFarmPrice = data.price; 
-      const source = data.source;
-      
-      if (!officialFarmPrice) throw new Error('Price not found in response');
+    let success = false;
+    let price = 0;
+    let source = "";
 
+    try {
+      // 1. Try Google Sheet (Primary)
+      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
+      const response = await fetch(SHEET_URL);
+      
+      if (response.ok) {
+        const csvText = await response.text();
+        const rows = csvText.split('\n').map(row => row.split(','));
+        const poultryRow = rows.find(row => row[1] && row[1].trim().includes('الفراخ البيضاء'));
+        
+        if (poultryRow) {
+          price = toNum(poultryRow[0].trim());
+          source = "جوجل شيت (رقم 1)";
+          success = true;
+        }
+      }
+    } catch (error) {
+      console.error("Sheet fetch failed, trying fallback...", error);
+    }
+
+    // 2. Fallback if sheet fails or data not found
+    if (!success) {
+      try {
+        const response = await fetch('/api/poultry-price');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.price) {
+            price = data.price;
+            source = data.source || "بورصة الدواجن (احتياطي)";
+            success = true;
+          }
+        }
+      } catch (error) {
+        console.error("Fallback fetch failed", error);
+      }
+    }
+
+    if (success) {
       const now = new Date();
       const formattedDate = now.toLocaleString('ar-EG', {
         year: 'numeric',
@@ -1369,21 +1481,18 @@ export default function App() {
       
       setState(prev => ({ 
         ...prev, 
-        sellingPrice: officialFarmPrice,
+        sellingPrice: price,
         lastPriceUpdateAt: formattedDate,
         priceSource: source,
         isManualPriceMode: false
       }));
-    } catch (error: any) {
-      console.error("Failed to fetch poultry price from backend API", error);
-      // In case of error, if it was an automatic fetch, we just fail silently (preserving current price)
-      // but if it was a forced manual refresh, we alert the user.
+    } else {
       if (force) {
-        alert(`فشل تحديث السعر: ${error.message || 'مشكلة في الاتصال بالسيرفر'}. تأكد من اتصال الإنترنت أو استخدم الإدخال اليدوي.`);
+        alert("فشل تحديث السعر من جميع المصادر. يرجى التحقق من الاتصال أو استخدام الإدخال اليدوي.");
       }
-    } finally {
-      setIsFetchingPrice(false);
     }
+    
+    setIsFetchingPrice(false);
   };
 
   useEffect(() => {
