@@ -570,7 +570,8 @@ const ExpertScreen = ({ age }: { age: number }) => {
         normalize(tip.content).includes(nQ);
       
       const matchesCategory = selectedCategory === 'جميع الأقسام' || tip.category === selectedCategory;
-      const isAgeRelevant = age >= tip.minAge && age <= tip.maxAge;
+      const ageNum = toNum(age);
+      const isAgeRelevant = ageNum >= tip.minAge && ageNum <= tip.maxAge;
       
       // The user wants displayed recommendations to be specific to current chick age.
       // We apply this strictly to keep the view focused.
@@ -1319,13 +1320,13 @@ export default function App() {
   // --- Day Navigation Logic ---
   const goToNextDay = () => {
     setFlipDirection(1);
-    setState(prev => ({ ...prev, age: Math.min(prev.age + 1, 60), isManualOverride: true }));
+    setState(prev => ({ ...prev, age: Math.min(toNum(prev.age) + 1, 60), isManualOverride: true }));
     setIsNavVisible(true);
   };
 
   const goToPrevDay = () => {
     setFlipDirection(-1);
-    setState(prev => ({ ...prev, age: Math.max(prev.age - 1, 1), isManualOverride: true }));
+    setState(prev => ({ ...prev, age: Math.max(toNum(prev.age) - 1, 1), isManualOverride: true }));
     setIsNavVisible(true);
   };
 
@@ -1538,10 +1539,10 @@ export default function App() {
 
     const financialHeaders = ['Category', 'Amount', 'Description'];
     const financialRows = [
-      ['Total Chicks Cost', state.chickCount * state.chickPrice, ''],
-      ['Total Feed Cost', state.totalFeedConsumed * state.feedPrice, ''],
-      ['Total Expenses', state.otherExpenses.reduce((sum, e) => sum + e.amount, 0), ''],
-      ['Mortality Rate', `${((state.totalMortality / state.chickCount) * 100).toFixed(2)}%`, '']
+      ['Total Chicks Cost', toNum(state.chickCount) * toNum(state.chickPrice), ''],
+      ['Total Feed Cost', toNum(state.totalFeedConsumed) * toNum(state.feedPrice), ''],
+      ['Total Expenses', (state.otherExpenses || []).reduce((sum: number, e: any) => sum + toNum(e.amount), 0), ''],
+      ['Mortality Rate', `${((toNum(state.totalMortality) / Math.max(toNum(state.chickCount), 1)) * 100).toFixed(2)}%`, '']
     ];
 
     let csvContent = "\ufeff"; // BOM for Arabic support in Excel
@@ -2001,7 +2002,7 @@ export default function App() {
   React.useEffect(() => {
     setState(prev => ({ 
       ...prev, 
-      climate: getClimateFromTemp(prev.externalTemp) 
+      climate: getClimateFromTemp(toNum(prev.externalTemp)) 
     }));
   }, [state.externalTemp]);
 
@@ -2044,6 +2045,7 @@ export default function App() {
           weight: projectedWeight,
           standardWeight: standardStats.weight,
           isProjected: true,
+          isScientific: false,
           status: projectedWeight >= standardStats.weight ? 'excellent' : 'behind'
         };
       }
@@ -2747,6 +2749,7 @@ export default function App() {
 
     let recommendedHours = darknessHours;
     let tempReason = "";
+    let medReason = "";
     const triggers = [
       { type: 'age', label: 'العمر', icon: Calendar, color: 'text-blue-400' }
     ];
@@ -2764,12 +2767,24 @@ export default function App() {
       }
     }
 
+    if (age === toNum(state.age) && state.isDarknessLinkedToMed) {
+      const dailyMeds = MEDICATIONS.filter(m => m.targetDays.includes(age) && m.climates.includes(state.climate));
+      const hasStressfulMed = dailyMeds.some(m => m.category === 'تحصين' || m.usageType === 'ضروري');
+      if (hasStressfulMed && recommendedHours > 1) {
+        // Reduced darkness slightly sometimes requested for observation but often just need consistency
+        // medReason = "علاج نشط: مراقبة مستمرة مع إضاءة.";
+      }
+    }
+
     return {
       darknessHours: recommendedHours,
+      recommendedHours,
+      totalLight: 24 - toNum(recommendedHours),
       darknessStart,
       darknessEnd,
       ageReason: fullAgeReason,
       tempReason,
+      medReason,
       triggers
     };
   }, [state.age, state.isCustomDarkness, state.darknessHours, state.darknessStart, state.isDarknessLinkedToTemp, state.internalTemp, targetTemp]);
@@ -5567,7 +5582,7 @@ export default function App() {
                     </div>
                   </div>
                   <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-3">
-                    <span className="text-[12px] font-black text-white">{(state.barnLength * state.barnWidth * state.barnHeight).toLocaleString()} م³</span>
+                    <span className="text-[12px] font-black text-white">{(toNum(state.barnLength) * toNum(state.barnWidth) * toNum(state.barnHeight)).toLocaleString()} م³</span>
                     <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">حجم الهواء الكلي</span>
                   </div>
                 </div>
@@ -5855,13 +5870,13 @@ export default function App() {
                                 newDailyCounts[currentAge] = dayCounts;
                                 
                                 // Calculate total from this specific day's numbers
-                                const newTotal = dayCounts.reduce((acc, curr) => acc + toNum(curr), 0);
+                                const newTotal = dayCounts.reduce((acc: number, curr: any) => acc + toNum(curr), 0);
                                 
                                 setState(prev => ({ 
                                   ...prev, 
                                   dailyBatteryTierCounts: newDailyCounts,
                                   batteryTierCounts: dayCounts, // Keep as latest backup
-                                  totalChicks: newTotal > 0 ? newTotal : prev.totalChicks
+                                  totalChicks: toNum(newTotal) > 0 ? newTotal : prev.totalChicks
                                 }));
                               }}
                               className={cn(
@@ -6361,7 +6376,7 @@ export default function App() {
                                             <div className="flex items-center gap-2">
                                               <Clock size={12} className="text-indigo-400 shrink-0" />
                                               <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none">
-                                                {i === unifiedTimeline.length - 1 ? "أول جرعة غداً (" + (state.age + 1) + "):" : nextInfo.label + " (" + nextAct.name + "):"}
+                                                {i === unifiedTimeline.length - 1 ? "أول جرعة غداً (" + (toNum(state.age) + 1) + "):" : nextInfo.label + " (" + nextAct.name + "):"}
                                               </span>
                                             </div>
                                             <div className="text-sm font-black text-indigo-400 tabular-nums pr-5">
@@ -6398,7 +6413,7 @@ export default function App() {
                                 <div className="flex items-center gap-3 mb-4 justify-end">
                                   <div className="text-right">
                                     <h3 className="text-sm font-black text-white flex items-center gap-2 justify-end">
-                                      {med.isSpanningMidnight && <Moon size={14} className="text-indigo-400 animate-pulse" title="تمتد لليوم التالي" />}
+                                      {med.isSpanningMidnight && <span title="تمتد لليوم التالي"><Moon size={14} className="text-indigo-400 animate-pulse" /></span>}
                                       جرعة طوارئ
                                     </h3>
                                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">تلقائي الترتيب ضمن المواعيد</p>
@@ -6787,7 +6802,7 @@ export default function App() {
                                         <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.accent)}>
                                           {med.category}
                                         </span>
-                                        {med.isSpanningMidnight && <Moon size={14} className="text-indigo-400 animate-pulse" title="تمتد لليوم التالي" />}
+                                        {med.isSpanningMidnight && <span title="تمتد لليوم التالي"><Moon size={14} className="text-indigo-400 animate-pulse" /></span>}
                                         {med.isNextDay && <span className="text-[9px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-lg border border-cyan-400/20 shadow-sm shadow-cyan-400/20 tracking-tight">ممتدة لليوم التالي</span>}
                                       </div>
                                     </div>
@@ -7134,7 +7149,7 @@ export default function App() {
                     </Card>
                   );
                 })}
-                {MEDICATIONS.filter((m: any) => m.targetDays.includes(state.age) && m.climates.includes(state.climate)).length === 0 && (
+                {MEDICATIONS.filter((m: any) => m.targetDays.includes(toNum(state.age)) && m.climates.includes(state.climate)).length === 0 && (
                   <Card className="p-10 border-dashed border-white/5 flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-slate-700 mb-4">
                       <Stethoscope size={32} />
@@ -7146,7 +7161,7 @@ export default function App() {
               </div>
 
                <div className="px-2">
-                  {state.age >= 30 ? (
+                  {toNum(state.age) >= 30 ? (
                     <Card className="bg-red-600 p-6 border-none flex items-start gap-4 shadow-[0_0_20px_rgba(220,38,38,0.3)]">
                       <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white shrink-0">
                         <AlertCircle size={28} />
@@ -7515,9 +7530,9 @@ export default function App() {
                              <td className="px-6 py-5">
                                 <p className={cn(
                                    "text-xs font-bold",
-                                   state.externalTemp < targetTemp ? "text-emerald-400" : "text-orange-400"
+                                   toNum(state.externalTemp) < targetTemp ? "text-emerald-400" : "text-orange-400"
                                 )}>
-                                   {state.externalTemp < targetTemp ? "🟢 مناسبة جداً لعمليات التبريد والتهوية" : "🟡 ضغط حراري خارجي مرتفع؛ اعتمد على الخلايا"}
+                                   {toNum(state.externalTemp) < targetTemp ? "🟢 مناسبة جداً لعمليات التبريد والتهوية" : "🟡 ضغط حراري خارجي مرتفع؛ اعتمد على الخلايا"}
                                 </p>
                              </td>
                           </tr>
@@ -7567,7 +7582,7 @@ export default function App() {
                        </motion.div>
                     )}
 
-                    {state.internalTemp < targetTemp - 2 && (
+                    {toNum(state.internalTemp) < targetTemp - 2 && (
                        <motion.div 
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
@@ -7692,10 +7707,10 @@ export default function App() {
                   <div className="p-5 bg-slate-950/50 rounded-2xl border border-white/5">
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">إجمالي احتياج القطيع</span>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black text-blue-400">{((dailyStats.weight / 1000 * 0.7) * state.totalChicks).toFixed(0)}</span>
+                      <span className="text-2xl font-black text-blue-400">{((dailyStats.weight / 1000 * 0.7) * toNum(state.totalChicks)).toFixed(0)}</span>
                       <span className="text-[8px] font-black text-slate-600 uppercase">م³/ساعة</span>
                     </div>
-                    <p className="text-[8px] text-slate-500 font-bold mt-1">لعدد {state.totalChicks.toLocaleString()} طائر</p>
+                    <p className="text-[8px] text-slate-500 font-bold mt-1">لعدد {toNum(state.totalChicks).toLocaleString()} طائر</p>
                   </div>
                 </div>
               </Card>
@@ -8779,10 +8794,10 @@ export default function App() {
       </AnimatePresence>
 
       {/* Floating Day Navigation Arrows */}
-      {screen !== 'landing' && screen !== 'finances' && (
+      {(screen as string) !== 'landing' && (screen as string) !== 'finances' && (
         <>
           {/* Previous Day */}
-          {state.age > 1 && (
+          {toNum(state.age) > 1 && (
             <motion.button
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: isNavVisible ? 1 : 0, x: 0 }}
@@ -8795,7 +8810,7 @@ export default function App() {
           )}
 
           {/* Next Day */}
-          {state.age < 60 && (
+          {toNum(state.age) < 60 && (
             <motion.button
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: isNavVisible ? 1 : 0, x: 0 }}
@@ -8824,7 +8839,7 @@ export default function App() {
         className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl h-16 bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2rem] flex items-center gap-1 px-4 z-40 ring-1 ring-white/5 overflow-x-auto no-scrollbar flex-nowrap"
       >
         <NavButton 
-          active={screen === 'landing'} 
+          active={(screen as string) === 'landing'} 
           onClick={() => {
             setScreen('landing');
             setIsNavVisible(true);
