@@ -1,6 +1,6 @@
 {
   "name": "Smart Poultry Farm Manager",
-  "description": "Smart management app for poultry fattening farms. Supports Cobb, Ross, and Avian strains with daily feed, water, medication, and ventilation tracking.",
+  "description": "Smart management app for poultry fattening farms with live market data tracking including chicken, eggs, chicks, feed, gold, and currency rates.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": []
 }

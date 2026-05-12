@@ -12,6 +12,7 @@ async function startServer() {
 
   // API Route to fetch poultry price
   app.get("/api/poultry-price", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     try {
       const sources = [
         'https://www.biltafsil.com/poultry/',
@@ -51,6 +52,9 @@ async function startServer() {
 
       for (const url of sources) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
           const response = await fetch(url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -59,8 +63,9 @@ async function startServer() {
               'Cache-Control': 'no-cache',
               'Referer': 'https://www.google.com/'
             },
-            signal: AbortSignal.timeout(10000)
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
           
           if (response.ok) {
             const html = await response.text();
@@ -94,8 +99,46 @@ async function startServer() {
     }
   });
 
+  // API Route to fetch market data from Google Sheet
+  app.get("/api/market-sheet", async (req, res) => {
+    try {
+      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      const response = await fetch(SHEET_URL, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`Sheet fetch failed with status: ${response.status}`);
+      const csvData = await response.text();
+      res.send(csvData);
+    } catch (error) {
+      console.error("Market sheet error:", error);
+      res.status(500).json({ error: "Failed to fetch market sheet", details: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  // API Route to fetch currency rates
+  app.get("/api/currency-rates", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (!response.ok) throw new Error('Currency API failed');
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Currency rate error:", error);
+      res.status(500).json({ error: "Failed to fetch currency rates" });
+    }
+  });
+
   // API Route to fetch gold price (Egypt focus)
   app.get("/api/gold-price", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
     try {
       const sources = [
         'https://isagha.com/ar/gold-prices/egypt',
@@ -133,6 +176,9 @@ async function startServer() {
 
       for (const url of sources) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
           const response = await fetch(url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -145,8 +191,9 @@ async function startServer() {
               'Sec-Ch-Ua-Platform': '"macOS"',
               'Referer': 'https://www.google.com/'
             },
-            signal: AbortSignal.timeout(10000)
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
           
           if (response.ok) {
             const html = await response.text();
@@ -190,6 +237,11 @@ async function startServer() {
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gold prices" });
     }
+  });
+
+  // Catch-all for unknown API routes to prevent Vite HTML fallback
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: `API route not found: ${req.originalUrl}` });
   });
 
   // Vite middleware for development

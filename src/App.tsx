@@ -39,6 +39,7 @@ import {
   Layers,
   Wallet,
   TrendingUp,
+  TrendingDown,
   Banknote,
   Scale,
   Download,
@@ -58,11 +59,18 @@ import {
   Edit3,
   Check,
   Bird,
+  LayoutGrid,
+  Coins,
+  Globe,
+  Baby,
   Package,
   Play,
   Pause,
   RotateCcw,
-  MessageSquare
+  MessageSquare,
+  Egg,
+  Wheat,
+  Gem
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -102,6 +110,15 @@ import {
 // --- Types ---
 type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
 
+const STRAIN_NAMES: Record<Strain, string> = {
+  Cobb: 'كوب',
+  Ross: 'روس',
+  Avian: 'إيفيان',
+  Arbo: 'أربو',
+  IR: 'أي آر',
+  Hubbard: 'هبرد'
+};
+
 // --- Utils ---
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
   const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
@@ -111,40 +128,33 @@ const polarToCartesian = (centerX: number, centerY: number, radius: number, angl
   };
 };
 
-const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targetThi: number }) => {
-  const [weather, setWeather] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [locationName, setLocationName] = useState('جاري التحديد...');
+const WeatherScreen = ({ 
+  age, 
+  thi, 
+  targetThi,
+  weather,
+  loading,
+  error,
+  locationName,
+  onSearch,
+  onRetry,
+  onLocationSelect
+}: { 
+  age: number, 
+  thi: number, 
+  targetThi: number,
+  weather: any,
+  loading: boolean,
+  error: string | null,
+  locationName: string,
+  onSearch: (query: string) => Promise<any[]>,
+  onRetry: () => void,
+  onLocationSelect: (lat: number, lon: number, name?: string) => void
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-
-  const fetchWeather = useCallback(async (lat: number, lon: number, name?: string) => {
-    setLoading(true);
-    try {
-      const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true&wind_speed_10m=true&daily=weathercode,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max&timezone=auto`
-      );
-      const weatherData = await weatherRes.json();
-      setWeather(weatherData);
-
-      if (!name) {
-        const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
-        );
-        const geoData = await geoRes.json();
-        setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
-      } else {
-        setLocationName(name);
-      }
-    } catch (err) {
-      setError('فشل في جلب بيانات الطقس');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const getTargetTemp = (day: number) => {
     if (day <= 3) return 33;
@@ -172,34 +182,14 @@ const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targ
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=5&language=ar&format=json`
-      );
-      const data = await res.json();
-      setSearchResults(data.results || []);
+      const results = await onSearch(searchQuery);
+      setSearchResults(results);
     } catch (err) {
       console.error(err);
     } finally {
       setIsSearching(false);
     }
   };
-
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchWeather(position.coords.latitude, position.coords.longitude);
-        },
-        (err) => {
-          setError('يرجى تفعيل الموقع (GPS) للحصول على طقس دقيق');
-          setLoading(false);
-        }
-      );
-    } else {
-      setError('المتصفح لا يدعم تحديد الموقع');
-      setLoading(false);
-    }
-  }, [fetchWeather]);
 
   const getWeatherIcon = (code: number, size = 32) => {
     if (code === 0) return <Sun className="text-amber-400" size={size} strokeWidth={1.5} />;
@@ -222,18 +212,9 @@ const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targ
   };
 
   if (loading && !weather) return (
-    <div className="flex flex-col items-center justify-center h-96 gap-6">
-      <motion.div 
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-        className="w-16 h-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20"
-      >
-        <RefreshCw size={32} />
-      </motion.div>
-      <div className="text-center space-y-2">
-        <p className="text-white font-black text-lg">جاري رصد الطقس</p>
-        <p className="text-slate-500 font-bold text-sm">نقوم بتحديد موقع المزرعة الحالي...</p>
-      </div>
+    <div className="flex flex-col items-center justify-center p-12 gap-4">
+      <RefreshCw size={32} className="text-blue-500 animate-spin" />
+      <p className="text-white font-bold text-center">جاري رصد الطقس...</p>
     </div>
   );
 
@@ -305,7 +286,7 @@ const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targ
                     <button
                       key={`${res.latitude}-${res.longitude}-${i}`}
                       onClick={() => {
-                        fetchWeather(res.latitude, res.longitude, res.name);
+                        onLocationSelect(res.latitude, res.longitude, res.name);
                         setSearchResults([]);
                         setSearchQuery('');
                         setShowSearch(false);
@@ -333,7 +314,7 @@ const WeatherScreen = ({ age, thi, targetThi }: { age: number, thi: number, targ
           </div>
           <p className="text-white font-black text-center">{error}</p>
           <button 
-            onClick={() => { setLoading(true); setError(null); }}
+            onClick={onRetry}
             className="bg-white px-8 py-3 rounded-2xl text-slate-900 font-black text-sm hover:scale-105 transition-transform"
           >
             إعادة المحاولة
@@ -546,7 +527,7 @@ const ExpertScreen = ({ age }: { age: number }) => {
   const [selectedCategory, setSelectedCategory] = useState<'جميع الأقسام' | ExpertTip['category']>('جميع الأقسام');
 
   const categories: ('جميع الأقسام' | ExpertTip['category'])[] = [
-    'جميع الأقسام', 'حرارة', 'تهوية', 'تغذية', 'ماء', 'إضاءة', 'صحة', 'بطاريات', 'عام'
+    'جميع الأقسام', 'حرارة', 'تهوية', 'تغذية', 'ماء', 'إضاءة', 'صحة', 'بطاريات', 'فرشة', 'عام'
   ];
 
   const filteredTips = useMemo(() => {
@@ -697,291 +678,516 @@ const ExpertScreen = ({ age }: { age: number }) => {
   );
 };
 
-const MarketScreen = ({ sellingPrice, lastPriceUpdateAt, priceSource }: { sellingPrice: number | string, lastPriceUpdateAt: string | null, priceSource?: string }) => {
-  const [exchangeRates, setExchangeRates] = useState<any>(null);
-  const [goldPrices, setGoldPrices] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const MarketScreen = ({ 
+  sellingPrice, 
+  prevSellingPrice,
+  lastPriceUpdateAt, 
+  priceSource,
+  exchangeRates,
+  prevExchangeRates,
+  goldPrices,
+  prevGoldPrices,
+  eggPrices,
+  prevEggPrices,
+  feedPrices,
+  prevFeedPrices,
+  chickPrices,
+  prevChickPrices,
+  loading,
+  error,
+  onRefresh
+}: { 
+  sellingPrice: number | string, 
+  prevSellingPrice: number | string | null,
+  lastPriceUpdateAt: string | null, 
+  priceSource?: string,
+  exchangeRates: any,
+  prevExchangeRates: any,
+  goldPrices: any,
+  prevGoldPrices: any,
+  eggPrices: any[],
+  prevEggPrices: any[],
+  feedPrices: any[],
+  prevFeedPrices: any[],
+  chickPrices: any[],
+  prevChickPrices: any[],
+  loading: boolean,
+  error: string | null,
+  onRefresh: () => void
+}) => {
+  const [activeTab, setActiveTab] = useState<'chicken' | 'eggs' | 'chicks' | 'feed' | 'gold' | 'currency'>('chicken');
 
-  const fetchMarketData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // 1. Fetch from Google Sheet (Primary Data Source)
-      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
-      const sheetRes = await fetch(SHEET_URL);
-      
-      let sheetExchangeRates: any = null;
-      let sheetGoldPrices: any = null;
-      let sheetDataFound = false;
+  const tabs = [
+    { id: 'chicken', label: 'الفراخ', icon: Bird, color: 'text-amber-200', bg: 'bg-amber-500/10', img: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=800' },
+    { id: 'eggs', label: 'البيض', icon: Egg, color: 'text-orange-200', bg: 'bg-orange-500/10', img: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&q=80&w=800' },
+    { id: 'chicks', label: 'كتاكيت بيضاء', icon: Bird, color: 'text-yellow-200', bg: 'bg-yellow-500/10', img: 'https://images.unsplash.com/photo-1627916607164-fa951b760731?auto=format&fit=crop&q=80&w=800' },
+    { id: 'feed', label: 'الأعلاف', icon: Wheat, color: 'text-emerald-200', bg: 'bg-emerald-500/10', img: 'https://images.unsplash.com/photo-1574323347407-f5dc1ad050a7?auto=format&fit=crop&q=80&w=800' },
+    { id: 'gold', label: 'الذهب', icon: Gem, color: 'text-amber-100', bg: 'bg-amber-500/20', img: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&q=80&w=800' },
+    { id: 'currency', label: 'العملات', icon: Banknote, color: 'text-blue-100', bg: 'bg-blue-500/20', img: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&q=80&w=800' },
+  ];
 
-      if (sheetRes.ok) {
-        const csvText = await sheetRes.text();
-        const rows = csvText.split('\n').map(row => row.split(',').map(cell => cell?.trim()));
-        
-        // Helper to find value by keyword in the second column (with aggressive cleaning)
-        const findVal = (keyword: string) => {
-          const row = rows.find(r => {
-            const label = r[1] ? r[1].trim() : '';
-            return label.includes(keyword.trim());
-          });
-          if (row && row[0]) {
-            const val = parseFloat(row[0].replace(/[^\d.]/g, ''));
-            return isNaN(val) ? null : val;
-          }
-          return null;
-        };
-
-        const gold21 = findVal('الذهب عيار 21');
-        const gold24 = findVal('الذهب عيار 24');
-        const usdEgp = findVal('الدولار/الجنيه');
-        const sarEgp = findVal('الريال/الجنيه');
-        const usdSar = findVal('الدولار/الريال');
-
-        // Update Gold Prices from Sheet
-        if (gold21 || gold24) {
-          sheetGoldPrices = {
-            '21k': gold21 || 0,
-            '24k': gold24 || 0
-          };
-          setGoldPrices(sheetGoldPrices);
-          sheetDataFound = true;
-        }
-
-        // Update Exchange Rates from Sheet
-        if (usdEgp || sarEgp || usdSar) {
-          sheetExchangeRates = {
-            EGP: usdEgp || 0, // Using common keys
-            SAR: sarEgp ? (usdEgp ? usdEgp / sarEgp : 0) : 0, 
-            EGP_USD: usdEgp || 0,
-            EGP_SAR: sarEgp || 0,
-            SAR_USD: usdSar || 0
-          };
-          setExchangeRates(sheetExchangeRates);
-          sheetDataFound = true;
-        }
-      }
-
-      // 2. Fetch from external APIs as secondary source
-      try {
-        const curRes = await fetch('https://open.er-api.com/v6/latest/USD');
-        if (curRes.ok) {
-          const curData = await curRes.json();
-          setExchangeRates((prev: any) => ({
-            ...curData.rates,
-            ...prev // Google Sheet data takes absolute priority
-          }));
-        }
-      } catch (e) {
-        console.warn("External currency API failed, using sheet/local data");
-      }
-
-      // Gold Price fallback if not in Google Sheet
-      if (!sheetGoldPrices) {
-        const goldRes = await fetch('/api/gold-price');
-        if (goldRes.ok) {
-          const goldData = await goldRes.json();
-          setGoldPrices(goldData.prices);
-        }
-      }
-    } catch (err) {
-      console.error("Market data fetch error:", err);
-      setError('فشل في جلب بعض بيانات السوق، جارٍ استخدام البيانات المتاحة');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchMarketData();
-  }, [fetchMarketData]);
+  const activeTabData = tabs.find(t => t.id === activeTab);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 text-right pb-24"
-    >
-      <div className="flex flex-col gap-4">
-        <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
-          بورصة الدواجن والأسواق
-          <TrendingUp size={24} className="text-emerald-500" />
-        </h2>
-        <p className="text-slate-500 font-bold text-sm">تحديثات حية للأسعار المحلية والعالمية المرتبطة بالدورة الإنتاجية</p>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32">
+      <div className="flex justify-start px-2">
+        <button 
+          onClick={onRefresh}
+          disabled={loading}
+          className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white transition-all active:scale-95 border border-white/10 disabled:opacity-50 shadow-lg backdrop-blur-xl group"
+        >
+          <div className={cn("p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20", loading ? 'animate-spin' : '')}>
+            <RefreshCw size={18} />
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] font-black text-slate-500 uppercase block leading-none">تحديث البورصة</span>
+            <span className="text-sm font-bold block mt-0.5">تحديث فوري للأسعار</span>
+          </div>
+        </button>
       </div>
 
-      {/* Poultry Price Card (From Internal API) */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-[2.5rem] border border-white/5 space-y-6 relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-blue-600/5 blur-[80px] pointer-events-none" />
-        <div className="flex items-center justify-between">
-           <div className="bg-blue-500/10 p-2 rounded-xl text-blue-400">
-             <Bird size={20} />
-           </div>
-           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">بورصة الدواجن (لحم أبيض)</span>
-        </div>
+      <div className="relative h-64 sm:h-80 rounded-[3rem] overflow-hidden shadow-2xl group border border-white/10">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
+            className="absolute inset-0"
+          >
+            <img 
+              src={activeTabData?.img} 
+              alt={activeTabData?.label}
+              className="w-full h-full object-cover grayscale-[30%] group-hover:scale-110 transition-transform duration-[3s]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-transparent to-slate-950/40" />
+          </motion.div>
+        </AnimatePresence>
         
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-baseline gap-2">
-             <h1 className="text-6xl font-black text-white tabular-nums drop-shadow-xl">{sellingPrice}</h1>
-             <span className="text-lg font-black text-slate-500">ج.م</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-slate-400">آخر تحديث: {lastPriceUpdateAt || 'غير متوفر'}</span>
-          </div>
-          {priceSource && (
-            <p className="text-[9px] font-bold text-blue-400/60 mt-1">المصدر الحالي: {priceSource.replace('https://', '').split('/')[0]}</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-end p-10 text-center gap-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            key={activeTab + "-label"}
+            className="space-y-1"
+          >
+            <span className="text-amber-400/80 text-[10px] font-black uppercase tracking-[0.4em] block mb-2">قطاع التداول والبورصة</span>
+            <h2 className="text-4xl sm:text-6xl font-bold text-white tracking-tight leading-none drop-shadow-2xl">
+              {activeTabData?.label}
+            </h2>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-full border border-white/5 backdrop-blur-3xl mx-auto w-full max-w-full overflow-x-auto no-scrollbar shadow-2xl px-4 justify-start sm:justify-center">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={cn(
+              "relative px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-[10px] sm:text-xs font-black transition-all duration-500 overflow-hidden group whitespace-nowrap flex-shrink-0",
+              activeTab === tab.id ? "text-white" : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTabPill"
+                className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 shadow-lg shadow-indigo-500/20"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
+              <tab.icon size={14} className={cn("transition-transform duration-500 group-hover:rotate-12", activeTab === tab.id ? "text-white" : "text-slate-600")} />
+              {tab.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="relative min-h-[440px]">
+        <AnimatePresence mode="wait">
+          {activeTab === 'chicken' && (
+            <motion.div
+              key="chicken"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-neutral-900 border border-white p-10 sm:p-16 rounded-[3rem] shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute -bottom-20 -right-20 opacity-[0.03] rotate-12">
+                <Bird size={400} className="text-white" />
+              </div>
+              
+              <div className="flex flex-col items-center justify-center text-center space-y-8 relative z-10">
+                <div className="p-6 bg-amber-500/10 rounded-3xl border border-amber-500/20 shadow-xl group">
+                  <Bird size={64} className="text-amber-400 drop-shadow-2xl transition-transform duration-700 group-hover:scale-110" />
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="text-amber-500/60 text-[10px] font-black uppercase tracking-[0.4em]">سعر التنفيذ اليوم - أرض المزرعة</h4>
+                  <div className="flex flex-col sm:flex-row items-baseline justify-center gap-2">
+                    <h1 className={cn(
+                       "text-[8rem] sm:text-[12rem] font-bold tabular-nums leading-none tracking-tighter transition-all duration-1000",
+                       prevSellingPrice && toNum(sellingPrice) > toNum(prevSellingPrice) ? "text-emerald-400" : (prevSellingPrice && toNum(sellingPrice) < toNum(prevSellingPrice) ? "text-red-500" : "text-white")
+                    )}>
+                      {sellingPrice}
+                    </h1>
+                    <div className="flex flex-row sm:flex-col items-center gap-1">
+                      <span className="text-xl sm:text-2xl font-bold text-slate-500 italic">ج.م</span>
+                    </div>
+                  </div>
+                  
+                  {prevSellingPrice && toNum(sellingPrice) !== toNum(prevSellingPrice) && (
+                    <div className={cn(
+                      "flex items-center gap-2 justify-center py-2 px-4 rounded-full border text-xs font-black mx-auto w-fit",
+                      toNum(sellingPrice) > toNum(prevSellingPrice) ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-500"
+                    )}>
+                      {toNum(sellingPrice) > toNum(prevSellingPrice) ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      <span>{Math.abs(toNum(sellingPrice) - toNum(prevSellingPrice)).toFixed(2)} ج.م عن سعر الأمس</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           )}
-        </div>
 
-        <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
-           <div className="p-4 rounded-2xl bg-white/5 text-center">
-             <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">المنطقة</span>
-             <span className="text-white font-black text-xs">مزارع مصر - تنفيذ</span>
-           </div>
-           <div className="p-4 rounded-2xl bg-white/5 text-center">
-             <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">الحالة</span>
-             <span className="text-emerald-400 font-black text-xs">سعر مباشر</span>
-           </div>
-        </div>
+          {activeTab === 'eggs' && (
+            <motion.div
+              key="eggs"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-neutral-900 border border-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative overflow-hidden"
+            >
+               <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px]" />
+               <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
+                  <div className="text-right">
+                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة البيض</h3>
+                    <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">تحديث أسعار كراتين البيض اليومي</p>
+                  </div>
+                  <div className="p-4 bg-orange-500/10 rounded-2xl text-orange-500 border border-orange-500/20">
+                    <Egg size={28} />
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-1 gap-4 relative z-10">
+                  {eggPrices.map((egg, idx) => {
+                    const prev = prevEggPrices[idx];
+                    const diff = prev ? toNum(egg.price) - toNum(prev.price) : 0;
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-6 sm:p-8 rounded-3xl bg-white/[0.02] border border-white hover:border-orange-500/60 transition-all duration-500 group shadow-lg backdrop-blur-xl">
+                        <div className="flex items-center gap-4 flex-row-reverse">
+                          <div className="p-3 sm:p-4 bg-orange-500/5 rounded-xl text-orange-500/40 group-hover:text-orange-500 transition-colors">
+                            <Layers size={20} />
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase block mb-1">كرتونة بيض</span>
+                            <h4 className="text-slate-200 font-bold text-lg sm:text-xl group-hover:text-white transition-colors">{egg.label}</h4>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-4">
+                            <span className={cn(
+                              "text-3xl sm:text-4xl font-bold font-black tabular-nums transition-all duration-500",
+                              diff > 0 ? "text-emerald-400" : (diff < 0 ? "text-red-500" : "text-white")
+                            )}>{egg.price || '--'}</span>
+                            <span className="text-xs font-bold text-slate-600 self-end mb-1">ج.م</span>
+                          </div>
+                          {diff !== 0 && (
+                            <div className={cn("text-[10px] font-black flex items-center gap-1", diff > 0 ? "text-emerald-500/60" : "text-red-500/60")}>
+                              {diff > 0 ? '+' : ''}{diff} {diff > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+               </div>
+            </motion.div>
+          )}
+                   {activeTab === 'chicks' && (
+            <motion.div
+              key="chicks"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="bg-neutral-900 border border-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative overflow-hidden group/card"
+            >
+               {/* Cinematic Background Image for Chicks */}
+               <div className="absolute inset-0 opacity-20 transition-opacity duration-700 group-hover/card:opacity-30">
+                  <img 
+                    src="https://images.unsplash.com/photo-1627916607164-fa951b760731?auto=format&fit=crop&q=80&w=1200" 
+                    alt="Baby Chicks" 
+                    className="w-full h-full object-cover transition-transform duration-10000 group-hover/card:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/80 to-transparent" />
+               </div>
+
+               <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
+                  <div className="text-right">
+                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الكتاكيت البيضاء</h3>
+                    <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار كتاكيت أبيض عمر يوم - كبرى الشركات</p>
+                  </div>
+                  <div className="p-4 bg-yellow-500/10 backdrop-blur-md rounded-2xl text-yellow-500 border border-yellow-500/10">
+                    <Bird size={28} />
+                  </div>
+               </div>
+               
+               <div className="bg-black/40 backdrop-blur-xl rounded-[2rem] overflow-y-auto max-h-[600px] custom-scrollbar border border-white relative z-10 shadow-2xl">
+                  <div className="grid grid-cols-2 bg-white/[0.05] border-b border-white sticky top-0 z-20">
+                    <div className="p-4 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-widest text-right border-l border-white">الشركة المنتجة</div>
+                    <div className="p-4 text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-widest text-center">السعر (ج.م)</div>
+                  </div>
+                  <div className="divide-y divide-white">
+                    {chickPrices.map((chick, idx) => {
+                      const prev = prevChickPrices[idx];
+                      const diff = prev ? toNum(chick.price) - toNum(prev.price) : 0;
+                      return (
+                        <div key={idx} className="grid grid-cols-2 hover:bg-white/[0.08] transition-all duration-300 group">
+                          <div className="p-5 sm:p-6 text-right border-l border-white">
+                            <span className="text-white font-bold text-base sm:text-xl group-hover:text-yellow-400 transition-colors duration-500 font-bold">{chick.company}</span>
+                          </div>
+                          <div className="p-5 sm:p-6 flex items-center justify-center gap-4 bg-white/[0.02]">
+                            <span className={cn(
+                              "font-black text-2xl sm:text-3xl font-bold tabular-nums transition-all duration-500",
+                              diff > 0 ? "text-emerald-400" : (diff < 0 ? "text-red-500" : "text-white")
+                            )}>{chick.price || '--'}</span>
+                            {diff !== 0 && (
+                              <div className={cn("p-1.5 rounded-lg border", diff > 0 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-500")}>
+                                {diff > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'feed' && (
+            <motion.div
+              key="feed"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-neutral-900 border border-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative overflow-hidden group/card"
+            >
+               {/* Cinematic Background Image for Feed */}
+               <div className="absolute inset-0 opacity-25 transition-opacity duration-700 group-hover/card:opacity-40">
+                  <img 
+                    src="https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=1200" 
+                    alt="Agricultural Grain" 
+                    className="w-full h-full object-cover transition-transform duration-10000 group-hover/card:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/60 to-transparent" />
+               </div>
+
+               <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
+                  <div className="text-right">
+                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الأعلاف</h3>
+                    <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار قناديل الذرة والقمح (سعر الطن اليومي)</p>
+                  </div>
+                  <div className="p-4 bg-emerald-500/10 backdrop-blur-md rounded-2xl text-emerald-400 border border-emerald-500/10">
+                    <Wheat size={28} />
+                  </div>
+               </div>
+               
+               <div className="max-w-4xl mx-auto relative z-10">
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block bg-black/40 backdrop-blur-xl rounded-[2rem] overflow-hidden border border-white shadow-2xl">
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-right min-w-[600px] border-collapse">
+                        <thead className="bg-white/[0.05] border-b border-white">
+                            <tr className="text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] text-center">
+                              <th className="py-6 pr-8 text-right bg-white/[0.02] border-l border-white">الشركة المصنعة</th>
+                              <th className="py-6 border-l border-white">بادي 23%</th>
+                              <th className="py-6 border-l border-white">نامي 21%</th>
+                              <th className="py-6">ناهي 19%</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white">
+                            {feedPrices.map((feed, idx) => (
+                              <tr key={idx} className="hover:bg-white/[0.08] transition-all duration-300 group">
+                                <td className="py-7 pl-2 pr-8 text-white font-bold text-xl font-bold bg-white/[0.01] group-hover:text-emerald-400 transition-colors border-l border-white">{feed.company}</td>
+                                <td className="py-7 px-2 text-center text-emerald-400 font-black tabular-nums font-bold text-xl bg-white/[0.02] border-l border-white">{feed.starter?.toLocaleString() || '--'}</td>
+                                <td className="py-7 px-2 text-center text-emerald-300 font-black tabular-nums font-bold text-xl bg-white/[0.01] border-l border-white">{feed.grower?.toLocaleString() || '--'}</td>
+                                <td className="py-7 px-2 text-center text-emerald-200 font-black tabular-nums font-bold text-xl">{feed.finisher?.toLocaleString() || '--'}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mobile Mobile-First Card View */}
+                  <div className="sm:hidden space-y-4">
+                    {feedPrices.map((feed, idx) => (
+                      <div key={idx} className="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 space-y-6 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl" />
+                        <div className="flex items-center justify-between flex-row-reverse border-b border-white pb-4">
+                           <h4 className="text-white font-bold text-xl font-black">{feed.company}</h4>
+                           <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                             <Wheat size={16} />
+                           </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                           <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-slate-500 font-black uppercase mb-2">بادي 23%</span>
+                              <span className="text-lg font-bold font-black text-emerald-400 tabular-nums">{feed.starter?.toLocaleString() || '--'}</span>
+                           </div>
+                           <div className="flex flex-col items-center border-x border-white px-1">
+                              <span className="text-[10px] text-slate-500 font-black uppercase mb-2">نامي 21%</span>
+                              <span className="text-lg font-bold font-black text-emerald-300 tabular-nums">{feed.grower?.toLocaleString() || '--'}</span>
+                           </div>
+                           <div className="flex flex-col items-center">
+                              <span className="text-[10px] text-slate-500 font-black uppercase mb-2">ناهي 19%</span>
+                              <span className="text-lg font-bold font-black text-emerald-200 tabular-nums">{feed.finisher?.toLocaleString() || '--'}</span>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'gold' && (
+            <motion.div
+              key="gold"
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-neutral-900 border border-white/20 p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative overflow-hidden"
+            >
+               <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/[0.03] via-transparent to-transparent" />
+               <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-10">
+                  <div className="text-right">
+                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الذهب</h3>
+                    <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار الذهب والسبائك محلياً</p>
+                  </div>
+                  <div className="p-4 bg-amber-500/10 rounded-2xl text-amber-500 border border-amber-500/20">
+                    <Gem size={28} />
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                  {goldPrices && Object.entries(goldPrices).map(([key, data]: [string, any], idx) => {
+                    const prevData = prevGoldPrices ? prevGoldPrices[key] : null;
+                    const sellDiff = prevData ? toNum(data.sell) - toNum(prevData.sell) : 0;
+                    return (
+                      <div key={key} className="p-6 rounded-3xl bg-white/[0.02] border border-white hover:border-amber-500/60 transition-all duration-500 group group-hover:translate-y-[-4px]">
+                        <div className="flex items-center justify-between flex-row-reverse mb-6">
+                          <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">{key === 'unit' ? 'العيار' : 'الوزن'}</span>
+                          <div className={cn(
+                            "flex items-center gap-1 text-[10px] font-black",
+                            sellDiff > 0 ? "text-emerald-400" : (sellDiff < 0 ? "text-red-500" : "text-slate-500")
+                          )}>
+                            {sellDiff !== 0 && (sellDiff > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />)}
+                            {sellDiff !== 0 ? Math.abs(sellDiff).toFixed(1) : ''}
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-slate-200 font-bold text-xl mb-4 group-hover:text-amber-400 transition-colors text-right">{data.label || key}</h4>
+                        
+                        <div className="flex items-center justify-between gap-4 border-t border-white pt-4">
+                          <div className="text-center group-hover:scale-110 transition-transform flex-1">
+                            <span className="text-[9px] text-slate-700 font-black uppercase block mb-1">شراء</span>
+                            <span className="text-xl font-bold font-bold text-white tabular-nums">{Number(data.buy).toLocaleString()}</span>
+                          </div>
+                          <div className="w-[1px] h-8 bg-white" />
+                          <div className="text-center group-hover:scale-110 transition-transform flex-1">
+                            <span className="text-[9px] text-slate-700 font-black uppercase block mb-1">بيع</span>
+                            <span className="text-xl font-bold font-bold text-amber-400 tabular-nums">{Number(data.sell).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+               </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'currency' && (
+            <motion.div
+              key="currency"
+              initial={{ opacity: 0, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, filter: 'blur(10px)' }}
+              className="bg-neutral-900 border border-white p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-2xl relative overflow-hidden"
+            >
+               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px]" />
+               <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-10">
+                  <div className="text-right">
+                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">أسعار الصرف</h3>
+                    <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">تحديث لحظي لأسعار العملات مقابل الجنيه</p>
+                  </div>
+                  <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 border border-indigo-500/20">
+                    <Banknote size={28} />
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 relative z-10">
+                  {[
+                    { label: 'دولار / جنيه', pair: 'USD / EGP', value: exchangeRates?.EGP_USD ? Number(exchangeRates.EGP_USD).toFixed(2) : (exchangeRates?.EGP ? Number(exchangeRates.EGP).toFixed(2) : '--.--'), prev: prevExchangeRates?.EGP_USD || prevExchangeRates?.EGP, icon: <Globe size={24} /> },
+                    { label: 'ريال / جنيه', pair: 'SAR / EGP', value: exchangeRates?.EGP_SAR ? Number(exchangeRates.EGP_SAR).toFixed(2) : (exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--'), prev: prevExchangeRates?.EGP_SAR, icon: <MapPin size={24} /> },
+                    { label: 'ريال / دولار', pair: 'SAR / USD', value: exchangeRates?.SAR_USD ? Number(exchangeRates.SAR_USD).toFixed(4) : (exchangeRates?.SAR ? Number(exchangeRates.SAR).toFixed(4) : '--.--'), prev: prevExchangeRates?.SAR_USD, icon: <RefreshCw size={24} /> },
+                  ].map((rate, i) => {
+                    const priceDiff = rate.prev ? toNum(rate.value) - toNum(rate.prev) : 0;
+                    return (
+                      <div key={i} className="flex flex-col p-6 sm:p-8 rounded-[2rem] bg-white/[0.02] border border-white hover:border-indigo-500/60 transition-all duration-500 group shadow-lg backdrop-blur-xl hover:translate-y-[-4px]">
+                         <div className="flex items-center justify-between flex-row-reverse mb-6">
+                            <div className="p-3 bg-white/5 rounded-xl text-slate-700 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all duration-700">
+                               {rate.icon}
+                            </div>
+                            <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">{rate.pair}</span>
+                         </div>
+                         
+                         <div className="text-right mb-4">
+                            <h4 className="text-slate-200 font-bold text-lg group-hover:text-white transition-colors">{rate.label}</h4>
+                         </div>
+                         
+                         <div className="flex items-center justify-between flex-row-reverse border-t border-white/[0.03] pt-4">
+                            <span className={cn(
+                              "text-3xl sm:text-4xl font-bold font-black tabular-nums",
+                              priceDiff !== 0 ? "text-red-500" : "text-white"
+                            )}>
+                              {rate.value}
+                            </span>
+                            {priceDiff !== 0 && (
+                              <div className={cn("text-[10px] font-black", priceDiff > 0 ? "text-emerald-500/60" : "text-red-500/60")}>
+                                {priceDiff > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                              </div>
+                            )}
+                         </div>
+                      </div>
+                    );
+                  })}
+               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Economy Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         {/* Currency - USD/EGP */}
-         <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-white/5 space-y-4">
-            <div className="flex items-center justify-between">
-               <div className="flex items-center gap-2">
-                 <Banknote size={20} className="text-amber-400" />
-                 <h3 className="text-white font-black text-sm">أسعار العملات</h3>
-               </div>
-               <button 
-                 onClick={() => {
-                   fetchMarketData();
-                 }}
-                 disabled={loading}
-                 className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 transition-colors flex items-center gap-1.5"
-               >
-                 <span className="text-[10px] font-bold">تحديث</span>
-                 <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-               </button>
-            </div>
-            
-            <div className="space-y-3">
-               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-white font-black text-sm tabular-nums">
-                    {exchangeRates?.EGP_USD ? Number(exchangeRates.EGP_USD).toFixed(2) : (exchangeRates?.EGP ? Number(exchangeRates.EGP).toFixed(2) : '--.--')}
-                  </span>
-                  <div className="flex flex-col items-end">
-                    <span className="text-slate-200 font-bold text-xs">دولار / جنيه</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">USD / EGP</span>
-                  </div>
-               </div>
-               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 shadow-inner">
-                  <span className="text-emerald-400 font-black text-sm tabular-nums">
-                    {exchangeRates?.EGP_SAR ? Number(exchangeRates.EGP_SAR).toFixed(2) : (exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--')}
-                  </span>
-                  <div className="flex flex-col items-end">
-                    <span className="text-slate-200 font-bold text-xs">ريال / جنيه</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">SAR / EGP</span>
-                  </div>
-               </div>
-               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-white font-black text-sm tabular-nums">
-                    {exchangeRates?.SAR_USD ? Number(exchangeRates.SAR_USD).toFixed(2) : (exchangeRates?.SAR ? Number(exchangeRates.SAR).toFixed(2) : '--.--')}
-                  </span>
-                  <div className="flex flex-col items-end">
-                    <span className="text-slate-200 font-bold text-xs">دولار / ريال</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">USD / SAR</span>
-                  </div>
-               </div>
-            </div>
+      {/* Warning/Source Info */}
+      <div className="p-6 bg-slate-900/60 rounded-[3rem] border border-white/5 flex gap-4 items-start backdrop-blur-xl relative overflow-hidden group">
+         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-[60px]" />
+         <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 relative z-10">
+           <Info size={20} />
          </div>
-
-         {/* Commodities - Simulated as real commodity APIs are expensive/hard to get free */}
-         <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-white/5 space-y-4">
-            <div className="flex items-center justify-between">
-               <Layers size={20} className="text-amber-600" />
-               <h3 className="text-white font-black text-sm">بورصة الأعلاف (خامات)</h3>
-            </div>
-            
-            <div className="space-y-3">
-               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-white font-black text-sm tabular-nums">12,400</span>
-                    <span className="text-[8px] text-slate-500">ج.م</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-slate-200 font-bold text-xs">ذرة صفراء (برازيلي)</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Corn (BRZ)</span>
-                  </div>
-               </div>
-               <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-white font-black text-sm tabular-nums">24,500</span>
-                    <span className="text-[8px] text-slate-500">ج.م</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-slate-200 font-bold text-xs">صويا 44% (محلي)</span>
-                    <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Soy 44%</span>
-                  </div>
-               </div>
-            </div>
-            <p className="text-[8px] text-slate-600 text-center uppercase tracking-widest font-black">* أسعار تقديرية للمصانع</p>
+         <div className="flex-1 text-right relative z-10">
+            <h4 className="text-white font-black text-sm mb-1">توضيح هام</h4>
+            <p className="text-slate-500 text-xs font-bold leading-relaxed">
+              تعتمد هذه الأسعار على {priceSource?.split('/')[2] || 'بيانات البورصات العالمية والمحلية'} وهي قابلة للتغيير المفاجئ. يرجى المتابعة المستمرة لضمان أفضل تنفيذ لعمليات البيع والشراء.
+            </p>
          </div>
       </div>
-
-      {/* Gold Section */}
-      <div className="bg-amber-400/5 p-6 rounded-[2.5rem] border border-amber-400/10 space-y-5 relative group overflow-hidden">
-        <div className="flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <div className="bg-amber-500/20 p-2 rounded-xl text-amber-500 border border-amber-500/10">
-                  <Sparkles size={18} />
-              </div>
-              <div className="text-right">
-                 <h3 className="text-white font-black text-sm tracking-tight">أسعار الذهب</h3>
-                 <p className="text-slate-500 text-[10px] font-bold">عيارات التداول (تقديراً)</p>
-              </div>
-           </div>
-           <div className="flex items-center gap-2">
-              <button 
-                onClick={fetchMarketData}
-                disabled={loading}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-amber-500/60 transition-colors flex items-center gap-1.5 border border-white/5"
-              >
-                <span className="text-[10px] font-bold">تحديث</span>
-                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-              </button>
-              <div className="bg-slate-950 p-2 rounded-xl border border-white/5">
-                 <Wallet size={14} className="text-amber-500" />
-              </div>
-           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-           <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col items-center">
-              <span className="text-amber-500 font-black text-lg">
-                {goldPrices?.['21k'] ? goldPrices['21k'].toLocaleString() : '---'}
-              </span>
-              <span className="text-[9px] text-slate-500 font-bold mt-1">عيار 21 (ج.م)</span>
-           </div>
-           <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 flex flex-col items-center">
-              <span className="text-amber-500 font-black text-lg">
-                {goldPrices?.['24k'] ? goldPrices['24k'].toLocaleString() : '---'}
-              </span>
-              <span className="text-[9px] text-slate-500 font-bold mt-1">عيار 24 (ج.م)</span>
-           </div>
-        </div>
-      </div>
-
-      <div className="p-6 bg-slate-900/40 rounded-[2rem] border border-white/5 flex gap-4 items-start">
-         <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
-           <Info size={18} />
-         </div>
-         <p className="text-[10px] text-slate-500 font-bold leading-relaxed text-right">
-           يتم تحديث هذه الأسعار عبر الربط المباشر مع الأسواق العالمية والمحلية. يرجى مراجعة الأسعار النهائية مع التاجر قبل التنفيذ.
-         </p>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -1147,10 +1353,11 @@ interface AppState {
 }
 
 // --- Components ---
-const Logo = ({ className, size = 24, iconSize = 16 }: { className?: string, size?: number, iconSize?: number }) => (
-  <div className={cn("rounded-xl bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5 flex-shrink-0 relative overflow-hidden", className)} style={{ width: size, height: size }}>
-    <div className="absolute inset-0 bg-white/10 blur-xl opacity-50" />
-    <Bird size={iconSize} className="text-white relative z-10 drop-shadow-lg" />
+const Logo = ({ className, size = 32, iconSize = 20 }: { className?: string, size?: number, iconSize?: number }) => (
+  <div className={cn("rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-emerald-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)] border border-white/10 flex-shrink-0 relative overflow-hidden group", className)} style={{ width: size, height: size }}>
+    <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
+    <Bird size={iconSize} className="text-white relative z-10 drop-shadow-md animate-in fade-in zoom-in duration-1000" />
   </div>
 );
 
@@ -1162,25 +1369,26 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ children, className, id, onClick }) => (
-  <div id={id} className={cn("bento-card", className)} onClick={onClick}>
-    {children}
+  <div id={id} className={cn("bento-card group relative overflow-hidden", className)} onClick={onClick}>
+    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+    <div className="relative z-10">{children}</div>
   </div>
 );
 
 const Stat = ({ label, value, unit, icon: Icon, color, subLabel, subValue, onClick }: { label: string, value: string | number, unit?: React.ReactNode, icon?: any, color?: string, subLabel?: string, subValue?: string | number, onClick?: () => void }) => (
-  <Card className={cn("flex flex-col gap-1 hover:border-white/20 transition-all", onClick && "cursor-pointer active:scale-95")} onClick={onClick}>
-    <div className="flex items-center gap-2 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+  <Card className={cn("flex flex-col gap-1", onClick && "cursor-pointer active:scale-95")} onClick={onClick}>
+    <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-wider mb-2">
       {Icon && <Icon size={14} className={color} />}
       {label}
     </div>
-    <div className="flex items-baseline gap-1 mt-2">
-      <span className="text-3xl font-black text-white tracking-tight">{value}</span>
-      {unit && <span className="text-slate-500 text-xs font-bold uppercase">{unit}</span>}
+    <div className="flex items-baseline gap-2">
+      <span className="text-4xl font-black text-white tabular-nums">{value}</span>
+      {unit && <span className="text-slate-500 text-[10px] font-bold">{unit}</span>}
     </div>
     {subValue !== undefined && (
-      <div className="flex items-center gap-1 mt-1 border-t border-white/5 pt-1">
-        <span className="text-[9px] font-bold text-slate-500 uppercase pb-0.5">{subLabel}:</span>
-        <span className={cn("text-[10px] font-black", color)}>{subValue}</span>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+        <span className="text-[9px] font-bold text-slate-500">{subLabel}</span>
+        <span className={cn("text-xs font-black", color)}>{subValue}</span>
       </div>
     )}
   </Card>
@@ -1358,6 +1566,323 @@ export default function App() {
 
   const [isNamingNewCycle, setIsNamingNewCycle] = useState(false);
   const [newCycleNameInput, setNewCycleNameInput] = useState('');
+  const [prevSellingPrice, setPrevSellingPrice] = useState<number | string | null>(null);
+  const [exchangeRates, setExchangeRates] = useState<any>(null);
+  const [prevExchangeRates, setPrevExchangeRates] = useState<any>(null);
+  const [goldPrices, setGoldPrices] = useState<any>(null);
+  const [prevGoldPrices, setPrevGoldPrices] = useState<any>(null);
+  const [eggPrices, setEggPrices] = useState<any[]>([]);
+  const [prevEggPrices, setPrevEggPrices] = useState<any[]>([]);
+  const [feedPrices, setFeedPrices] = useState<any[]>([]);
+  const [prevFeedPrices, setPrevFeedPrices] = useState<any[]>([]);
+  const [chickPrices, setChickPrices] = useState<any[]>([]);
+  const [prevChickPrices, setPrevChickPrices] = useState<any[]>([]);
+  const [marketLoading, setMarketLoading] = useState(true);
+  const [marketError, setMarketError] = useState<string | null>(null);
+
+  const [weather, setWeather] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState('جاري التحديد...');
+  const [coords, setCoords] = useState<{lat: number, lon: number} | null>(null);
+
+  const fetchMarketData = useCallback(async () => {
+    setMarketLoading(true);
+    setMarketError(null);
+    
+    // Save current prices as previous before updating
+    setPrevGoldPrices(goldPrices);
+    setPrevExchangeRates(exchangeRates);
+    setPrevSellingPrice(state.sellingPrice);
+    setPrevEggPrices(eggPrices);
+    setPrevFeedPrices(feedPrices);
+    setPrevChickPrices(chickPrices);
+
+    try {
+      const sheetRes = await fetch('/api/market-sheet');
+      
+      let sheetGoldPrices: any = {};
+
+      if (sheetRes.ok) {
+        const csvText = await sheetRes.text();
+        
+        // Robust CSV Parser that handles values with commas and quotes
+        const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
+          const result = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        });
+        
+        const findPrices = (keyword: string) => {
+          const lowerKeyword = keyword.toLowerCase().trim();
+          const isChicken = lowerKeyword === 'الفراخ البيضاء';
+          
+          let targetRow: string[] | undefined;
+
+          // Priority for White Chicken: Exact cell A3 (Row index 2, Col 0)
+          if (isChicken && rows[2] && rows[2][0]) {
+            const val = parseFloat(rows[2][0].replace(/[^\d.]/g, ''));
+            if (!isNaN(val) && val > 30 && val < 500) {
+              return { sell: val, buy: val };
+            }
+          }
+
+          targetRow = rows.find(r => 
+            r.some(cell => {
+              const c = (cell || '').toLowerCase().trim();
+              if (isChicken) {
+                const hasPoultry = c.includes('لحم') || c.includes('فراخ') || c.includes('بدري') || c.includes('تنفيذ');
+                return (hasPoultry || (c === 'أبيض')) && !c.includes('بيض');
+              }
+              if (lowerKeyword === '24c' && (c === '24' || c.includes('عيار 24') || c.includes('24k'))) return true;
+              if (lowerKeyword === '21c' && (c === '21' || c.includes('عيار 21') || c.includes('21k'))) return true;
+              if (lowerKeyword === '18c' && (c === '18' || c.includes('عيار 18') || c.includes('18k'))) return true;
+              if (lowerKeyword === 'أوقية' && (c.includes('أوقية') || c.includes('ounce'))) return true;
+              if (lowerKeyword === 'جنيه ذهب' && (c.includes('جنيه ذهب') || c.includes('gold pound'))) return true;
+              return c.includes(lowerKeyword);
+            })
+          );
+
+          if (targetRow) {
+            let numbers = targetRow.map(c => {
+               const cleanVal = (c || '').replace(/[^\d.]/g, '');
+               return parseFloat(cleanVal);
+            }).filter(val => !isNaN(val) && val > 0);
+
+            // Filter out dates (like 2026) for chicken and eggs
+            if (isChicken || lowerKeyword.includes('بيض')) {
+              numbers = numbers.filter(n => n > 20 && n < 500);
+            }
+
+            if (numbers.length >= 2) {
+              if (lowerKeyword.includes('عيار') || lowerKeyword.includes('جنيه') || lowerKeyword.includes('أوقية') || lowerKeyword.includes('c')) {
+                const sorted = [...numbers].sort((a, b) => b - a);
+                return { sell: sorted[0], buy: sorted[1] };
+              }
+              return { sell: numbers[0], buy: numbers[1] };
+            } else if (numbers.length === 1) {
+              return { sell: numbers[0], buy: numbers[0] };
+            }
+          }
+          return { sell: 0, buy: 0 };
+        };
+
+        sheetGoldPrices = {
+          'ounce': { ...findPrices('أوقية'), label: 'أوقية الذهب $', currency: '$' },
+          'pound': { ...findPrices('جنيه ذهب'), label: 'الجنيه الذهب', currency: 'ج.م' },
+          '24k': { ...findPrices('24c'), label: 'عيار 24', currency: 'ج.م' },
+          '21k': { ...findPrices('21c'), label: 'عيار 21', currency: 'ج.م' },
+          '18k': { ...findPrices('18c'), label: 'عيار 18', currency: 'ج.م' },
+        };
+        setGoldPrices(sheetGoldPrices);
+
+        // Also update main chicken price from sheet if found
+        const chickenPrices = findPrices('الفراخ البيضاء');
+        if (chickenPrices.sell > 0) {
+          setState(prev => ({ ...prev, sellingPrice: chickenPrices.sell }));
+        }
+
+        // 4. Parse Eggs
+        const eggTypes = [
+          { key: 'white', keyword: 'بيض أبيض', label: 'بيض أبيض' },
+          { key: 'red', keyword: 'بيض أحمر', label: 'بيض أحمر' },
+          { key: 'baladi', keyword: 'بيض بلدي', label: 'بيض بلدي' }
+        ];
+        const parsedEggs = eggTypes.map(type => ({
+          ...type,
+          price: findPrices(type.keyword).sell
+        }));
+        setEggPrices(parsedEggs);
+
+        // 5. Parse Feed
+        const requestedFeedBrands = ["هيدا", "نيوهوب", "الإيمان", "نوفافيد", "سامي عايد", "الدقهلية", "الوادي"];
+        const parsedFeed: any[] = [];
+        
+        // Priority Search for requested brands
+        requestedFeedBrands.forEach(brand => {
+          const row = rows.find(r => r.some(cell => (cell || '').includes(brand)) && 
+                                  r.some(cell => parseFloat((cell || '').replace(/[^\d.]/g, '')) > 10000));
+          if (row) {
+            const nums = row.map(c => parseFloat((c || '').replace(/[^\d.]/g, ''))).filter(n => !isNaN(n) && n > 10000);
+            if (nums.length > 0) {
+              // Usually the order is Starter, Grower, Finisher. 
+              // If user says they are swapped, we reverse common logic or specific indices.
+              // Assuming nums[0] was thought to be starter but is finisher, and nums[2] is starter.
+              parsedFeed.push({
+                company: brand,
+                starter: nums[nums.length - 1] || 0, // Swapped: Last is Badi as per user correction
+                grower: nums.length > 2 ? nums[1] : (nums[0] || 0),
+                finisher: nums[0] || 0 // Swapped: First is Nahy as per user correction
+              });
+            }
+          }
+        });
+
+        // Suppplement with discovery for other feed rows
+        rows.forEach(row => {
+          const rowText = row.join(' ');
+          if ((rowText.includes('علف') || rowText.includes('شركة')) && 
+              (rowText.includes('بادي') || rowText.includes('نامي') || rowText.includes('ناهي'))) {
+            const nums = row.map(c => parseFloat((c || '').replace(/[^\d.]/g, ''))).filter(n => !isNaN(n) && n > 10000);
+            if (nums.length >= 2) {
+              const companyCell = row.find(c => (c || '').length > 2 && !/^\d/.test(c || '') && !c?.includes('علف') && !c?.includes('أعلاف')) || 'شركة أعلاف';
+              if (!parsedFeed.some(p => companyCell.includes(p.company) || p.company.includes(companyCell))) {
+                parsedFeed.push({
+                  company: companyCell,
+                  starter: nums[nums.length - 1] || 0,
+                  grower: nums.length > 2 ? nums[1] : (nums[0] || 0),
+                  finisher: nums[0] || 0
+                });
+              }
+            }
+          }
+        });
+        setFeedPrices(parsedFeed);
+
+        // 6. Parse Chicks
+        const requestedChicks = [
+          "القاهرة", "كايرو 3 إي", "نيوهوب", "الوطنية", "الوادي", "الدقهلية"
+        ];
+        const parsedChicks: any[] = requestedChicks.map(name => ({
+          company: name,
+          price: findPrices(name).sell
+        })).filter(c => c.price > 0);
+
+        // Add others if not already there
+        rows.forEach(row => {
+          const rowText = row.join(' ');
+          if (rowText.includes('كتكوت') && !rowText.includes('بيض')) {
+            const price = parseFloat(row.find(c => !isNaN(parseFloat((c || '').replace(/[^\d.]/g, ''))) && parseFloat((c || '').replace(/[^\d.]/g, '')) < 100)?.replace(/[^\d.]/g, '') || '0');
+            const company = row.find(c => (c || '').length > 3 && !c?.includes('كتكوت')) || 'شركة كتاكيت';
+            if (price > 0 && !parsedChicks.some(p => company.includes(p.company) || p.company.includes(company))) {
+              parsedChicks.push({ company, price });
+            }
+          }
+        });
+        setChickPrices(parsedChicks);
+
+        const findRate = (keyword: string) => {
+          const row = rows.find(r => r.some(cell => (cell || '').includes(keyword)));
+          if (row) {
+            for (const cell of row) {
+              const val = parseFloat((cell || '').replace(/[^\d.]/g, ''));
+              if (!isNaN(val) && val > 0) return val;
+            }
+          }
+          return null;
+        };
+
+        const usdEgp = findRate('الدولار/الجنيه');
+        const sarEgp = findRate('الريال/الجنيه');
+        const usdSar = findRate('الدولار/الريال');
+
+        if (usdEgp !== null || sarEgp !== null || usdSar !== null) {
+          const cleanRates: any = {};
+          if (usdEgp !== null) { cleanRates.EGP = usdEgp; cleanRates.EGP_USD = usdEgp; }
+          if (sarEgp !== null) cleanRates.EGP_SAR = sarEgp;
+          if (usdSar !== null) cleanRates.SAR_USD = usdSar;
+          if (Object.keys(cleanRates).length > 0) {
+            setExchangeRates((prev: any) => ({ ...prev, ...cleanRates }));
+          }
+        }
+      }
+
+      try {
+        const curRes = await fetch('/api/currency-rates');
+        if (curRes.ok) {
+          const curData = await curRes.json();
+          setExchangeRates((prev: any) => ({ ...curData.rates, ...prev }));
+        }
+      } catch (e) { console.warn("Currency API failed"); }
+
+      if (Object.keys(sheetGoldPrices).length === 0 || Object.values(sheetGoldPrices).every((v: any) => v.sell === 0)) {
+        const goldRes = await fetch('/api/gold-price');
+        if (goldRes.ok) {
+          const goldData = await goldRes.json();
+          const p = goldData.prices || {};
+          const fallback: any = {
+            'ounce': { sell: p.ounce || 0, buy: p.ounce || 0, label: 'أوقية الذهب $', currency: '$' },
+            'pound': { sell: p.pound || 0, buy: p.pound || 0, label: 'الجنيه الذهب', currency: 'ج.م' },
+            '24k': { sell: p['24k'] || 0, buy: p['24k'] || 0, label: 'عيار 24', currency: 'ج.م' },
+            '21k': { sell: p['21k'] || 0, buy: p['21k'] || 0, label: 'عيار 21', currency: 'ج.م' },
+            '18k': { sell: (p['21k'] * 18/21) || 0, buy: (p['21k'] * 18/21) || 0, label: 'عيار 18', currency: 'ج.م' }
+          };
+          setGoldPrices(fallback);
+        }
+      }
+    } catch (err) { setMarketError('فشل في جلب بعض بيانات السوق'); }
+    finally { setMarketLoading(false); }
+  }, []);
+
+  const fetchWeather = useCallback(async (lat: number, lon: number, name?: string) => {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    setCoords({ lat, lon });
+    try {
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true&wind_speed_10m=true&daily=weathercode,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max&timezone=auto`
+      );
+      const weatherData = await weatherRes.json();
+      setWeather(weatherData);
+
+      if (!name) {
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
+        );
+        const geoData = await geoRes.json();
+        setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
+      } else {
+        setLocationName(name);
+      }
+    } catch (err) {
+      setWeatherError('فشل في جلب بيانات الطقس');
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, []);
+
+  const handleWeatherSearch = useCallback(async (query: string) => {
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ar&format=json`);
+      const data = await res.json();
+      return data.results || [];
+    } catch (e) {
+      console.error("Geocoding failed", e);
+      return [];
+    }
+  }, []);
+
+  const handleWeatherRetry = useCallback(() => {
+    setWeatherLoading(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchWeather(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          setWeatherError('يرجى تفعيل الموقع (GPS) للحصول على طقس دقيق');
+          setWeatherLoading(false);
+        }
+      );
+    } else {
+      setWeatherError('المتصفح لا يدعم تحديد الموقع');
+      setWeatherLoading(false);
+    }
+  }, [fetchWeather]);
+
   const [isLogoutConfirming, setIsLogoutConfirming] = useState(false);
   const [deletingCycleId, setDeletingCycleId] = useState<string | null>(null);
   const [fanToDeleteId, setFanToDeleteId] = useState<string | null>(null);
@@ -1431,39 +1956,93 @@ export default function App() {
     let source = "";
 
     try {
-      // 1. Try Google Sheet (Primary)
-      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
-      const response = await fetch(SHEET_URL);
+      // 1. Try Google Sheet (via proxy)
+      const response = await fetch('/api/market-sheet');
       
       if (response.ok) {
         const csvText = await response.text();
-        const rows = csvText.split('\n').map(row => row.split(','));
-        const poultryRow = rows.find(row => row[1] && row[1].trim().includes('الفراخ البيضاء'));
-        
-        if (poultryRow) {
-          price = toNum(poultryRow[0].trim());
-          source = "جوجل شيت (رقم 1)";
-          success = true;
+        const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
+          const result = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        });
+
+        // Priority for White Chicken: Exact cell A3 (Row index 2, Col 0)
+        if (rows[2] && rows[2][0]) {
+          const val = parseFloat(rows[2][0].replace(/[^\d.]/g, ''));
+          if (!isNaN(val) && val > 30 && val < 500) {
+            price = val;
+            source = "جوجل شيت (الخلية A3)";
+            success = true;
+          }
+        }
+
+        if (!success) {
+          const poultryRow = rows.find(row => 
+            row.some(cell => {
+              const c = (cell || '').toLowerCase().trim();
+              const hasPoultry = c.includes('لحم') || c.includes('فراخ') || c.includes('بدري') || c.includes('تنفيذ');
+              return (hasPoultry || (c === 'أبيض')) && !c.includes('بيض');
+            })
+          );
+          
+          if (poultryRow) {
+            let numbers = poultryRow.map(c => {
+               const cleanVal = (c || '').replace(/[^\d.]/g, '');
+               return parseFloat(cleanVal);
+            }).filter(val => !isNaN(val) && val > 30 && val < 500);
+
+            if (numbers.length > 0) {
+              price = numbers[0]; // Take first valid price (usually execution or bourse)
+              source = "جوجل شيت (بحث)";
+              success = true;
+            }
+          }
         }
       }
     } catch (error) {
-      console.error("Sheet fetch failed, trying fallback...", error);
+      console.error("Sheet fetch proxy failed:", error);
     }
 
     // 2. Fallback if sheet fails or data not found
     if (!success) {
       try {
-        const response = await fetch('/api/poultry-price');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.price) {
-            price = data.price;
-            source = data.source || "بورصة الدواجن (احتياطي)";
-            success = true;
+        const response = await fetch('/api/poultry-price', {
+          headers: {
+            'Accept': 'application/json'
           }
+        });
+        
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.price) {
+              price = data.price;
+              source = data.source || "بورصة الدواجن (احتياطي)";
+              success = true;
+            }
+          } else {
+            const text = await response.text();
+            console.error("Poultry price API returned non-JSON content. Status:", response.status, "Content-Type:", contentType, "First 100 chars:", text.substring(0, 100));
+          }
+        } else {
+          console.error("Poultry price API failed with status:", response.status);
         }
       } catch (error) {
-        console.error("Fallback fetch failed", error);
+        console.error("Fallback poultry price fetch failed:", error);
       }
     }
 
@@ -1496,8 +2075,34 @@ export default function App() {
   };
 
   useEffect(() => {
-    // جلب السعر عند كل دخول للتطبيق
+    // 1. Initial fetch of everything
     fetchChickenPrice();
+    fetchMarketData();
+    
+    // Geolocation trigger
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchWeather(position.coords.latitude, position.coords.longitude);
+        },
+        () => {
+          setWeatherError('يرجى تفعيل الموقع (GPS) للحصول على طقس دقيق');
+          setWeatherLoading(false);
+        }
+      );
+    }
+
+    // 2. Refresh everything every hour (3600000ms)
+    const refreshInterval = setInterval(() => {
+      console.log("Auto-refreshing app data (Hourly)...");
+      fetchChickenPrice();
+      fetchMarketData();
+      if (coords) {
+        fetchWeather(coords.lat, coords.lon, locationName);
+      }
+    }, 3600000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   useEffect(() => {
@@ -3314,6 +3919,16 @@ export default function App() {
     </AnimatePresence>
   );
 
+  // Show Loading Screen if Auth is still checking
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
+        <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
+        <p className="text-slate-400 font-bold tracking-widest animate-pulse">جاري التحميل...</p>
+      </div>
+    );
+  }
+
   if (screen === 'gateway') {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative overflow-hidden" dir="rtl">
@@ -3957,7 +4572,7 @@ export default function App() {
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">نوع السلالة</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['Cobb', 'Ross', 'Avian'] as Strain[]).map(s => (
+                  {(['Cobb', 'Ross', 'Avian', 'Arbo', 'IR', 'Hubbard'] as Strain[]).map(s => (
                     <button
                       key={s}
                       type="button"
@@ -3969,7 +4584,7 @@ export default function App() {
                           : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10"
                       )}
                     >
-                      {s === 'Cobb' ? 'كوب' : s === 'Ross' ? 'روس' : 'إيفيان'}
+                      {STRAIN_NAMES[s]}
                     </button>
                   ))}
                 </div>
@@ -4351,7 +4966,7 @@ export default function App() {
               <div className="text-slate-500 text-[9px] font-bold uppercase tracking-tighter text-center">
                 <div className="flex items-center gap-2 justify-center sm:justify-end" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
                    {state.isManualOverride ? <Edit3 size={11} className="text-amber-500" /> : <RefreshCw size={11} className="text-blue-400 animate-spin-slow" />}
-                   {state.age} يوم • {state.strain === 'Cobb' ? 'كوب' : state.strain === 'Ross' ? 'روس' : 'إيفيان'} • {toNum(state.totalChicks).toLocaleString()} طائر
+                   {state.age} يوم • {STRAIN_NAMES[state.strain]} • {toNum(state.totalChicks).toLocaleString()} طائر
                 </div>
               </div>
             </div>
@@ -5336,13 +5951,7 @@ export default function App() {
         )}
 
           {screen === 'dashboard' && (
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-6"
-            >
+            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <Stat 
                   label="إجمالي العلف" 
@@ -5421,79 +6030,71 @@ export default function App() {
 
               {/* KPI Quick View */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-900/60 p-5 rounded-[2rem] border border-emerald-500/10 backdrop-blur-md relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl -mr-10 -mt-10 group-hover:bg-emerald-500/10 transition-colors" />
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                <Card className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
                       <TrendingUp size={20} />
                     </div>
                     <div className="text-right">
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">متوسط الزيادة (ADG)</h4>
-                      <p className="text-[9px] font-bold text-emerald-500/60">جم / يوم</p>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">متوسط الزيادة (ADG)</h4>
+                      <p className="text-[9px] text-emerald-500/50 italic">جم / يوم</p>
                     </div>
                   </div>
-                  <div className="flex items-baseline gap-2 justify-end mb-2">
-                    <span className="text-3xl font-black text-white tabular-nums tracking-tighter">{kpis.adg}</span>
-                    <span className="text-[10px] font-black text-slate-500">جم</span>
+                  <div className="flex items-baseline gap-2 justify-end mb-4">
+                    <span className="text-4xl font-black text-white tabular-nums">{kpis.adg}</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">جم</span>
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                    <span className="text-[9px] font-bold text-slate-600">المعيار: {kpis.standardAdg}</span>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                    <span className="text-[9px] font-bold text-slate-500">المعيار: {kpis.standardAdg}</span>
                     <div className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black",
+                      "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold",
                       parseFloat(kpis.adg) >= parseFloat(kpis.standardAdg) ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
                     )}>
                       {parseFloat(kpis.adg) >= parseFloat(kpis.standardAdg) ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                       {Math.abs(parseFloat(kpis.adg) - parseFloat(kpis.standardAdg)).toFixed(1)}
                     </div>
                   </div>
-                </div>
+                </Card>
 
-                <div className="bg-slate-900/60 p-5 rounded-[2rem] border border-blue-500/10 backdrop-blur-md relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 blur-2xl -mr-10 -mt-10 group-hover:bg-blue-500/10 transition-colors" />
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                <Card className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                       <Zap size={20} />
                     </div>
                     <div className="text-right">
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">معامل التحويل (FCR)</h4>
-                      <p className="text-[9px] font-bold text-blue-500/60">الكفاءة الغذائية</p>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">معامل التحويل (FCR)</h4>
+                      <p className="text-[9px] text-blue-500/50 italic">الكفاءة الغذائية</p>
                     </div>
                   </div>
-                  <div className="flex items-baseline gap-2 justify-end mb-2">
-                    <span className="text-3xl font-black text-white tabular-nums tracking-tighter">{kpis.fcr}</span>
+                  <div className="flex items-baseline justify-end mb-4">
+                    <span className="text-4xl font-black text-white tabular-nums">{kpis.fcr}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
-                    <span className="text-[9px] font-bold text-slate-600">المعيار: {kpis.standardFcr}</span>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                    <span className="text-[9px] font-bold text-slate-500">المعيار: {kpis.standardFcr}</span>
                     <div className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black",
+                      "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold",
                       parseFloat(kpis.fcr) <= parseFloat(kpis.standardFcr) ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
                     )}>
                       {parseFloat(kpis.fcr) <= parseFloat(kpis.standardFcr) ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
                       {Math.abs(parseFloat(kpis.fcrDiff)).toFixed(3)}
                     </div>
                   </div>
-                </div>
+                </Card>
               </div>
 
-              <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl -mr-16 -mt-16" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 blur-3xl -ml-16 -mb-16" />
-                
-                <div className="flex items-center justify-between mb-8 relative z-10">
-                  <div className="flex flex-col gap-1.5">
-                    <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+              <Card className="bg-slate-900 border-white/5 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2">
                       <Thermometer size={16} className="text-orange-400" />
-                      المناخ المستهدف (حيوي)
+                      المناخ المستهدف
                     </h3>
-                    <div className="flex">
-                      <span className="text-[9px] font-black text-blue-400 bg-blue-400/10 px-2.5 py-1 rounded-lg border border-blue-400/20 uppercase tracking-[0.1em]">
-                        الوضع الحالي: {state.climate}
-                      </span>
-                    </div>
+                    <span className="text-[10px] font-bold text-blue-400">
+                      الوضع الحالي: {state.climate}
+                    </span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">عمر الطائر: {state.age} يوم</span>
-                    <span className="text-[9px] font-bold text-blue-400">حمولة اللحم: {Math.round(herdBiomass).toLocaleString()} كجم</span>
+                    <span className="text-[10px] font-bold text-slate-500">العمر: {state.age} يوم</span>
                   </div>
                 </div>
 
@@ -5722,7 +6323,7 @@ export default function App() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           )}
 
           {screen === 'battery' && (
@@ -5802,7 +6403,7 @@ export default function App() {
                     </div>
                     <div className="flex flex-col gap-1 text-left">
                       <p className="text-[10px] font-bold text-slate-500">السلالة</p>
-                      <h4 className="text-lg font-black text-slate-300">{state.strain}</h4>
+                      <h4 className="text-lg font-black text-slate-300">{STRAIN_NAMES[state.strain]}</h4>
                     </div>
                   </div>
                 </Card>
@@ -6125,7 +6726,18 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <WeatherScreen age={toNum(state.age)} thi={thi} targetThi={targetThi} />
+                <WeatherScreen 
+                  age={toNum(state.age)} 
+                  thi={thi} 
+                  targetThi={targetThi} 
+                  weather={weather}
+                  loading={weatherLoading}
+                  error={weatherError}
+                  locationName={locationName}
+                  onSearch={handleWeatherSearch}
+                  onRetry={handleWeatherRetry}
+                  onLocationSelect={(lat, lon, name) => fetchWeather(lat, lon, name)}
+                />
               </motion.div>
             )}
 
@@ -6138,8 +6750,22 @@ export default function App() {
               >
               <MarketScreen 
                 sellingPrice={state.sellingPrice} 
+                prevSellingPrice={prevSellingPrice}
                 lastPriceUpdateAt={state.lastPriceUpdateAt} 
                 priceSource={state.priceSource}
+                exchangeRates={exchangeRates}
+                prevExchangeRates={prevExchangeRates}
+                goldPrices={goldPrices}
+                prevGoldPrices={prevGoldPrices}
+                eggPrices={eggPrices}
+                prevEggPrices={prevEggPrices}
+                feedPrices={feedPrices}
+                prevFeedPrices={prevFeedPrices}
+                chickPrices={chickPrices}
+                prevChickPrices={prevChickPrices}
+                loading={marketLoading}
+                error={marketError}
+                onRefresh={fetchMarketData}
               />
               </motion.div>
             )}
@@ -7300,7 +7926,7 @@ export default function App() {
                       </div>
                       <div>
                         <p className="text-xs text-slate-300 leading-relaxed font-bold">
-                          بناءً على العمر الحالي ({state.age} يوم)، يتم عرض التوصيات الدوائية والتحصينات المعتمدة لسلالة {state.strain} في نظام البطاريات.
+                          بناءً على العمر الحالي ({state.age} يوم)، يتم عرض التوصيات الدوائية والتحصينات المعتمدة لسلالة {STRAIN_NAMES[state.strain]} في نظام البطاريات.
                         </p>
                       </div>
                     </Card>
@@ -9276,28 +9902,36 @@ function NavButton({ active, onClick, icon: Icon, label }: { active: boolean, on
     <button 
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center justify-center gap-1 min-w-[5rem] h-14 rounded-2xl transition-all duration-300 relative group flex-shrink-0",
-        active ? "text-blue-400" : "text-slate-500 hover:text-slate-300"
+        "flex flex-col items-center justify-center gap-1.5 min-w-[5.5rem] h-16 rounded-[1.25rem] transition-all duration-700 relative group flex-shrink-0",
+        active ? "text-indigo-400" : "text-slate-600 hover:text-slate-400"
       )}
     >
       {active && (
         <motion.div 
           layoutId="nav-bg"
-          className="absolute inset-x-1 inset-y-1 bg-blue-600/10 rounded-2xl -z-10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+          className="absolute inset-0 bg-white/[0.05] rounded-[1.25rem] -z-10 border border-white/10 shadow-[0_10px_25px_rgba(0,0,0,0.2)]"
+          transition={{ type: "spring", bounce: 0.2, duration: 0.8 }}
         />
       )}
-      <Icon 
-        size={20} 
-        strokeWidth={active ? 2.5 : 2} 
-        className={cn(
-          "transition-all duration-300", 
-          active ? "scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "scale-100"
-        )} 
-      />
+      <div className={cn(
+        "relative transition-all duration-700",
+        active ? "scale-110 -translate-y-0.5" : "scale-100 group-hover:scale-105"
+      )}>
+        {active && (
+          <div className="absolute inset-0 bg-indigo-500/20 blur-md rounded-full -z-10" />
+        )}
+        <Icon 
+          size={22} 
+          strokeWidth={active ? 2.5 : 2} 
+          className={cn(
+            "transition-all duration-700", 
+            active ? "drop-shadow-[0_0_10px_rgba(99,102,241,0.6)]" : ""
+          )} 
+        />
+      </div>
       <span className={cn(
-        "text-[7px] font-bold uppercase tracking-tight transition-all duration-300", 
-        active ? "opacity-100 translate-y-0" : "opacity-40 group-hover:opacity-70"
+        "text-[8px] font-black uppercase tracking-[0.1em] transition-all duration-700", 
+        active ? "opacity-100 translate-y-0" : "opacity-30 group-hover:opacity-60"
       )}>
         {label}
       </span>

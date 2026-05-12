@@ -1,5 +1,5 @@
 
-export type Strain = 'Cobb' | 'Ross' | 'Avian';
+export type Strain = 'Cobb' | 'Ross' | 'Avian' | 'Arbo' | 'IR' | 'Hubbard';
 
 export interface DailyData {
   age: number;
@@ -49,6 +49,33 @@ export const POULTRY_DATA: Record<Strain, DailyData[]> = {
     { age: 28, weight: 1600, dailyFeed: 160, cumFeed: 2050, dailyWater: 288 },
     { age: 35, weight: 2280, dailyFeed: 195, cumFeed: 3250, dailyWater: 351 },
     { age: 40, weight: 2750, dailyFeed: 215, cumFeed: 4250, dailyWater: 387 },
+  ],
+  Arbo: [
+    { age: 1, weight: 42, dailyFeed: 13, cumFeed: 13, dailyWater: 24 },
+    { age: 7, weight: 198, dailyFeed: 37, cumFeed: 167, dailyWater: 67 },
+    { age: 14, weight: 512, dailyFeed: 70, cumFeed: 540, dailyWater: 126 },
+    { age: 21, weight: 1025, dailyFeed: 118, cumFeed: 1185, dailyWater: 212 },
+    { age: 28, weight: 1720, dailyFeed: 164, cumFeed: 2140, dailyWater: 295 },
+    { age: 35, weight: 2515, dailyFeed: 202, cumFeed: 3410, dailyWater: 364 },
+    { age: 40, weight: 3050, dailyFeed: 225, cumFeed: 4420, dailyWater: 405 },
+  ],
+  IR: [
+    { age: 1, weight: 42, dailyFeed: 12, cumFeed: 12, dailyWater: 22 },
+    { age: 7, weight: 190, dailyFeed: 35, cumFeed: 160, dailyWater: 63 },
+    { age: 14, weight: 505, dailyFeed: 68, cumFeed: 525, dailyWater: 122 },
+    { age: 21, weight: 1010, dailyFeed: 115, cumFeed: 1150, dailyWater: 207 },
+    { age: 28, weight: 1690, dailyFeed: 160, cumFeed: 2100, dailyWater: 288 },
+    { age: 35, weight: 2480, dailyFeed: 198, cumFeed: 3320, dailyWater: 356 },
+    { age: 40, weight: 3010, dailyFeed: 220, cumFeed: 4350, dailyWater: 396 },
+  ],
+  Hubbard: [
+    { age: 1, weight: 42, dailyFeed: 12, cumFeed: 12, dailyWater: 22 },
+    { age: 7, weight: 191, dailyFeed: 34, cumFeed: 158, dailyWater: 61 },
+    { age: 14, weight: 498, dailyFeed: 65, cumFeed: 505, dailyWater: 117 },
+    { age: 21, weight: 988, dailyFeed: 110, cumFeed: 1120, dailyWater: 198 },
+    { age: 28, weight: 1640, dailyFeed: 155, cumFeed: 2050, dailyWater: 279 },
+    { age: 35, weight: 2390, dailyFeed: 190, cumFeed: 3250, dailyWater: 342 },
+    { age: 40, weight: 2920, dailyFeed: 210, cumFeed: 4280, dailyWater: 378 },
   ],
 };
 
