@@ -106,10 +106,44 @@ import {
   onAuthStateChanged, 
   signOut 
 } from '@/src/lib/firebase';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 // --- API Helpers ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+const smartFetch = async (url: string, options: any = {}) => {
+  // Use CapacitorHttp on native platforms to bypass CORS
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const response = await CapacitorHttp.request({
+        url: url.startsWith('http') ? url : `${window.location.origin}${url}`,
+        method: options.method || 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          ...(options.headers || {})
+        },
+        data: options.body,
+        connectTimeout: 15000,
+        readTimeout: 15000
+      });
+      
+      return {
+        ok: response.status >= 200 && response.status < 300,
+        status: response.status,
+        json: async () => typeof response.data === 'string' ? JSON.parse(response.data) : response.data,
+        text: async () => typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
+        headers: {
+          get: (name: string) => response.headers[name] || response.headers[name.toLowerCase()]
+        }
+      } as any;
+    } catch (error) {
+      console.error("CapacitorHttp error:", error);
+      // Fallback to regular fetch if CapacitorHttp fails
+      return fetch(url, options);
+    }
+  }
+  return fetch(url, options);
+};
 
 if (Capacitor.isNativePlatform() && !API_BASE_URL) {
   console.warn("VITE_API_URL is not set! API calls from the APK to the backend will fail. Please set VITE_API_URL to your server URL.");
@@ -1606,14 +1640,14 @@ export default function App() {
       let sheetRes;
       
       try {
-        sheetRes = await fetch(`${API_BASE_URL}/api/market-sheet`);
+        sheetRes = await smartFetch(`${API_BASE_URL}/api/market-sheet`);
       } catch (e) {
         console.warn("Proxy fetch failed, will try direct:", e);
       }
 
       if (!sheetRes || !sheetRes.ok) {
         console.log("Attempting direct Google Sheets fetch...");
-        sheetRes = await fetch(SHEET_URL);
+        sheetRes = await smartFetch(SHEET_URL);
       }
 
       if (!sheetRes.ok) throw new Error(`Failed to fetch market data from all sources (Proxy & Direct)`);
@@ -1818,16 +1852,16 @@ export default function App() {
       }
 
       try {
-        const curRes = await fetch(`${API_BASE_URL}/api/currency-rates`);
-        if (curRes.ok && curRes.headers.get('content-type')?.includes('application/json')) {
+        const curRes = await smartFetch(`${API_BASE_URL}/api/currency-rates`);
+        if (curRes.ok) {
           const curData = await curRes.json();
           setExchangeRates((prev: any) => ({ ...curData.rates, ...prev }));
         }
       } catch (e) { console.warn("Currency API failed"); }
 
       if (Object.keys(sheetGoldPrices).length === 0 || Object.values(sheetGoldPrices).every((v: any) => v.sell === 0)) {
-        const goldRes = await fetch(`${API_BASE_URL}/api/gold-price`);
-        if (goldRes.ok && goldRes.headers.get('content-type')?.includes('application/json')) {
+        const goldRes = await smartFetch(`${API_BASE_URL}/api/gold-price`);
+        if (goldRes.ok) {
           const goldData = await goldRes.json();
           const p = goldData.prices || {};
           const fallback: any = {
@@ -1849,18 +1883,18 @@ export default function App() {
     setWeatherError(null);
     setCoords({ lat, lon });
     try {
-      const weatherRes = await fetch(
+      const weatherRes = await smartFetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true&wind_speed_10m=true&daily=weathercode,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max&timezone=auto`
       );
-      if (weatherRes.ok && weatherRes.headers.get('content-type')?.includes('application/json')) {
+      if (weatherRes.ok) {
         const weatherData = await weatherRes.json();
         setWeather(weatherData);
 
         if (!name) {
-          const geoRes = await fetch(
+          const geoRes = await smartFetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
           );
-          if (geoRes.ok && geoRes.headers.get('content-type')?.includes('application/json')) {
+          if (geoRes.ok) {
             const geoData = await geoRes.json();
             setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
           }
@@ -1877,8 +1911,8 @@ export default function App() {
 
   const handleWeatherSearch = useCallback(async (query: string) => {
     try {
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ar&format=json`);
-      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+      const res = await smartFetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ar&format=json`);
+      if (res.ok) {
         const data = await res.json();
         return data.results || [];
       }
@@ -1985,14 +2019,14 @@ export default function App() {
       let response;
       
       try {
-        response = await fetch(`${API_BASE_URL}/api/market-sheet`);
+        response = await smartFetch(`${API_BASE_URL}/api/market-sheet`);
       } catch (e) {
         console.warn("Proxy chicken price fetch failed:", e);
       }
 
       if (!response || !response.ok) {
         console.log("Attempting direct chicken price fetch...");
-        response = await fetch(SHEET_URL);
+        response = await smartFetch(SHEET_URL);
       }
       
       if (response && response.ok) {
@@ -2055,24 +2089,18 @@ export default function App() {
     // 2. Fallback if sheet fails or data not found
     if (!success) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/poultry-price`, {
+        const response = await smartFetch(`${API_BASE_URL}/api/poultry-price`, {
           headers: {
             'Accept': 'application/json'
           }
         });
         
         if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            if (data.price) {
-              price = data.price;
-              source = data.source || "بورصة الدواجن (احتياطي)";
-              success = true;
-            }
-          } else {
-            const text = await response.text();
-            console.error("Poultry price API returned non-JSON content. Status:", response.status, "Content-Type:", contentType, "First 100 chars:", text.substring(0, 100));
+          const data = await response.json();
+          if (data.price) {
+            price = data.price;
+            source = data.source || "بورصة الدواجن (احتياطي)";
+            success = true;
           }
         } else {
           console.error("Poultry price API failed with status:", response.status);
