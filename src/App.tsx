@@ -106,6 +106,14 @@ import {
   onAuthStateChanged, 
   signOut 
 } from '@/src/lib/firebase';
+import { Capacitor } from '@capacitor/core';
+
+// --- API Helpers ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+if (Capacitor.isNativePlatform() && !API_BASE_URL) {
+  console.warn("VITE_API_URL is not set! API calls from the APK to the backend will fail. Please set VITE_API_URL to your server URL.");
+}
 
 // --- Types ---
 type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
@@ -1594,7 +1602,21 @@ export default function App() {
     setPrevChickPrices(chickPrices);
 
     try {
-      const sheetRes = await fetch('/api/market-sheet');
+      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
+      let sheetRes;
+      
+      try {
+        sheetRes = await fetch(`${API_BASE_URL}/api/market-sheet`);
+      } catch (e) {
+        console.warn("Proxy fetch failed, will try direct:", e);
+      }
+
+      if (!sheetRes || !sheetRes.ok) {
+        console.log("Attempting direct Google Sheets fetch...");
+        sheetRes = await fetch(SHEET_URL);
+      }
+
+      if (!sheetRes.ok) throw new Error(`Failed to fetch market data from all sources (Proxy & Direct)`);
       
       let sheetGoldPrices: any = {};
 
@@ -1796,7 +1818,7 @@ export default function App() {
       }
 
       try {
-        const curRes = await fetch('/api/currency-rates');
+        const curRes = await fetch(`${API_BASE_URL}/api/currency-rates`);
         if (curRes.ok && curRes.headers.get('content-type')?.includes('application/json')) {
           const curData = await curRes.json();
           setExchangeRates((prev: any) => ({ ...curData.rates, ...prev }));
@@ -1804,7 +1826,7 @@ export default function App() {
       } catch (e) { console.warn("Currency API failed"); }
 
       if (Object.keys(sheetGoldPrices).length === 0 || Object.values(sheetGoldPrices).every((v: any) => v.sell === 0)) {
-        const goldRes = await fetch('/api/gold-price');
+        const goldRes = await fetch(`${API_BASE_URL}/api/gold-price`);
         if (goldRes.ok && goldRes.headers.get('content-type')?.includes('application/json')) {
           const goldData = await goldRes.json();
           const p = goldData.prices || {};
@@ -1958,10 +1980,22 @@ export default function App() {
     let source = "";
 
     try {
-      // 1. Try Google Sheet (via proxy)
-      const response = await fetch('/api/market-sheet');
+      // 1. Try Google Sheet (via proxy or direct fallback)
+      const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
+      let response;
       
-      if (response.ok) {
+      try {
+        response = await fetch(`${API_BASE_URL}/api/market-sheet`);
+      } catch (e) {
+        console.warn("Proxy chicken price fetch failed:", e);
+      }
+
+      if (!response || !response.ok) {
+        console.log("Attempting direct chicken price fetch...");
+        response = await fetch(SHEET_URL);
+      }
+      
+      if (response && response.ok) {
         const csvText = await response.text();
         const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
           const result = [];
@@ -2021,7 +2055,7 @@ export default function App() {
     // 2. Fallback if sheet fails or data not found
     if (!success) {
       try {
-        const response = await fetch('/api/poultry-price', {
+        const response = await fetch(`${API_BASE_URL}/api/poultry-price`, {
           headers: {
             'Accept': 'application/json'
           }
