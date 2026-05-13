@@ -128,6 +128,16 @@ const polarToCartesian = (centerX: number, centerY: number, radius: number, angl
   };
 };
 
+const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+  return [
+    "M", start.x, start.y,
+    "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+  ].join(" ");
+};
+
 const WeatherScreen = ({ 
   age, 
   thi, 
@@ -721,8 +731,8 @@ const MarketScreen = ({
     { id: 'chicken', label: 'الفراخ', icon: Bird, color: 'text-amber-200', bg: 'bg-amber-500/10', img: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=800' },
     { id: 'eggs', label: 'البيض', icon: Egg, color: 'text-orange-200', bg: 'bg-orange-500/10', img: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&q=80&w=800' },
     { id: 'chicks', label: 'كتاكيت بيضاء', icon: Bird, color: 'text-yellow-200', bg: 'bg-yellow-500/10', img: 'https://images.unsplash.com/photo-1627916607164-fa951b760731?auto=format&fit=crop&q=80&w=800' },
-    { id: 'feed', label: 'الأعلاف', icon: Wheat, color: 'text-emerald-200', bg: 'bg-emerald-500/10', img: 'https://images.unsplash.com/photo-1574323347407-f5dc1ad050a7?auto=format&fit=crop&q=80&w=800' },
-    { id: 'gold', label: 'الذهب', icon: Gem, color: 'text-amber-100', bg: 'bg-amber-500/20', img: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?auto=format&fit=crop&q=80&w=800' },
+    { id: 'feed', label: 'الأعلاف', icon: Wheat, color: 'text-emerald-200', bg: 'bg-emerald-500/10', img: 'https://images.unsplash.com/photo-1543257580-7269da7816ce?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'gold', label: 'الذهب', icon: Gem, color: 'text-amber-100', bg: 'bg-amber-500/20', img: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=1200' },
     { id: 'currency', label: 'العملات', icon: Banknote, color: 'text-blue-100', bg: 'bg-blue-500/20', img: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&q=80&w=800' },
   ];
 
@@ -1183,35 +1193,19 @@ const MarketScreen = ({
          <div className="flex-1 text-right relative z-10">
             <h4 className="text-white font-black text-sm mb-1">توضيح هام</h4>
             <p className="text-slate-500 text-xs font-bold leading-relaxed">
-              تعتمد هذه الأسعار على {priceSource?.split('/')[2] || 'بيانات البورصات العالمية والمحلية'} وهي قابلة للتغيير المفاجئ. يرجى المتابعة المستمرة لضمان أفضل تنفيذ لعمليات البيع والشراء.
+              جميع الأسعار المعروضة هي أسعار استرشادية يتم تحديثها دورياً من كبرى شركات التداول، وقد تختلف الأسعار التنفيذية في أرض الواقع قليلاً حسب المنطقة وتكلفة النقل وحجم العرض والطلب.
             </p>
-         </div>
-      </div>
+          </div>
+       </div>
     </div>
   );
 };
-
-const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-  const start = polarToCartesian(x, y, radius, endAngle);
-  const end = polarToCartesian(x, y, radius, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return ["M", start.x, start.y, "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y, "L", x, y, "Z"].join(" ");
-};
-
-const EMERGENCY_DEFAULTS = [
-  { name: 'مضاد سموم', keywords: ['سموم', 'توتال'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'محلول معالجة جفاف', keywords: ['جفاف', 'محلول'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'مضاد حيوي معوي وتنفسي', keywords: ['حيوي', 'دوكسي', 'اموكسي', 'كولستين', 'تيلوزين'], duration: '12', dose: '1', unit: 'جرام/لتر' },
-  { name: 'فيتامين أد3هـ', keywords: ['أد3', 'اد3', 'فيتامين'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'فيتامين هـ سيلينيوم', keywords: ['سيلينيوم', 'هـ'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'أملاح معدنية', keywords: ['أملاح', 'املاح', 'بانش'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-  { name: 'غسيل كلوي + منشط كبد', keywords: ['غسيل', 'كلى', 'كلوي', 'رينال'], duration: '8', dose: '1', unit: 'سم³/لتر' },
-];
 
 const CUSTOM_MED_LIST = [
   { name: 'محلول معالجة جفاف', dose: 5, unit: 'جرام/لتر', duration: 8 },
   { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'أحماض أمينية', dose: 1, unit: 'سم³/لتر', duration: 8 },
+  { name: 'أحماض عضوية', dose: 0.5, unit: 'سم³/لتر', duration: 8 },
   { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 4 },
   { name: 'فيتامين أد3هـ (AD3E)', dose: 1, unit: 'سم³/لتر', duration: 8 },
   { name: 'فيتامين هـ + سيلينيوم (E+Se)', dose: 1, unit: 'سم³/لتر', duration: 8 },
@@ -1229,6 +1223,7 @@ const CUSTOM_MED_LIST = [
   { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8 },
   { name: 'مثبت لقاح (حليب)', dose: 1, unit: 'جرام/لتر', duration: 2 },
   { name: 'ماء نقي', dose: 0, unit: 'لتر', duration: 2 },
+  { name: 'تعطيش', dose: 0, unit: 'ساعة', duration: 2 },
 ];
 
 interface Bill { id: string; label: string; amount: number | string; startDay: number | string; endDay: number | string; entryDate: string; }
@@ -1802,7 +1797,7 @@ export default function App() {
 
       try {
         const curRes = await fetch('/api/currency-rates');
-        if (curRes.ok) {
+        if (curRes.ok && curRes.headers.get('content-type')?.includes('application/json')) {
           const curData = await curRes.json();
           setExchangeRates((prev: any) => ({ ...curData.rates, ...prev }));
         }
@@ -1810,7 +1805,7 @@ export default function App() {
 
       if (Object.keys(sheetGoldPrices).length === 0 || Object.values(sheetGoldPrices).every((v: any) => v.sell === 0)) {
         const goldRes = await fetch('/api/gold-price');
-        if (goldRes.ok) {
+        if (goldRes.ok && goldRes.headers.get('content-type')?.includes('application/json')) {
           const goldData = await goldRes.json();
           const p = goldData.prices || {};
           const fallback: any = {
@@ -1835,17 +1830,21 @@ export default function App() {
       const weatherRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&relative_humidity_2m=true&wind_speed_10m=true&daily=weathercode,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max&timezone=auto`
       );
-      const weatherData = await weatherRes.json();
-      setWeather(weatherData);
+      if (weatherRes.ok && weatherRes.headers.get('content-type')?.includes('application/json')) {
+        const weatherData = await weatherRes.json();
+        setWeather(weatherData);
 
-      if (!name) {
-        const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
-        );
-        const geoData = await geoRes.json();
-        setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
-      } else {
-        setLocationName(name);
+        if (!name) {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ar`
+          );
+          if (geoRes.ok && geoRes.headers.get('content-type')?.includes('application/json')) {
+            const geoData = await geoRes.json();
+            setLocationName(geoData.address.city || geoData.address.town || geoData.address.village || geoData.display_name.split(',')[0]);
+          }
+        } else {
+          setLocationName(name);
+        }
       }
     } catch (err) {
       setWeatherError('فشل في جلب بيانات الطقس');
@@ -1857,8 +1856,11 @@ export default function App() {
   const handleWeatherSearch = useCallback(async (query: string) => {
     try {
       const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ar&format=json`);
-      const data = await res.json();
-      return data.results || [];
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
+        const data = await res.json();
+        return data.results || [];
+      }
+      return [];
     } catch (e) {
       console.error("Geocoding failed", e);
       return [];
@@ -2566,6 +2568,11 @@ export default function App() {
                 { headers: { Authorization: `Bearer ${accessToken}` } }
               );
               
+              if (!searchRes.ok || !searchRes.headers.get('content-type')?.includes('application/json')) {
+                alert('فشل في الاتصال بخدمة Google Drive');
+                return;
+              }
+
               const searchData = await searchRes.json();
               if (searchData.files && searchData.files.length > 0) {
                 const fileId = searchData.files[0].id;
@@ -2576,6 +2583,12 @@ export default function App() {
                     `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                   );
+                  
+                  if (!fileRes.ok || !fileRes.headers.get('content-type')?.includes('application/json')) {
+                    alert('فشل في تحميل محتوى ملف النسخة الاحتياطية');
+                    return;
+                  }
+
                   const backup = await fileRes.json();
                   
                   if (backup.app === 'poultry_manager' && backup.activeCycle) {
@@ -3228,55 +3241,18 @@ export default function App() {
   const dailyMeds = useMemo(() => {
     const rawMeds = MEDICATIONS.filter((m: any) => m.targetDays.includes(toNum(state.age)) && m.climates.includes(state.climate));
     
-    // Scientific Ordering logic:
-    // 1. Vaccines (early morning)
-    // 2. Foundation/Reception (morning)
-    // 3. Vitamins (morning/day)
-    // 4. Preventive/Antibiotics (afternoon)
-    // 5. Supportive/Tonics (evening)
-    // 6. Rest/Water (night)
-    const categoryWeights: Record<string, number> = {
-      'تأسيس': 1,
-      'فيتامينات': 2,
-      'داعم': 3,
-      'تحصين': 4,
-      'راحة': 5,
-      'وقائي': 6,
-      'أمان': 7
-    };
+    // We respect the original order in MEDICATIONS as provided by the user
+    let uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name || (m.id && m.id !== rawMeds[i-1].id));
     
-    rawMeds.sort((a: any, b: any) => (categoryWeights[a.category] || 99) - (categoryWeights[b.category] || 99));
-
-    let uniqueMeds: any[] = [];
-    
-    // Day 3 & 4 Special Sequence: Antibiotic -> Water -> Vitamin -> Water
-    const currentAge = toNum(state.age);
-    if (currentAge === 3 || currentAge === 4) {
-      const antibiotic = rawMeds.find(m => m.isAntibiotic || m.name.includes('حيوي') || m.category === 'وقائي');
-      const vitamin = rawMeds.find(m => m.category === 'فيتامينات' && m.name.includes('أد3هـ'));
-      const water = rawMeds.find(m => m.category === 'راحة' || m.name.includes('ماء نقي'));
-      
-      if (antibiotic || vitamin || water) {
-        if (antibiotic) uniqueMeds.push({ ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-1`, recommendedHours: 2 });
-        if (vitamin) uniqueMeds.push({ ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 });
-        if (water) uniqueMeds.push({ ...water, id: `${water.id || water.name}-2`, recommendedHours: 2 });
-      }
-    }
-
-    if (uniqueMeds.length === 0) {
-      uniqueMeds = rawMeds.filter((m, i) => i === 0 || m.name !== rawMeds[i-1].name);
-    }
-    
-    // Check boundary with previous day to avoid consecutive Pure Water
+    // Check boundary with previous day to avoid consecutive Pure Water if requested, 
+    // but mostly we should follow the plan. 
+    // We'll keep the boundary check as it helps clean up transitions.
     const yesterdayEndedWithWater = lastMedPrevDay && (lastMedPrevDay.name.includes('ماء نقي') || lastMedPrevDay.category === 'راحة');
     
     if (yesterdayEndedWithWater && uniqueMeds.length > 0 && (uniqueMeds[0].name === 'ماء نقي' || uniqueMeds[0].category === 'راحة')) {
-        uniqueMeds = uniqueMeds.slice(1);
+        // uniqueMeds = uniqueMeds.slice(1); // Removed to strictly follow user's day-start plan
     }
 
-    // Adjust 12h/24h meds to allow room for gaps if there are multiple activities
-    // "Day 1 Logic" uses 6h/8h blocks mostly.
     const structuredMeds = uniqueMeds.map(m => {
       const stableId = m.id || m.name;
       const logKey = `${toNum(state.age)}-${stableId}`;
@@ -3532,22 +3508,6 @@ export default function App() {
 
     let ageMeds = MEDICATIONS.filter(med => med.targetDays.includes(age) && med.climates.includes(state.climate));
     
-    // Day 3 & 4 Special Sequence: Antibiotic -> Water -> Vitamin -> Water
-    if (age === 3 || age === 4) {
-      const antibiotic = ageMeds.find(m => m.isAntibiotic || m.name.includes('حيوي') || m.category === 'وقائي');
-      const vitamin = ageMeds.find(m => m.category === 'فيتامينات' && m.name.includes('أد3هـ'));
-      const water = ageMeds.find(m => m.category === 'راحة' || m.name.includes('ماء نقي'));
-      
-      if (antibiotic && vitamin && water) {
-        ageMeds = [
-          { ...antibiotic, id: `${antibiotic.id || antibiotic.name}-1`, recommendedHours: 6 },
-          { ...water, id: `${water.id || water.name}-1`, recommendedHours: 2 },
-          { ...vitamin, id: `${vitamin.id || vitamin.name}-1`, recommendedHours: 6 },
-          { ...water, id: `${water.id || water.name}-2`, recommendedHours: 2 }
-        ];
-      }
-    }
-
     const ageEmergencyMeds = state.emergencyMeds.filter(m => toNum(m.age) === age);
     const schedule = getLightingScheduleForAge(age);
 
@@ -7888,6 +7848,21 @@ export default function App() {
                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">التتابع الفني</span>
                               <p className="text-[10px] font-bold text-slate-400 truncate">
                                 {med.technicalSequence || med.sequence}
+                              </p>
+                           </div>
+                           <div 
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMedInfo({ 
+                                  title: "أسماء الأدوية المقترحة", 
+                                  text: med.tradeNames || "يمكن استخدام أي منتج بديل يحتوي على نفس المادة الفعالة."
+                                });
+                              }}
+                           >
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">أسماء الأدوية المقترحة</span>
+                              <p className="text-[10px] font-bold text-amber-500 truncate">
+                                {med.tradeNames || "بدائل تجارية"}
                               </p>
                            </div>
                         </div>
