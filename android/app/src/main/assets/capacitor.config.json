@@ -1,9 +1,14 @@
 {
-	"appId": "com.farmers.app",
+	"appId": "com.mohgemy94.smartpoultry",
 	"appName": "Smart Poultry Farm Manager",
 	"webDir": "www",
 	"bundledWebRuntime": false,
 	"server": {
 		"androidScheme": "https"
+	},
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		}
 	}
 }

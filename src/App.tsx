@@ -115,23 +115,35 @@ const smartFetch = async (url: string, options: any = {}) => {
   // Use CapacitorHttp on native platforms to bypass CORS
   if (Capacitor.isNativePlatform()) {
     try {
+      // For absolute URLs that are remote, CapacitorHttp is essential for CORS bypass
+      const isRemote = url.startsWith('http');
+      const targetUrl = isRemote ? url : `${window.location.origin}${url}`;
+      
       const response = await CapacitorHttp.request({
-        url: url.startsWith('http') ? url : `${window.location.origin}${url}`,
+        url: targetUrl,
         method: options.method || 'GET',
         headers: {
-          'Accept': 'application/json, text/plain, */*',
+          'Accept': 'application/json, text/plain, text/csv, */*',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
           ...(options.headers || {})
         },
         data: options.body,
-        connectTimeout: 15000,
-        readTimeout: 15000
+        connectTimeout: 20000,
+        readTimeout: 20000
       });
+      
+      const resData = response.data;
       
       return {
         ok: response.status >= 200 && response.status < 300,
         status: response.status,
-        json: async () => typeof response.data === 'string' ? JSON.parse(response.data) : response.data,
-        text: async () => typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
+        json: async () => {
+          if (typeof resData === 'string') {
+            try { return JSON.parse(resData); } catch (e) { return resData; }
+          }
+          return resData;
+        },
+        text: async () => typeof resData === 'string' ? resData : JSON.stringify(resData),
         headers: {
           get: (name: string) => response.headers[name] || response.headers[name.toLowerCase()]
         }
@@ -1637,20 +1649,40 @@ export default function App() {
 
     try {
       const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
-      let sheetRes;
+      let sheetRes: any = null;
       
-      try {
-        sheetRes = await smartFetch(`${API_BASE_URL}/api/market-sheet`);
-      } catch (e) {
-        console.warn("Proxy fetch failed, will try direct:", e);
+      // On native, prioritizing direct Sheet access might be more reliable if backend URL isn't configured
+      if (Capacitor.isNativePlatform()) {
+        try {
+          console.log("Native: Attempting direct Google Sheets fetch first...");
+          sheetRes = await smartFetch(SHEET_URL);
+        } catch (e) {
+          console.warn("Direct native fetch failed, will try proxy:", e);
+        }
       }
 
       if (!sheetRes || !sheetRes.ok) {
-        console.log("Attempting direct Google Sheets fetch...");
-        sheetRes = await smartFetch(SHEET_URL);
+        try {
+          const proxyUrl = API_BASE_URL ? `${API_BASE_URL}/api/market-sheet` : '/api/market-sheet';
+          sheetRes = await smartFetch(proxyUrl);
+        } catch (e) {
+          console.warn("Proxy fetch failed:", e);
+        }
       }
 
-      if (!sheetRes.ok) throw new Error(`Failed to fetch market data from all sources (Proxy & Direct)`);
+      // Final fallback if proxy also failed or was skipped
+      if (!sheetRes || !sheetRes.ok) {
+        if (!Capacitor.isNativePlatform()) {
+          console.log("Web: Attempting direct Google Sheets fallback...");
+          sheetRes = await smartFetch(SHEET_URL);
+        }
+      }
+
+      if (!sheetRes || !sheetRes.ok) {
+        const errorMsg = `فشل جلب البيانات. الحالة: ${sheetRes?.status || 'غير معروف'} / المنصة: ${Capacitor.getPlatform()} / الرابط الأساسي: ${API_BASE_URL || 'غير محدد'}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
       
       let sheetGoldPrices: any = {};
 
@@ -2016,17 +2048,29 @@ export default function App() {
     try {
       // 1. Try Google Sheet (via proxy or direct fallback)
       const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
-      let response;
+      let response: any = null;
       
-      try {
-        response = await smartFetch(`${API_BASE_URL}/api/market-sheet`);
-      } catch (e) {
-        console.warn("Proxy chicken price fetch failed:", e);
+      if (Capacitor.isNativePlatform()) {
+        try {
+          response = await smartFetch(SHEET_URL);
+        } catch (e) {
+          console.warn("Native direct poultry fetch failed:", e);
+        }
       }
 
       if (!response || !response.ok) {
-        console.log("Attempting direct chicken price fetch...");
-        response = await smartFetch(SHEET_URL);
+        try {
+          const proxyUrl = API_BASE_URL ? `${API_BASE_URL}/api/market-sheet` : '/api/market-sheet';
+          response = await smartFetch(proxyUrl);
+        } catch (e) {
+          console.warn("Proxy chicken price fetch failed:", e);
+        }
+      }
+
+      if (!response || !response.ok) {
+        if (!Capacitor.isNativePlatform()) {
+          response = await smartFetch(SHEET_URL);
+        }
       }
       
       if (response && response.ok) {
@@ -2584,7 +2628,7 @@ export default function App() {
             form.append('file', new Blob([fileContent], { type: 'application/json' }));
 
             try {
-              const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+              const res = await smartFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${accessToken}` },
                 body: form,
@@ -2625,12 +2669,12 @@ export default function App() {
             const accessToken = response.access_token;
             try {
               // Search for backup files
-              const searchRes = await fetch(
+              const searchRes = await smartFetch(
                 `https://www.googleapis.com/drive/v3/files?q=name contains 'برنامج_إدارة_الدواجن_نسخة_احتياطية' and trashed = false&orderBy=createdTime desc&pageSize=1`,
                 { headers: { Authorization: `Bearer ${accessToken}` } }
               );
               
-              if (!searchRes.ok || !searchRes.headers.get('content-type')?.includes('application/json')) {
+              if (!searchRes.ok) {
                 alert('فشل في الاتصال بخدمة Google Drive');
                 return;
               }
@@ -2641,12 +2685,12 @@ export default function App() {
                 const fileName = searchData.files[0].name;
                 
                 if (confirm(`هل تريد استعادة أحدث نسخة تم العثور عليها (${fileName})؟ سيتم استبدال البيانات الحالية.`)) {
-                  const fileRes = await fetch(
+                  const fileRes = await smartFetch(
                     `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                   );
                   
-                  if (!fileRes.ok || !fileRes.headers.get('content-type')?.includes('application/json')) {
+                  if (!fileRes.ok) {
                     alert('فشل في تحميل محتوى ملف النسخة الاحتياطية');
                     return;
                   }
