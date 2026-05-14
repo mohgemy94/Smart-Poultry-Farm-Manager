@@ -117,19 +117,22 @@ const smartFetch = async (url: string, options: any = {}) => {
     try {
       // For absolute URLs that are remote, CapacitorHttp is essential for CORS bypass
       const isRemote = url.startsWith('http');
-      const targetUrl = isRemote ? url : `${window.location.origin}${url}`;
+      const targetUrl = isRemote ? url : (API_BASE_URL ? `${API_BASE_URL}${url}` : url);
       
+      console.log(`SmartFetch (${Capacitor.getPlatform()}): fetching ${targetUrl}`);
+
       const response = await CapacitorHttp.request({
         url: targetUrl,
         method: options.method || 'GET',
         headers: {
           'Accept': 'application/json, text/plain, text/csv, */*',
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36',
+          'Cache-Control': 'no-cache',
           ...(options.headers || {})
         },
         data: options.body,
-        connectTimeout: 20000,
-        readTimeout: 20000
+        connectTimeout: 30000,
+        readTimeout: 30000
       });
       
       const resData = response.data;
@@ -1650,36 +1653,48 @@ export default function App() {
     try {
       const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
       let sheetRes: any = null;
+      let lastError: string = '';
       
-      // On native, prioritizing direct Sheet access might be more reliable if backend URL isn't configured
+      // On native, prioritizing direct Sheet access might be more reliable
       if (Capacitor.isNativePlatform()) {
         try {
-          console.log("Native: Attempting direct Google Sheets fetch first...");
+          console.log("Native: Attempting direct Google Sheets fetch...");
           sheetRes = await smartFetch(SHEET_URL);
+          if (!sheetRes.ok) lastError = `Google Sheet direct failed (${sheetRes.status})`;
         } catch (e) {
-          console.warn("Direct native fetch failed, will try proxy:", e);
+          lastError = `Google Sheet exception: ${e instanceof Error ? e.message : String(e)}`;
         }
       }
 
       if (!sheetRes || !sheetRes.ok) {
         try {
-          const proxyUrl = API_BASE_URL ? `${API_BASE_URL}/api/market-sheet` : '/api/market-sheet';
+          const proxyUrl = '/api/market-sheet';
+          console.log("Attempting proxy fetch...");
           sheetRes = await smartFetch(proxyUrl);
+          if (!sheetRes.ok) lastError += ` | Proxy failed (${sheetRes.status})`;
         } catch (e) {
-          console.warn("Proxy fetch failed:", e);
+          lastError += ` | Proxy exception: ${e instanceof Error ? e.message : String(e)}`;
         }
       }
 
       // Final fallback if proxy also failed or was skipped
       if (!sheetRes || !sheetRes.ok) {
         if (!Capacitor.isNativePlatform()) {
-          console.log("Web: Attempting direct Google Sheets fallback...");
-          sheetRes = await smartFetch(SHEET_URL);
+          try {
+            console.log("Web: Attempting direct Google Sheets fallback...");
+            sheetRes = await smartFetch(SHEET_URL);
+          } catch (e) {
+             lastError += ` | Web fallback exception: ${e instanceof Error ? e.message : String(e)}`;
+          }
         }
       }
 
       if (!sheetRes || !sheetRes.ok) {
-        const errorMsg = `فشل جلب البيانات. الحالة: ${sheetRes?.status || 'غير معروف'} / المنصة: ${Capacitor.getPlatform()} / الرابط الأساسي: ${API_BASE_URL || 'غير محدد'}`;
+        let errorMsg = `فشل جلب البيانات. المنصة: ${Capacitor.getPlatform()}`;
+        if (Capacitor.isNativePlatform() && !API_BASE_URL) {
+          errorMsg += " | تنبيه: VITE_API_URL غير معرف (مهم للـ APK)";
+        }
+        errorMsg += ` | التفاصيل: ${lastError}`;
         console.error(errorMsg);
         throw new Error(errorMsg);
       }
@@ -1689,7 +1704,10 @@ export default function App() {
       if (sheetRes.ok) {
         const csvText = await sheetRes.text();
         
-        // Robust CSV Parser that handles values with commas and quotes
+        if (!csvText || csvText.length < 10) {
+          throw new Error("ملف البيانات فارغ أو غير متاح حالياً");
+        }
+
         const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
           const result = [];
           let current = "";
@@ -2049,32 +2067,42 @@ export default function App() {
       // 1. Try Google Sheet (via proxy or direct fallback)
       const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
       let response: any = null;
+      let lastError: string = '';
       
       if (Capacitor.isNativePlatform()) {
         try {
           response = await smartFetch(SHEET_URL);
+          if (!response.ok) lastError = `Direct fetch failed (${response.status})`;
         } catch (e) {
-          console.warn("Native direct poultry fetch failed:", e);
+          lastError = `Direct fetch exception: ${e instanceof Error ? e.message : String(e)}`;
         }
       }
 
       if (!response || !response.ok) {
         try {
-          const proxyUrl = API_BASE_URL ? `${API_BASE_URL}/api/market-sheet` : '/api/market-sheet';
+          const proxyUrl = '/api/market-sheet';
           response = await smartFetch(proxyUrl);
+          if (!response.ok) lastError += ` | Proxy failed (${response.status})`;
         } catch (e) {
-          console.warn("Proxy chicken price fetch failed:", e);
+          lastError += ` | Proxy exception: ${e instanceof Error ? e.message : String(e)}`;
         }
       }
 
       if (!response || !response.ok) {
         if (!Capacitor.isNativePlatform()) {
-          response = await smartFetch(SHEET_URL);
+          try {
+            response = await smartFetch(SHEET_URL);
+          } catch (e) {
+            lastError += ` | Web fallback exception: ${e instanceof Error ? e.message : String(e)}`;
+          }
         }
       }
       
       if (response && response.ok) {
         const csvText = await response.text();
+        if (!csvText || csvText.length < 10) {
+          throw new Error("CSV text too short or empty");
+        }
         const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
           const result = [];
           let current = "";
@@ -2528,7 +2556,17 @@ export default function App() {
     const usersDatabase = [
       { user: "mohamed.gemy84@yahoo.com", pass: "250226#@koko" },
       { user: "Moh.gem9898@gmail.com", pass: "25260257" },
-      { user: "smartpoultry1@manager.com", pass: "2026" }
+      { user: "smartpoultry1@manager.com", pass: "2026" },
+      { user: "smartpoultry2@manager.com", pass: "P poultry@2026" },
+      { user: "smartpoultry3@manager.com", pass: "M ngr_P3!78" },
+      { user: "smartpoultry4@manager.com", pass: "S mart#P499" },
+      { user: "smartpoultry5@manager.com", pass: "P ass_5Poultry" },
+      { user: "smartpoultry6@manager.com", pass: "M ngr*6677!" },
+      { user: "smartpoultry7@manager.com", pass: "S poultry_7X" },
+      { user: "smartpoultry8@manager.com", pass: "P @ss8_Smart" },
+      { user: "smartpoultry9@manager.com", pass: "M 9_Manager#" },
+      { user: "smartpoultry10@manager.com", pass: "S P10_Secure!" },
+      { user: "smartpoultry11@manager.com", pass: "M gr_11*Poultry" }
     ];
 
     const userFound = usersDatabase.find(
