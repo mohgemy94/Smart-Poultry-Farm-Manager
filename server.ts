@@ -17,6 +17,7 @@ async function startServer() {
 
   // API Route to fetch poultry price
   app.get("/api/poultry-price", async (req, res) => {
+    console.log(`[API] Fetching poultry price from ${req.ip}`);
     res.setHeader('Content-Type', 'application/json');
     try {
       const sources = [
@@ -51,15 +52,11 @@ async function startServer() {
         /(\d+)\s*جنيه/ 
       ];
 
-      let price: number | null = null;
-      let sourceUsed = "";
-      let matchedPatternIndex = -1;
-
-      for (const url of sources) {
+      // Use a shorter timeout per request and try everything in parallel
+      const fetchWithTimeout = async (url: string) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
-          
           const response = await fetch(url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -71,35 +68,45 @@ async function startServer() {
             signal: controller.signal
           });
           clearTimeout(timeoutId);
+          if (!response.ok) return null;
+          const html = await response.text();
           
-          if (response.ok) {
-            const html = await response.text();
-            
-            for (let i = 0; i < patterns.length; i++) {
-              const match = html.match(patterns[i]);
-              if (match && match[1]) {
-                const parsed = parseInt(match[1]);
-                if (parsed >= 50 && parsed <= 150) { 
-                  price = parsed;
-                  sourceUsed = url;
-                  matchedPatternIndex = i;
-                  break;
-                }
+          for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              const parsed = parseInt(match[1]);
+              if (parsed >= 50 && parsed <= 150) { 
+                return { price: parsed, source: url };
               }
             }
           }
-          if (price) break;
         } catch (e) {
-          console.warn(`Poultry fetch failed for ${url}`);
+          // Ignore individual failures
+        } finally {
+          clearTimeout(timeoutId);
         }
+        return null;
+      };
+
+      // Try top 4 sources in parallel first (they are usually the most reliable)
+      const results = await Promise.all(sources.slice(0, 4).map(fetchWithTimeout));
+      const successfulResult = results.find(r => r !== null);
+      
+      if (successfulResult) {
+        return res.json(successfulResult);
       }
 
-      if (price) {
-        res.json({ price, source: sourceUsed });
-      } else {
-        res.status(404).json({ error: "Poultry price not found" });
+      // If top 4 fail, try the rest
+      const remainingResults = await Promise.all(sources.slice(4).map(fetchWithTimeout));
+      const remainingSuccessfulResult = remainingResults.find(r => r !== null);
+
+      if (remainingSuccessfulResult) {
+        return res.json(remainingSuccessfulResult);
       }
+
+      res.status(404).json({ error: "Poultry price not found" });
     } catch (error) {
+      console.error("[API Error] Poultry price fetch failed:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -172,75 +179,73 @@ async function startServer() {
         /<td>(\d{4})<\/td>.*?<td>21k<\/td>/i
       ];
 
-      let prices = {
-        '21k': 0,
-        '24k': 0,
-        '18k': 0
-      };
-      let sourceUsed = "";
-
-      for (const url of sources) {
+      const fetchGoldWithTimeout = async (url: string) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
-          
           const response = await fetch(url, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
               'Accept-Language': 'ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7',
               'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache',
-              'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-              'Sec-Ch-Ua-Mobile': '?0',
-              'Sec-Ch-Ua-Platform': '"macOS"',
               'Referer': 'https://www.google.com/'
             },
             signal: controller.signal
           });
           clearTimeout(timeoutId);
+          if (!response.ok) return null;
+          const html = await response.text();
           
-          if (response.ok) {
-            const html = await response.text();
-            
-            for (const pattern of patterns21k) {
-              const match = html.match(pattern);
-              if (match && match[1]) {
-                const p21 = parseInt(match[1]);
-                // Sanity check for EGP gold prices (market has been very volatile, allowing 2000-10000 range)
-                if (p21 >= 2000 && p21 <= 10000) {
-                  prices['21k'] = p21;
-                  // Derive others accurately for Cairo market
-                  prices['24k'] = Math.round(p21 * (24/21));
-                  prices['18k'] = Math.round(p21 * (18/21));
-                  sourceUsed = url;
-                  break;
-                }
+          for (const pattern of patterns21k) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              const p21 = parseInt(match[1]);
+              if (p21 >= 2000 && p21 <= 10000) {
+                return {
+                   prices: {
+                     '21k': p21,
+                     '24k': Math.round(p21 * (24/21)),
+                     '18k': Math.round(p21 * (18/21))
+                   },
+                   source: url
+                };
               }
             }
           }
-          if (prices['21k'] > 0) break;
         } catch (e) {
-          // Only warn if it's a primary source or if we're debugging
-          if (url.includes('isagha.com')) {
-            console.warn(`Gold fetch failed for primary source ${url}: ${e instanceof Error ? e.message : 'Error'}`);
-          }
+          // Ignore
+        } finally {
+          clearTimeout(timeoutId);
         }
+        return null;
+      };
+
+      // Try top 3 sources in parallel
+      const results = await Promise.all(sources.slice(0, 3).map(fetchGoldWithTimeout));
+      const successfulResult = results.find(r => r !== null);
+      
+      if (successfulResult) {
+        return res.json(successfulResult);
       }
 
-      if (prices['21k'] > 0) {
-        res.json({ prices, source: sourceUsed });
-      } else {
-        // Fallback to a hardcoded recent price if everything fails (Egyptian market is volatile)
-        // Updated for May 2026 market where 21k is ~6900
-        res.json({ 
-          prices: { '21k': 6900, '24k': 7886, '18k': 5914 }, 
-          source: "fallback",
-          warning: "Real-time data from iSagha headlines used as basis"
-        });
+      // Try the rest
+      const remainingResults = await Promise.all(sources.slice(3).map(fetchGoldWithTimeout));
+      const remainingSuccessfulResult = remainingResults.find(r => r !== null);
+
+      if (remainingSuccessfulResult) {
+        return res.json(remainingSuccessfulResult);
       }
+
+      // Fallback
+      res.json({ 
+        prices: { '21k': 6900, '24k': 7886, '18k': 5914 }, 
+        source: "fallback",
+        note: "Fallback due to live fetch failure"
+      });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch gold prices" });
+      console.error("[API Error] Gold price fetch failed:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

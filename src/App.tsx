@@ -7,7 +7,8 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { 
   BarChart2, 
   Settings, 
-  Droplets, 
+  Droplets,
+  Droplet,
   Wind, 
   Activity, 
   ChevronRight, 
@@ -31,9 +32,12 @@ import {
   Stethoscope,
   LayoutDashboard,
   Clock,
+  CheckCircle,
   CheckCircle2,
   Zap,
   Cpu,
+  ShieldCheck,
+  Database,
   Sparkles,
   Plus,
   Layers,
@@ -70,7 +74,12 @@ import {
   MessageSquare,
   Egg,
   Wheat,
-  Gem
+  Gem,
+  Box,
+  Square,
+  Lock,
+  Sliders,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -94,6 +103,7 @@ import {
   MEDICATIONS, 
   DailyData 
 } from '@/src/lib/data';
+import { EnvironmentalLoadService, EnvironmentalLoadResult } from '@/src/lib/environmentalLoad';
 import { EXPERT_DATABASE, ExpertTip } from '@/src/lib/expertData';
 import { cn } from '@/src/lib/utils';
 import { 
@@ -165,7 +175,7 @@ if (Capacitor.isNativePlatform() && !API_BASE_URL) {
 }
 
 // --- Types ---
-type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
 
 const STRAIN_NAMES: Record<Strain, string> = {
   Cobb: 'كوب',
@@ -205,7 +215,8 @@ const WeatherScreen = ({
   locationName,
   onSearch,
   onRetry,
-  onLocationSelect
+  onLocationSelect,
+  onNavigate
 }: { 
   age: number, 
   thi: number, 
@@ -216,7 +227,8 @@ const WeatherScreen = ({
   locationName: string,
   onSearch: (query: string) => Promise<any[]>,
   onRetry: () => void,
-  onLocationSelect: (lat: number, lon: number, name?: string) => void
+  onLocationSelect: (lat: number, lon: number, name?: string) => void,
+  onNavigate: (screen: Screen) => void
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -294,6 +306,25 @@ const WeatherScreen = ({
       {/* Dynamic Header */}
       <div className="relative z-[100]">
         <div className="flex items-center justify-between px-2 mb-4">
+        <div className="flex items-center gap-2">
+            <button 
+              onClick={() => onNavigate('charts')}
+              className="p-3 rounded-2xl transition-all duration-300 border shadow-lg bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95"
+              title="الإحصائيات"
+            >
+              <BarChart2 size={20} />
+            </button>
+          <button 
+            onClick={onRetry}
+            disabled={loading}
+            className={cn(
+              "p-3 rounded-2xl transition-all duration-300 border shadow-lg bg-slate-900/60 text-blue-400 border-white/5 hover:bg-slate-900",
+              loading && "opacity-50 cursor-not-allowed"
+            )}
+            title="تحديث البيانات"
+          >
+            <RefreshCw size={20} className={cn(loading && "animate-spin")} />
+          </button>
           <button 
             onClick={() => setShowSearch(!showSearch)}
             className={cn(
@@ -303,6 +334,7 @@ const WeatherScreen = ({
           >
             {showSearch ? <X size={20} /> : <Search size={20} />}
           </button>
+        </div>
           <div className="text-right">
             <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
               {locationName}
@@ -589,7 +621,7 @@ const WeatherScreen = ({
   );
 };
 
-const ExpertScreen = ({ age }: { age: number }) => {
+const ExpertScreen = ({ age, onNavigate }: { age: number, onNavigate: (screen: Screen) => void }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'جميع الأقسام' | ExpertTip['category']>('جميع الأقسام');
 
@@ -634,10 +666,19 @@ const ExpertScreen = ({ age }: { age: number }) => {
       className="space-y-6 text-right pb-24"
     >
       <div className="flex flex-col gap-4">
-        <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
-          اسأل الخبير
-          <MessageSquare size={24} className="text-blue-500" />
-        </h2>
+        <div className="flex items-center justify-between">
+           <button 
+             onClick={() => onNavigate('charts')}
+             className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
+             title="الإحصائيات"
+           >
+             <BarChart2 size={20} />
+           </button>
+           <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
+            اسأل الخبير
+            <MessageSquare size={24} className="text-blue-500" />
+           </h2>
+        </div>
         <p className="text-slate-500 font-bold text-sm">قاعدة بيانات شاملة لتربية التسمين في البطاريات (1-35 يوم)</p>
       </div>
 
@@ -762,7 +803,8 @@ const MarketScreen = ({
   prevChickPrices,
   loading,
   error,
-  onRefresh
+  onRefresh,
+  onNavigate
 }: { 
   sellingPrice: number | string, 
   prevSellingPrice: number | string | null,
@@ -780,7 +822,8 @@ const MarketScreen = ({
   prevChickPrices: any[],
   loading: boolean,
   error: string | null,
-  onRefresh: () => void
+  onRefresh: () => void,
+  onNavigate: (screen: Screen) => void
 }) => {
   const [activeTab, setActiveTab] = useState<'chicken' | 'eggs' | 'chicks' | 'feed' | 'gold' | 'currency'>('chicken');
 
@@ -797,7 +840,14 @@ const MarketScreen = ({
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32">
-      <div className="flex justify-start px-2">
+      <div className="flex items-center justify-between px-2">
+        <button 
+          onClick={() => onNavigate('charts')}
+          className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
+          title="الإحصائيات"
+        >
+          <BarChart2 size={20} />
+        </button>
         <button 
           onClick={onRefresh}
           disabled={loading}
@@ -1309,6 +1359,15 @@ interface CoolingPad {
   area: number | string;
 }
 
+interface BatteryGroup {
+  id: string;
+  name: string;
+  length: number | string;
+  width: number | string;
+  tiers: number | string;
+  count: number | string;
+}
+
 interface AppState {
   id: string;
   name: string;
@@ -1352,13 +1411,19 @@ interface AppState {
   barnLength: number | string;
   barnWidth: number | string;
   barnHeight: number | string;
-  batteryLength: number | string;
-  batteryWidth: number | string;
-  batteryTiers: number | string;
+  batteryGroups: BatteryGroup[];
+  batteryLength: number | string; // Deprecated - for backward compatibility
+  batteryWidth: number | string; // Deprecated
+  batteryTiers: number | string; // Deprecated
+  batteriesCount: number | string; // Deprecated
   externalEquipment: boolean;
-  batteryTierCounts?: (number | string)[];
-  dailyBatteryTierCounts?: Record<string, (number | string)[]>;
-  dailyBatteryTierFeed?: Record<string, (number | string)[]>;
+  distributionMode: 'equal' | 'sequential';
+  manuallyActivatedBatteries: Record<string, boolean>; // groupId_bIdx -> boolean
+  batteryTierCounts?: (number | string)[]; // Deprecated
+  dailyBatteryTierCounts?: Record<string, (number | string)[]>; // Deprecated
+  dailyBatteryTierFeed?: Record<string, (number | string)[]>; // Deprecated
+  dailyBatteryGroupTierCounts?: Record<string, Record<string, (number | string)[]>>; // age -> groupId -> tiers
+  dailyBatteryGroupTierFeed?: Record<string, Record<string, (number | string)[]>>; // age -> groupId -> tiers
   // Finance
   chickPrice: number | string;
   feedPrice: number | string;
@@ -1402,6 +1467,9 @@ interface AppState {
   medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number }>;
   dailyInternalTemp?: Record<string, number | string>;
   dailyHumidity?: Record<string, number | string>;
+  environmentalLoadDeltaT?: number | string;
+  environmentalLoadDensity?: number | string;
+  environmentalLoadInsulation?: boolean;
 }
 
 // --- Components ---
@@ -1504,13 +1572,21 @@ const INITIAL_STATE: AppState = {
   barnLength: 100,
   barnWidth: 12,
   barnHeight: 3,
+  batteryGroups: [
+    { id: 'bg-1', name: 'البطارية رقم 1', length: 0.6, width: 0.5, tiers: 3, count: 1 }
+  ],
   batteryLength: 0.6,
   batteryWidth: 0.5,
   batteryTiers: 3,
+  batteriesCount: 1,
   batteryTierCounts: [50, 50, 50],
+  dailyBatteryGroupTierCounts: {},
+  dailyBatteryGroupTierFeed: {},
   dailyBatteryTierCounts: { "1": [50, 50, 50] },
   dailyBatteryTierFeed: {},
   externalEquipment: true,
+  distributionMode: 'sequential',
+  manuallyActivatedBatteries: {},
   lastPriceUpdateAt: '',
   priceSource: '',
   isManualPriceMode: false,
@@ -1531,6 +1607,9 @@ const INITIAL_STATE: AppState = {
   dailyInternalTemp: {},
   dailyHumidity: {},
   otherExpenses: [],
+  environmentalLoadDeltaT: 3,
+  environmentalLoadDensity: 30,
+  environmentalLoadInsulation: false,
   cycleName: '',
   startDate: new Date().toISOString().split('T')[0],
   isManualOverride: false,
@@ -1616,6 +1695,10 @@ export default function App() {
     return { ...INITIAL_STATE, id: crypto.randomUUID() };
   });
 
+  const [activeBatteryGroup, setActiveBatteryGroup] = useState<string | null>(null);
+  const [activeBatteryIdx, setActiveBatteryIdx] = useState<number | null>(null);
+  const [activationCandidate, setActivationCandidate] = useState<{groupId: string, bIdx: number} | null>(null);
+
   const [isNamingNewCycle, setIsNamingNewCycle] = useState(false);
   const [newCycleNameInput, setNewCycleNameInput] = useState('');
   const [prevSellingPrice, setPrevSellingPrice] = useState<number | string | null>(null);
@@ -1633,6 +1716,39 @@ export default function App() {
   const [marketError, setMarketError] = useState<string | null>(null);
 
   const [weather, setWeather] = useState<any>(null);
+
+  const totalBatteryCount = (state.batteryGroups || []).reduce((acc, g) => acc + toNum(g.count), 0);
+  const totalFloorArea = (state.batteryGroups || []).reduce((acc, g) => acc + (toNum(g.length) * toNum(g.width) * toNum(g.count)), 0);
+  const totalBatteryArea = (state.batteryGroups || []).reduce((acc, g) => acc + (toNum(g.length) * toNum(g.width) * toNum(g.tiers) * toNum(g.count)), 0);
+  const maxBatteryTiers = (state.batteryGroups || []).reduce((acc, g) => Math.max(acc, toNum(g.tiers)), 0);
+
+  const totalDistributedBirds = useMemo(() => {
+    const currentAge = String(state.age);
+    const dayData = state.dailyBatteryGroupTierCounts?.[currentAge] || {};
+    return Object.values(dayData).reduce((acc: number, counts: any) => {
+      const tierSum = (counts || []).reduce((sum: number, c: any) => sum + toNum(c), 0);
+      return acc + tierSum;
+    }, 0);
+  }, [state.dailyBatteryGroupTierCounts, state.age]);
+
+  const densityPerM2At = useCallback((age: number) => {
+    return age <= 7 ? 45 :
+           age <= 14 ? 32 :
+           age <= 21 ? 22 :
+           age <= 28 ? 17 :
+           age <= 35 ? 14 : 12;
+  }, []);
+
+  const getRecPerTierAcrossGroups = useCallback((tierIdx: number, age: number, external: boolean) => {
+    const density = densityPerM2At(age);
+    return (state.batteryGroups || []).reduce((acc, g) => {
+      if (toNum(g.tiers) > tierIdx) {
+        const perTier = Math.floor(toNum(g.length) * toNum(g.width) * density * (external ? 1.15 : 1));
+        return acc + (perTier * toNum(g.count));
+      }
+      return acc;
+    }, 0);
+  }, [state.batteryGroups, densityPerM2At]);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [locationName, setLocationName] = useState('جاري التحديد...');
@@ -1975,7 +2091,11 @@ export default function App() {
 
   const handleWeatherRetry = useCallback(() => {
     setWeatherLoading(true);
-    if ("geolocation" in navigator) {
+    setWeatherError(null);
+    
+    if (coords) {
+      fetchWeather(coords.lat, coords.lon, locationName);
+    } else if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           fetchWeather(position.coords.latitude, position.coords.longitude);
@@ -1989,7 +2109,7 @@ export default function App() {
       setWeatherError('المتصفح لا يدعم تحديد الموقع');
       setWeatherLoading(false);
     }
-  }, [fetchWeather]);
+  }, [fetchWeather, coords, locationName]);
 
   const [isLogoutConfirming, setIsLogoutConfirming] = useState(false);
   const [deletingCycleId, setDeletingCycleId] = useState<string | null>(null);
@@ -2161,14 +2281,25 @@ export default function App() {
     // 2. Fallback if sheet fails or data not found
     if (!success) {
       try {
-        const response = await smartFetch(`${API_BASE_URL}/api/poultry-price`, {
+        const fetchUrl = `${API_BASE_URL}/api/poultry-price`;
+        const response = await smartFetch(fetchUrl, {
           headers: {
             'Accept': 'application/json'
           }
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const text = await response.text();
+          if (text.trim().startsWith('<')) {
+            throw new Error("Server returned HTML instead of JSON (possibly a 404 fallback)");
+          }
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error("Invalid JSON format in price response");
+          }
+          
           if (data.price) {
             price = data.price;
             source = data.source || "بورصة الدواجن (احتياطي)";
@@ -2478,6 +2609,22 @@ export default function App() {
 
   // Removed Google Drive Backup Logic to make room for Firebase Auth
 
+  const confirmActivation = () => {
+    if (activationCandidate) {
+      const { groupId, bIdx } = activationCandidate;
+      const bKey = `${groupId}_${bIdx}`;
+      setState(prev => ({
+        ...prev,
+        manuallyActivatedBatteries: {
+          ...prev.manuallyActivatedBatteries,
+          [bKey]: true
+        }
+      }));
+      setActiveBatteryIdx(bIdx);
+      setActivationCandidate(null);
+    }
+  };
+
   useEffect(() => {
     if (isAutoSave) {
       localStorage.setItem('poultry_app_all_cycles', JSON.stringify(allCycles));
@@ -2764,14 +2911,6 @@ export default function App() {
     }
   };
   const autoDistributeTiers = useCallback((total: number, tiers: number, length: number, width: number, age: number, external: boolean) => {
-    const densityPerM2 = 
-      age <= 7 ? 45 :
-      age <= 14 ? 32 :
-      age <= 21 ? 22 :
-      age <= 28 ? 17 :
-      age <= 35 ? 14 : 12;
-    
-    const recPerTier = Math.floor(length * width * densityPerM2 * (external ? 1.15 : 1));
     const n = toNum(tiers);
     if (n <= 0) return [];
 
@@ -2789,7 +2928,8 @@ export default function App() {
     
     // Fill up to recommendation starting from middle
     for (const idx of sequence) {
-      const space = Math.min(remaining, recPerTier);
+      const rec = getRecPerTierAcrossGroups(idx, age, external);
+      const space = Math.min(remaining, rec);
       counts[idx] = space;
       remaining -= space;
     }
@@ -2806,29 +2946,110 @@ export default function App() {
     }
     
     return counts;
-  }, []);
+  }, [getRecPerTierAcrossGroups]);
+
+  const autoDistributeByGroup = useCallback((totalToDistribute: number, age: number, external: boolean) => {
+    const groups = state.batteryGroups || [];
+    if (groups.length === 0) return {};
+
+    const density = 
+      age <= 7 ? 45 :
+      age <= 14 ? 32 :
+      age <= 21 ? 22 :
+      age <= 28 ? 17 :
+      age <= 35 ? 14 : 12;
+
+    const multiplier = external ? 1.15 : 1;
+    
+    interface TierCap {
+      groupId: string;
+      batteryIdx: number;
+      tierIdx: number;
+      capacity: number;
+    }
+
+    const tierCapacities: TierCap[] = [];
+    groups.forEach(group => {
+      const gCap = toNum(group.length) * toNum(group.width) * density * multiplier;
+      const count = toNum(group.count);
+      const tiers = toNum(group.tiers);
+      for (let b = 0; b < count; b++) {
+        for (let t = 0; t < tiers; t++) {
+          tierCapacities.push({ groupId: group.id, batteryIdx: b, tierIdx: t, capacity: gCap });
+        }
+      }
+    });
+
+    const totalCapacity = tierCapacities.reduce((acc, tc) => acc + tc.capacity, 0);
+    const newGroupTierCounts: Record<string, (number | string)[]> = {};
+
+    // Initialize all buckets
+    tierCapacities.forEach(tc => {
+      const key = `${tc.groupId}_${tc.batteryIdx}`;
+      if (!newGroupTierCounts[key]) {
+        const tiers = toNum(groups.find(g => g.id === tc.groupId)?.tiers || 0);
+        newGroupTierCounts[key] = new Array(tiers).fill(0);
+      }
+    });
+
+    let remaining = toNum(totalToDistribute);
+    
+    if (state.distributionMode === 'sequential') {
+      // Sequential distribution: Fill each tier completely before moving to the next
+      for (let i = 0; i < tierCapacities.length && remaining > 0; i++) {
+        const tc = tierCapacities[i];
+        const key = `${tc.groupId}_${tc.batteryIdx}`;
+        const amount = Math.min(remaining, Math.floor(tc.capacity));
+        newGroupTierCounts[key][tc.tierIdx] = amount;
+        remaining -= amount;
+      }
+    } else {
+      // Equal distribution logic (as requested before)
+      if (totalCapacity > 0) {
+         tierCapacities.forEach(tc => {
+           const proportion = tc.capacity / totalCapacity;
+           const share = Math.min(tc.capacity, Math.floor(toNum(totalToDistribute) * proportion));
+           const key = `${tc.groupId}_${tc.batteryIdx}`;
+           newGroupTierCounts[key][tc.tierIdx] = share;
+           remaining -= share;
+         });
+      }
+
+      if (remaining > 0 && tierCapacities.length > 0) {
+        for (let i = 0; i < tierCapacities.length && remaining > 0; i++) {
+          const tc = tierCapacities[i];
+          const key = `${tc.groupId}_${tc.batteryIdx}`;
+          const currentCount = toNum(newGroupTierCounts[key][tc.tierIdx]);
+          const available = tc.capacity - currentCount;
+          const toAdd = Math.min(remaining, available);
+          if (toAdd > 0) {
+            newGroupTierCounts[key][tc.tierIdx] = currentCount + toAdd;
+            remaining -= toAdd;
+          }
+        }
+      }
+    }
+
+    return newGroupTierCounts;
+  }, [state.batteryGroups, state.distributionMode]);
 
   // Auto-fill distribution if missing for current age
   useEffect(() => {
-    if (screen === 'battery' && !state.dailyBatteryTierCounts?.[String(state.age)]) {
-      const distributed = autoDistributeTiers(
-        toNum(state.totalChicks),
-        toNum(state.batteryTiers),
-        toNum(state.batteryLength),
-        toNum(state.batteryWidth),
-        toNum(state.age),
-        state.externalEquipment
-      );
-      
+    const chicksNum = toNum(state.totalChicks);
+    const distributed = autoDistributeByGroup(chicksNum, toNum(state.age), state.externalEquipment);
+    const currentDay = String(state.age);
+    const currentDist = state.dailyBatteryGroupTierCounts?.[currentDay];
+
+    if (JSON.stringify(currentDist) !== JSON.stringify(distributed)) {
       setState(prev => ({
         ...prev,
-        dailyBatteryTierCounts: {
-          ...(prev.dailyBatteryTierCounts || {}),
-          [String(prev.age)]: distributed
+        dailyBatteryGroupTierCounts: {
+          ...(prev.dailyBatteryGroupTierCounts || {}),
+          [currentDay]: distributed
         }
       }));
     }
-  }, [screen, state.age, state.totalChicks, state.batteryTiers, state.batteryLength, state.batteryWidth, state.externalEquipment, autoDistributeTiers]);
+  }, [state.totalChicks, state.distributionMode, state.batteryGroups, state.age, state.externalEquipment, autoDistributeByGroup]);
 
   const [openMedDropdown, setOpenMedDropdown] = React.useState<string | null>(null);
 
@@ -3116,6 +3337,21 @@ export default function App() {
     };
   }, [state.mortalityBills, state.totalChicks, state.strain, dailyStats.cumFeed, dailyStats.weight, state.feedPrice, state.chickPrice, state.sellingPrice, state.salesRecords, allBills, calculateMortalityOverhead]);
 
+  const currentAgeStr = String(state.age);
+  const targetTemp = getTargetTemperature(toNum(state.age));
+
+  const environmentalLoad = useMemo(() => {
+    return EnvironmentalLoadService.calculate({
+      weightKg: dailyStats.weight / 1000,
+      birdsCount: finances.birdsAlive,
+      temperatureC: toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp),
+      deltaT: toNum(state.environmentalLoadDeltaT || 3),
+      targetTemp: targetTemp,
+      densityKgM2: toNum(state.environmentalLoadDensity || 30),
+      poorInsulation: state.environmentalLoadInsulation || false,
+    });
+  }, [dailyStats.weight, finances.birdsAlive, state.dailyInternalTemp, currentAgeStr, state.internalTemp, state.environmentalLoadDeltaT, targetTemp, state.environmentalLoadDensity, state.environmentalLoadInsulation]);
+
   const climateInfo = CLIMATE_FACTORS[state.climate];
 
   // Derived Calculations
@@ -3124,8 +3360,9 @@ export default function App() {
   const dailyWaterTotal = (dailyFeedTotal * (climateInfo?.waterFactor || 1.8)); // Standard water/feed ratio
   const dailyWaterTotalLiters = Math.round((toNum(state.totalChicks) * dailyStats.dailyWater * ((climateInfo?.waterFactor || 1.8) / 1.8)) / 1000); // Adjusted for climate
   
-  const targetTemp = getTargetTemperature(toNum(state.age));
-
+  const totalBatteries = state.batteryGroups.reduce((acc, g) => acc + toNum(g.count), 0);
+  const waterPerBattery = totalBatteries > 0 ? (dailyWaterTotalLiters / totalBatteries).toFixed(1) : dailyWaterTotalLiters;
+  
   const formatArabicTime = (date: Date, referenceDate?: Date) => {
     const h = date.getHours();
     const m = date.getMinutes().toString().padStart(2, '0');
@@ -3865,7 +4102,6 @@ export default function App() {
   const maxFans = maxVentilation / totalActiveCapacity;
 
   // Diagnostic Calculations
-  const currentAgeStr = String(state.age);
   const effectiveTemp = state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp;
   const effectiveRH = state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity;
 
@@ -3929,12 +4165,11 @@ export default function App() {
       // Cumulative feed up to today (projected)
       const cumulativeFeed = Array.from({ length: day }, (_, idx) => getDailyStats(state.strain, idx + 1).dailyFeed).reduce((s, f) => s + f, 0);
       
-      // Calculate FCR (Feed Conversion Ratio)
-      // Standard Weight starts at ~42g (chick weight)
-      const weightGain = projectedWeight - 42; 
-      const fcr = weightGain > 0 ? (cumulativeFeed / weightGain) : 0;
-      const standardWeightGain = stats.weight - 42;
-      const standardFcr = standardWeightGain > 0 ? (stats.cumFeed / standardWeightGain) : 0;
+      // Calculate FCR (Feed Conversion Ratio) - Using Live Weight as denominator per user request
+      const liveWeight = projectedWeight;
+      const fcr = liveWeight > 0 ? (cumulativeFeed / liveWeight) : 0;
+      const standardLiveWeight = stats.weight;
+      const standardFcr = standardLiveWeight > 0 ? (stats.cumFeed / standardLiveWeight) : 0;
 
       // European Production Efficiency Factor (EPEF)
       // EPEF = [(Survival % * Live Weight kg) / (Age days * FCR)] * 100
@@ -4026,9 +4261,60 @@ export default function App() {
   // Show Loading Screen if Auth is still checking
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-        <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
-        <p className="text-slate-400 font-bold tracking-widest animate-pulse">جاري التحميل...</p>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-8 p-6" dir="rtl">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
+          <p className="text-slate-400 font-black tracking-[0.2em] animate-pulse text-center uppercase text-sm">جاري التحميل والتحقق...</p>
+        </div>
+        
+        <div className="w-full max-w-xs space-y-4 pt-8 border-t border-white/5">
+          <div className="text-center space-y-1 mb-4">
+            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">أدوات النسخ الاحتياطي السريع</h4>
+            <p className="text-[9px] text-slate-600 font-bold">يمكنك حفظ أو استعادة بياناتك حتى أثناء التحميل</p>
+          </div>
+          
+          <button 
+            onClick={exportBackup}
+            className="w-full bg-purple-500/10 text-purple-400 border border-purple-500/20 py-4 rounded-2xl font-black text-xs shadow-lg hover:bg-purple-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+          >
+            <Download size={18} />
+            تنزيل ملف النسخة (JSON)
+          </button>
+          
+          <label className="w-full bg-amber-500/10 text-amber-400 border border-amber-500/20 py-4 rounded-2xl font-black text-xs shadow-lg hover:bg-amber-500/20 transition-all text-center cursor-pointer flex items-center justify-center gap-3 active:scale-[0.98]">
+            <Upload size={18} />
+            استرداد نسخة من الموبايل
+            <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+          </label>
+        </div>
+
+        <div className="w-full max-w-xs space-y-4">
+          <div className="text-center space-y-1 mb-2">
+            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">خدمات Google Drive السحابية</h4>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={uploadToDrive}
+              disabled={isDriveLoading}
+              className="bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black text-[10px] shadow-lg hover:bg-blue-600/30 transition-all flex flex-col items-center justify-center gap-2 active:scale-[0.95] disabled:opacity-50"
+            >
+              {isDriveLoading ? <RefreshCw size={18} className="animate-spin" /> : <Cloud size={18} />}
+              رفع للسحاب
+            </button>
+            
+            <button 
+              onClick={restoreFromDrive}
+              disabled={isDriveLoading}
+              className="bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 py-4 rounded-2xl font-black text-[10px] shadow-lg hover:bg-cyan-600/30 transition-all flex flex-col items-center justify-center gap-2 active:scale-[0.95] disabled:opacity-50"
+            >
+              {isDriveLoading ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
+              استعادة سحابية
+            </button>
+          </div>
+        </div>
+
+        <p className="absolute bottom-8 text-[9px] font-black text-slate-700 tracking-[0.3em] uppercase">Poultry Manager Smart System</p>
       </div>
     );
   }
@@ -4712,6 +4998,44 @@ export default function App() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">نمط توزيع الطيور</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setState(prev => ({ ...prev, distributionMode: 'sequential' }))}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                      state.distributionMode === 'sequential' 
+                        ? "bg-purple-600/20 border-purple-600 text-white" 
+                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                       <Zap size={14} className={state.distributionMode === 'sequential' ? "text-purple-400" : "text-slate-600"} fill="currentColor" />
+                       <span className="font-black text-[11px]">متسلسل (تحضين)</span>
+                    </div>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight">ملأ البطاريات بالترتيب لتوفير التدفئة.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setState(prev => ({ ...prev, distributionMode: 'equal' }))}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                      state.distributionMode === 'equal' 
+                        ? "bg-emerald-600/20 border-emerald-600 text-white" 
+                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                       <Activity size={14} className={state.distributionMode === 'equal' ? "text-emerald-400" : "text-slate-600"} />
+                       <span className="font-black text-[11px]">متساوي (توسعة)</span>
+                    </div>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight">توزيع متوازن لتحسين التهوية والنمو.</p>
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">مدة الدورة المتوقعة (يوم)</label>
                 <div className="flex items-center gap-6">
                   <input 
@@ -4862,7 +5186,19 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">الحرارة الخارجية (°م)</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">الحرارة الخارجية (°م)</label>
+                  {weather?.current_weather && (
+                    <button 
+                      type="button"
+                      onClick={() => setState(prev => ({ ...prev, externalTemp: Math.round(weather.current_weather.temperature) }))}
+                      className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[9px] font-black hover:bg-blue-500/20 transition-all active:scale-95"
+                    >
+                      <CloudSun size={10} />
+                      تحديث من الطقس ({Math.round(weather.current_weather.temperature)}°)
+                    </button>
+                  )}
+                </div>
                 <input 
                   type="text"
                   inputMode="decimal"
@@ -4950,77 +5286,196 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 text-right">مساحة الدور الواحد في البطارية (متر)</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">الطول (العمق)</span>
-                    <input 
-                      type="text"
-                      inputMode="decimal"
-                      value={state.batteryLength ?? ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                          setState(prev => ({ ...prev, batteryLength: val }));
-                        }
-                      }}
-                      className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-md text-center transition-all"
-                      placeholder="0.6"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">العرض (الواجهة)</span>
-                    <input 
-                      type="text"
-                      inputMode="decimal"
-                      value={state.batteryWidth ?? ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                          setState(prev => ({ ...prev, batteryWidth: val }));
-                        }
-                      }}
-                      className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-md text-center transition-all"
-                      placeholder="0.5"
-                    />
-                  </div>
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const newId = `bg-${Date.now()}`;
+                      setState(prev => ({
+                        ...prev,
+                        batteryGroups: [
+                          ...(prev.batteryGroups || []),
+                          { id: newId, name: `مجموعة ${prev.batteryGroups.length + 1}`, length: 0.6, width: 0.5, tiers: 3, count: 1 }
+                        ]
+                      }));
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black hover:bg-emerald-500/20 transition-all active:scale-95"
+                  >
+                    <Plus size={14} />
+                    إضافة مجموعة بطاريات
+                  </button>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">مواصفات البطاريات</label>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 text-right">عدد أدوار (طوابق) البطارية</label>
-                <div className="flex items-center gap-6">
-                  <input 
-                    type="range"
-                    min="1"
-                    max="6"
-                    value={state.batteryTiers ?? 3}
-                    onChange={e => {
-                      const tiers = parseInt(e.target.value);
-                      setState(prev => {
-                        const newTierCounts = [...(prev.batteryTierCounts || [])];
-                        if (newTierCounts.length < tiers) {
-                          for (let i = newTierCounts.length; i < tiers; i++) {
-                            newTierCounts.push(Math.floor(toNum(prev.totalChicks) / tiers));
-                          }
-                        } else if (newTierCounts.length > tiers) {
-                          newTierCounts.splice(tiers);
-                        }
-                        return { ...prev, batteryTiers: tiers, batteryTierCounts: newTierCounts };
-                      });
-                    }}
-                    style={{
-                      background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(state.batteryTiers ?? 3)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(state.batteryTiers ?? 3)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
-                    }}
-                    className="flex-1 appearance-none h-2 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(147,51,234,0.3)] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-slate-900 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-slate-900 shadow-inner"
-                  />
-                  <span className="bg-purple-600 text-white font-black px-4 py-2 rounded-xl text-lg min-w-[3.5rem] text-center shadow-lg shadow-purple-500/20">{state.batteryTiers}</span>
-                </div>
+                {(state.batteryGroups || []).map((group, idx) => (
+                  <div key={group.id} className="bg-slate-900/40 border border-white/5 rounded-3xl p-5 space-y-4 relative group">
+                    <div className="flex items-center justify-between">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (state.batteryGroups.length <= 1) return;
+                          setState(prev => ({
+                            ...prev,
+                            batteryGroups: prev.batteryGroups.filter(g => g.id !== group.id)
+                          }));
+                        }}
+                        className="text-red-500/50 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">المجموعة {idx + 1}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Group Count */}
+                      <div className="col-span-2">
+                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2 text-right">عدد البطاريات في هذه المجموعة</label>
+                        <div className="flex items-center gap-3 bg-slate-950/80 p-1.5 rounded-3xl border-2 border-white/5 shadow-inner">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const current = parseInt(String(group.count)) || 1;
+                              const newCount = Math.max(1, current - 1);
+                              setState(prev => ({
+                                ...prev,
+                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
+                              }));
+                            }}
+                            className="w-12 h-12 bg-slate-800 text-white rounded-2xl flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-90 border border-white/5 shadow-lg"
+                          >
+                            <Minus size={20} strokeWidth={3} />
+                          </button>
+                          <div className="flex-1 flex flex-col items-center justify-center">
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              value={group.count}
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                setState(prev => ({
+                                  ...prev,
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: val } : g)
+                                }));
+                              }}
+                              className="w-full bg-transparent border-none text-center font-black text-2xl text-white focus:ring-0 p-0 leading-none"
+                            />
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-0.5">وحدة</span>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const current = parseInt(String(group.count)) || 1;
+                              const newCount = current + 1;
+                              setState(prev => ({
+                                ...prev,
+                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
+                              }));
+                            }}
+                            className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-600/30 border border-white/10"
+                          >
+                            <Plus size={20} strokeWidth={3} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Dimensions */}
+                      <div>
+                        <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">الطول (م)</span>
+                        <input 
+                          type="text"
+                          inputMode="decimal"
+                          value={group.length}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                              setState(prev => ({
+                                ...prev,
+                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, length: val } : g)
+                              }));
+                            }
+                          }}
+                          className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
+                          placeholder="0.6"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">العرض (م)</span>
+                        <input 
+                          type="text"
+                          inputMode="decimal"
+                          value={group.width}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                              setState(prev => ({
+                                ...prev,
+                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, width: val } : g)
+                              }));
+                            }
+                          }}
+                          className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
+                          placeholder="0.5"
+                        />
+                      </div>
+
+                      {/* Tiers */}
+                      <div className="col-span-2 space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[9px] font-black text-slate-600 uppercase">عدد الأدوار: {group.tiers}</span>
+                          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest text-right">طوابق البطارية</span>
+                        </div>
+                        <div className="flex items-center gap-4 bg-slate-950/50 p-2 rounded-2xl border border-white/5">
+                          <input 
+                            type="range"
+                            min="1"
+                            max="6"
+                            value={group.tiers}
+                            onChange={e => {
+                              const tiers = parseInt(e.target.value);
+                              setState(prev => ({
+                                ...prev,
+                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, tiers } : g)
+                              }));
+                            }}
+                            style={{
+                              background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
+                            }}
+                            className="flex-1 appearance-none h-1.5 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <button 
                 type="submit"
+                onClick={() => {
+                  // Sync legacy fields with the primary group for compatibility
+                  const primary = state.batteryGroups[0];
+                  if (primary) {
+                    const tiers = Number(primary.tiers);
+                    const newTierCounts = [...(state.batteryTierCounts || [])];
+                    if (newTierCounts.length < tiers) {
+                      for (let i = newTierCounts.length; i < tiers; i++) {
+                        newTierCounts.push(Math.floor(toNum(state.totalChicks) / tiers));
+                      }
+                    } else if (newTierCounts.length > tiers) {
+                      newTierCounts.splice(tiers);
+                    }
+                    
+                    setState(prev => ({
+                      ...prev,
+                      batteryLength: primary.length,
+                      batteryWidth: primary.width,
+                      batteryTiers: tiers,
+                      batteriesCount: primary.count,
+                      batteryTierCounts: newTierCounts
+                    }));
+                  }
+                }}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-widest"
               >
                 بدء الدورة
@@ -5171,12 +5626,21 @@ export default function App() {
                   </div>
                   <h2 className="text-2xl font-black text-white tracking-tight">النسخ الاحتياطي والبيانات</h2>
                 </div>
-                <button 
-                  onClick={() => setScreen('landing')}
-                  className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 hover:bg-purple-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-purple-500/10"
+                    title="الإحصائيات"
+                  >
+                    <BarChart2 size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setScreen('landing')}
+                    className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </header>
 
               <div className="space-y-6">
@@ -5456,11 +5920,20 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.98 }}
               className="space-y-6 pb-20"
             >
-              <header className="flex items-center gap-3 px-2 mb-2">
-                <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center text-emerald-500 shadow-inner">
-                  <Wallet size={24} />
+              <header className="flex items-center justify-between px-2 mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center text-emerald-500 shadow-inner">
+                    <Wallet size={24} />
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">الإدارة المالية</h2>
                 </div>
-                <h2 className="text-2xl font-black text-white tracking-tight">الإدارة المالية</h2>
+                <button 
+                  onClick={() => setScreen('charts')}
+                  className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
+                  title="الإحصائيات"
+                >
+                  <BarChart2 size={20} />
+                </button>
               </header>
 
               {/* Input Prices Card */}
@@ -6055,7 +6528,36 @@ export default function App() {
         )}
 
           {screen === 'dashboard' && (
-            <div className="space-y-6">
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              className="space-y-6 pb-24"
+            >
+              <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
+                <div className="flex items-center gap-4 px-4 sm:px-6">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                    <LayoutDashboard size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white tracking-tight leading-none">لوحة التحكم</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5 grayscale opacity-70">
+                      نظرة عامة على أداء القطيع
+                    </p>
+                  </div>
+                </div>
+                <div className="px-4 sm:px-6">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-blue-500/10"
+                    title="الإحصائيات"
+                  >
+                    <BarChart2 size={20} />
+                  </button>
+                </div>
+              </header>
+
               <div className="grid grid-cols-2 gap-4">
                 <Stat 
                   label="إجمالي العلف" 
@@ -6134,7 +6636,10 @@ export default function App() {
 
               {/* KPI Quick View */}
               <div className="grid grid-cols-2 gap-4">
-                <Card className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden">
+                <Card 
+                  onClick={() => setScreen('charts')}
+                  className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden cursor-pointer hover:bg-slate-900/60 transition-all active:scale-95"
+                >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
                       <TrendingUp size={20} />
@@ -6160,7 +6665,10 @@ export default function App() {
                   </div>
                 </Card>
 
-                <Card className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden">
+                <Card 
+                  onClick={() => setScreen('charts')}
+                  className="p-6 bg-slate-900/40 border-slate-800 relative group overflow-hidden cursor-pointer hover:bg-slate-900/60 transition-all active:scale-95"
+                >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                       <Zap size={20} />
@@ -6409,25 +6917,33 @@ export default function App() {
                 </div>
               </Card>
 
-              <Card className="bg-slate-900/40 border-slate-800 overflow-hidden relative group text-right">
+              <Card className="bg-slate-900/40 border-slate-800 p-8 overflow-hidden relative group text-right">
                 <div className="absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
                   <Wind size={80} />
                 </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-6 opacity-60">
-                    <Wind size={16} className="text-blue-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">إجمالي الاحتياج</span>
+                <div className="relative z-10 w-full space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <Wind size={12} className="text-emerald-400" />
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">التهوية اللازمة (للحرارة)</span>
+                    </div>
+                    <span className="text-sm font-black text-white tabular-nums">{Math.round(environmentalLoad.requiredAirflow).toLocaleString()} م³/س</span>
                   </div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-5xl font-black tracking-tighter text-white">{minVentilation.toLocaleString()}</span>
-                    <span className="text-slate-500 font-black text-sm uppercase">م³/ساعة</span>
+                  
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <Wind size={12} className="text-blue-400" />
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">التهوية الدنيا (للطيور)</span>
+                    </div>
+                    <span className="text-sm font-black text-white tabular-nums">{minVentilation.toLocaleString()} م³/س</span>
                   </div>
+
                   <div className="mt-8 flex gap-2">
                     <div className="bg-emerald-500/10 text-emerald-400 text-[9px] font-black px-3 py-1.5 rounded-lg border border-emerald-500/20 uppercase tracking-widest">حمولة اللحم: {Math.round(herdBiomass).toLocaleString()} كجم</div>
                   </div>
                 </div>
               </Card>
-            </div>
+            </motion.div>
           )}
 
           {screen === 'battery' && (
@@ -6439,387 +6955,597 @@ export default function App() {
               className="space-y-6"
             >
               <div className="flex items-center justify-between px-2">
-                <div className="flex flex-col">
-                  <h2 className="text-2xl font-black text-white tracking-tight">توزيع البطاريات</h2>
-                  <p className="text-slate-500 text-xs font-bold">إدارة كثافة التسكين لكل دور</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const distributed = autoDistributeTiers(
-                        toNum(state.totalChicks),
-                        toNum(state.batteryTiers),
-                        toNum(state.batteryLength),
-                        toNum(state.batteryWidth),
-                        toNum(state.age),
-                        state.externalEquipment
-                      );
-                      setState(prev => ({
-                        ...prev,
-                        dailyBatteryTierCounts: {
-                          ...(prev.dailyBatteryTierCounts || {}),
-                          [String(prev.age)]: distributed
-                        }
-                      }));
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition-all border border-purple-500/20 text-[10px] font-black uppercase tracking-widest"
-                  >
-                    <RefreshCw size={14} />
-                    توزيع تلقائي
-                  </button>
-                  <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20 text-purple-400">
-                    <Layers size={24} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
-                    <Scale size={14} className="text-purple-400" />
-                    أبعاد ومساحة الدور
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[10px] font-bold text-slate-500">مساحة الدور</p>
-                      <h4 className="text-lg font-black text-white">
-                        {(toNum(state.batteryLength) * toNum(state.batteryWidth)).toFixed(2)} م²
-                      </h4>
-                    </div>
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-[10px] font-bold text-slate-500">الأبعاد (ط×ع)</p>
-                      <h4 className="text-lg font-black text-slate-300">
-                        {state.batteryLength} × {state.batteryWidth} م
-                      </h4>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
-                    <Calendar size={14} className="text-purple-400" />
-                    معلومات القطيع
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[10px] font-bold text-slate-500">العمر الحالي</p>
-                      <h4 className="text-lg font-black text-white">{state.age} يوم</h4>
-                    </div>
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-[10px] font-bold text-slate-500">السلالة</p>
-                      <h4 className="text-lg font-black text-slate-300">{STRAIN_NAMES[state.strain]}</h4>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Detailed Distribution Chart */}
-              <Card className="p-6 bg-slate-900/60 border-white/5 backdrop-blur-xl">
-                 <div className="flex items-center justify-between mb-8">
-                    <div className="flex flex-col">
-                       <h3 className="text-lg font-black text-white tracking-tight">رسم توضيحي للتوزيع</h3>
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">توزيع الكثافة حسب الأدوار</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5">
-                        <Thermometer size={14} className="text-red-400" />
-                        <span className="text-[10px] font-black text-slate-300">موصى به: {targetTemp}°م</span>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    {(() => {
-                        const currentAge = String(state.age);
-                        const days = Object.keys(state.dailyBatteryTierCounts || {}).map(Number).sort((a, b) => b - a);
-                        const lastDay = days.find(d => d <= toNum(state.age));
-                        const currentDayCounts = lastDay ? state.dailyBatteryTierCounts![String(lastDay)] : (state.batteryTierCounts || []);
-                        const totalChicks = toNum(state.totalChicks) || 1;
-
-                        const tierConfig = [
-                            { name: 'الدور العلوي', color: 'orange', text: 'text-orange-400', bg: 'bg-orange-500', barBg: 'bg-orange-500/20' },
-                            { name: 'الدور الأوسط', color: 'emerald', text: 'text-emerald-400', bg: 'bg-emerald-500', barBg: 'bg-emerald-500/20' },
-                            { name: 'الدور السفلي', color: 'sky', text: 'text-sky-400', bg: 'bg-sky-400', barBg: 'bg-sky-400/20' }
-                        ];
-
-                        return Array.from({ length: toNum(state.batteryTiers) }).map((_, idx) => {
-                            const count = toNum(currentDayCounts[idx] || 0);
-                            const percent = Math.round((count / totalChicks) * 100);
-                            const config = tierConfig[idx % 3] || { name: `دور ${idx + 1}`, text: 'text-slate-400', bg: 'bg-slate-500', barBg: 'bg-slate-500/20' };
-
-                            return (
-                                <div key={idx} className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className={cn("w-2 h-2 rounded-full", config.bg)} />
-                                            <span className={cn("text-xs font-black", config.text)}>{config.name}</span>
-                                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
-                                                <Thermometer size={10} className="text-red-400" />
-                                                <span>{targetTemp}°م</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg">{percent}%</span>
-                                            <span className="text-xs font-black text-white">{count.toLocaleString()} طائر</span>
-                                        </div>
-                                    </div>
-                                    <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                                        <motion.div 
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${percent}%` }}
-                                            className={cn("h-full transition-all duration-1000", config.bg)}
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        });
-                    })()}
-                 </div>
-              </Card>
-
-              <Card className="p-6 bg-slate-900/60 border-white/5 backdrop-blur-xl">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between bg-slate-950/50 p-4 rounded-2xl border border-white/5">
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">إجمالي الطيور</p>
-                      <h3 className="text-xl font-black text-white">{toNum(state.totalChicks).toLocaleString()} طائر</h3>
-                    </div>
-                    <div className="h-10 w-[1px] bg-white/5" />
-                    <div className="text-left">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">عدد الأدوار</p>
-                      <h3 className="text-xl font-black text-purple-400">{state.batteryTiers} أدوار</h3>
-                    </div>
-                  </div>
-
-                  {/* خيار المعدات الخارجية */}
-                  <button 
-                    onClick={() => setState(prev => ({ ...prev, externalEquipment: !prev.externalEquipment }))}
-                    className={cn(
-                      "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300",
-                      state.externalEquipment 
-                        ? "bg-purple-600/10 border-purple-600 shadow-lg shadow-purple-500/10" 
-                        : "bg-slate-950/50 border-white/5 hover:border-white/10"
+                <div className="flex flex-col text-right">
+                  <div className="flex items-center gap-2">
+                    {activeBatteryGroup && (
+                      <button 
+                        onClick={() => {
+                          if (activeBatteryIdx !== null) {
+                            setActiveBatteryIdx(null);
+                          } else {
+                            setActiveBatteryGroup(null);
+                          }
+                        }}
+                        className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 transition-all ml-1"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
                     )}
+                    <h2 className="text-2xl font-black text-white tracking-tight">البطاريات</h2>
+                  </div>
+                  <p className="text-slate-500 text-xs font-bold mt-1">
+                    {!activeBatteryGroup ? 'إدارة مجموعات البطاريات' : (activeBatteryIdx === null ? 'إدارة الوحدات الفردية' : 'توزيع الطيور وإدارة الأدوار')}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 hover:bg-purple-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-purple-500/10"
+                    title="الإحصائيات"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                        state.externalEquipment ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-500"
-                      )}>
-                        <Package size={20} />
-                      </div>
-                      <div className="text-right">
-                        <h4 className="text-sm font-black text-white">علافات خارجية + نبل معلق</h4>
-                        <p className="text-[10px] text-slate-500 font-bold">تفعيل زيادة سعة 15% للمعدات الخارجية</p>
-                      </div>
-                    </div>
-                    <div className={cn(
-                      "w-10 h-6 rounded-full relative transition-colors duration-300",
-                      state.externalEquipment ? "bg-purple-600" : "bg-slate-800"
-                    )}>
-                      <div className={cn(
-                        "absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300",
-                        state.externalEquipment ? "right-1" : "right-5"
-                      )} />
-                    </div>
+                    <BarChart2 size={20} />
                   </button>
+                  <div className="flex bg-slate-950/50 p-1 rounded-2xl border border-white/5 order-2 sm:order-1 w-full sm:w-auto">
+                    <button 
+                      onClick={() => setState(prev => ({ ...prev, distributionMode: 'sequential' }))}
+                      className={cn(
+                        "px-3 py-2 rounded-xl text-[9px] font-black transition-all uppercase tracking-widest flex-1 sm:flex-none",
+                        state.distributionMode === 'sequential' ? "bg-purple-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                      )}
+                    >
+                      توزيع متسلسل
+                    </button>
+                    <button 
+                      onClick={() => setState(prev => ({ ...prev, distributionMode: 'equal' }))}
+                      className={cn(
+                        "px-3 py-2 rounded-xl text-[9px] font-black transition-all uppercase tracking-widest flex-1 sm:flex-none",
+                        state.distributionMode === 'equal' ? "bg-purple-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                      )}
+                    >
+                      توزيع متساوي
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto">
+                    <button 
+                      onClick={() => {
+                          const chicksNum = toNum(state.totalChicks);
+                          const distributed = autoDistributeByGroup(
+                            chicksNum,
+                            toNum(state.age),
+                            state.externalEquipment
+                          );
+                          setState(prev => ({
+                            ...prev,
+                            dailyBatteryGroupTierCounts: {
+                              ...(prev.dailyBatteryGroupTierCounts || {}),
+                              [String(prev.age)]: distributed
+                            }
+                          }));
+                        }}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition-all border border-purple-500/20 text-[10px] font-black uppercase tracking-widest"
+                      >
+                        <RefreshCw size={14} />
+                        تعبئة تلقائية للكل
+                      </button>
+                      {activeBatteryGroup && (
+                        <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20 text-purple-400">
+                          <Layers size={21} />
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
 
-                  <div className="grid gap-4">
-                    {Array.from({ length: toNum(state.batteryTiers) }).map((_, idx) => {
-                      const currentAge = String(state.age);
-                      // Get counts for current day, or fallback to the most recent day with data
-                      const getLatestCounts = () => {
-                        if (state.dailyBatteryTierCounts?.[currentAge]) {
-                          return state.dailyBatteryTierCounts[currentAge];
-                        }
-                        // Search backwards for the last available data
-                        const days = Object.keys(state.dailyBatteryTierCounts || {}).map(Number).sort((a, b) => b - a);
-                        const lastDay = days.find(d => d < toNum(state.age));
-                        return lastDay ? state.dailyBatteryTierCounts![String(lastDay)] : (state.batteryTierCounts || []);
-                      };
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                      <LayoutGrid size={14} className="text-purple-400" />
+                      إجمالي البطاريات
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[10px] font-bold text-slate-500">الوحدات</p>
+                        <h4 className="text-lg font-black text-white">
+                          {totalBatteryCount}
+                        </h4>
+                      </div>
+                      <div className="flex flex-col gap-1 text-left">
+                        <p className="text-[10px] font-bold text-slate-500">المساحة</p>
+                        <h4 className="text-lg font-black text-slate-300">
+                          {totalBatteryArea.toFixed(1)} م²
+                        </h4>
+                      </div>
+                    </div>
+                  </Card>
 
-                      const currentDayCounts = getLatestCounts();
-                      const currentDayFeed = state.dailyBatteryTierFeed?.[currentAge]?.[idx] || 0;
-                      
-                      const densityPerM2 = 
-                        Number(state.age) <= 7 ? 45 :
-                        Number(state.age) <= 14 ? 32 :
-                        Number(state.age) <= 21 ? 22 :
-                        Number(state.age) <= 28 ? 17 :
-                        Number(state.age) <= 35 ? 14 : 12;
-                      
-                      const recPerTier = Math.floor(toNum(state.batteryLength) * toNum(state.batteryWidth) * densityPerM2 * (state.externalEquipment ? 1.15 : 1));
-                      const currentCount = toNum(currentDayCounts?.[idx] || 0);
-                      const isOver = currentCount > recPerTier;
-                      
-                      const tierBorderColors = [
-                        'border-orange-500/30',
-                        'border-emerald-500/30',
-                        'border-sky-500/30'
-                      ];
-                      const borderClass = tierBorderColors[idx % 3] || 'border-white/5';
+                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    <Bird size={14} className="text-emerald-400" />
+                    حالة التسكين
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold text-slate-500">إجمالي</p>
+                      <h4 className="text-lg font-black text-white">{toNum(state.totalChicks).toLocaleString()}</h4>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-[10px] font-bold text-slate-500">المتبقي</p>
+                      <h4 className={cn(
+                        "text-lg font-black",
+                        totalDistributedBirds > toNum(state.totalChicks) ? "text-red-400" : (toNum(state.totalChicks) - totalDistributedBirds < 1 ? "text-emerald-400" : "text-orange-400")
+                      )}>
+                        {Math.max(0, toNum(state.totalChicks) - totalDistributedBirds).toLocaleString()}
+                      </h4>
+                    </div>
+                  </div>
+                </Card>
 
-                      return (
-                        <div key={idx} className={cn(
-                          "relative p-4 rounded-2xl border transition-all duration-300",
-                          isOver ? "bg-red-500/5 border-red-500/40 shadow-lg shadow-red-500/5" : cn("bg-white/5", borderClass)
-                        )}>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={cn(
-                                "w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs",
-                                isOver ? "bg-red-500 text-white" : "bg-slate-800 text-slate-400"
-                              )}>
-                                {idx + 1}
-                              </div>
-                              <span className="text-xs font-black text-white">الدور {idx + 1}</span>
+                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    <Calendar size={14} className="text-blue-400" />
+                    العمر
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold text-slate-500">اليوم</p>
+                      <h4 className="text-lg font-black text-white">{state.age}</h4>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-[10px] font-bold text-slate-500">الوزن المتوقع</p>
+                      <h4 className="text-lg font-black text-slate-300">{(dailyStats.weight || 0).toLocaleString()} جم</h4>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-5 bg-slate-900/60 border-white/5 backdrop-blur-xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    <Activity size={14} className="text-amber-400" />
+                    كثافة التسكين
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[10px] font-bold text-slate-500">المعيار</p>
+                      <h4 className="text-lg font-black text-white">{densityPerM2At(toNum(state.age))}</h4>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <p className="text-[10px] font-bold text-slate-500">السعة</p>
+                      <h4 className="text-lg font-black text-slate-300">{(totalBatteryArea * densityPerM2At(toNum(state.age)) * (state.externalEquipment ? 1.15 : 1)).toFixed(0)}</h4>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* LEVEL 1: Groups List */}
+              {!activeBatteryGroup && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(state.batteryGroups || []).map((group, gIdx) => {
+                    const currentAge = String(state.age);
+                    const dayData = state.dailyBatteryGroupTierCounts?.[currentAge] || {};
+                    
+                    let groupDistributed = 0;
+                    for (let i = 0; i < toNum(group.count); i++) {
+                      const birds = dayData[`${group.id}_${i}`] || [];
+                      groupDistributed += toNum(birds.reduce((accValue: number, currentVal: any) => accValue + toNum(currentVal), 0));
+                    }
+
+                    const density = densityPerM2At(toNum(state.age));
+                    const mult = state.externalEquipment ? 1.15 : 1;
+                    const groupCapacity = Math.floor(toNum(group.length) * toNum(group.width) * density * mult * toNum(group.tiers) * toNum(group.count));
+                    const utilization = Math.min(100, Math.round((groupDistributed / (groupCapacity || 1)) * 100));
+
+                    return (
+                      <motion.button
+                        key={group.id}
+                        whileHover={{ y: -4 }}
+                        onClick={() => setActiveBatteryGroup(group.id)}
+                        className="bg-slate-900/60 border border-white/5 hover:border-purple-500/40 p-6 rounded-[32px] text-right transition-all group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-600 opacity-0 group-hover:opacity-100 transition-all" />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                              <Layers size={28} />
                             </div>
-                            <div className="text-left">
-                               <span className="text-[9px] font-bold text-slate-500 block mb-0.5">السعة الموصى بها</span>
-                               <span className="text-xs font-black text-slate-300">{recPerTier} طائر</span>
+                            <div>
+                              <h3 className="text-xl font-black text-white">{group.name || `المجموعة ${gIdx + 1}`}</h3>
+                              <p className="text-slate-500 text-xs font-bold mt-1">تتكون من {group.count} وحدات بطاريات</p>
                             </div>
                           </div>
-
-                          <div className="relative group">
-                            <input 
-                              type="text"
-                              inputMode="numeric"
-                              value={currentDayCounts?.[idx] ?? ''}
-                              onChange={e => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                const newDailyCounts = { ...(state.dailyBatteryTierCounts || {}) };
-                                const dayCounts = [...currentDayCounts];
-                                dayCounts[idx] = val;
-                                newDailyCounts[currentAge] = dayCounts;
-                                
-                                // Calculate total from this specific day's numbers
-                                const newTotal = dayCounts.reduce((acc: number, curr: any) => acc + toNum(curr), 0);
-                                
-                                setState(prev => ({ 
-                                  ...prev, 
-                                  dailyBatteryTierCounts: newDailyCounts,
-                                  batteryTierCounts: dayCounts, // Keep as latest backup
-                                  totalChicks: toNum(newTotal) > 0 ? newTotal : prev.totalChicks
-                                }));
-                              }}
-                              className={cn(
-                                "w-full bg-slate-950/50 border rounded-xl px-4 py-3 text-white font-black text-center focus:outline-none transition-all text-sm",
-                                isOver ? "border-red-500/30 focus:border-red-500" : "border-white/10 focus:border-purple-500/30"
-                              )}
-                              placeholder="أدخل عدد الطيور..."
-                            />
-                            {isOver && (
-                              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-bounce shadow-lg shadow-red-500/20">
-                                تجاوزت السعة!
-                              </div>
-                            )}
+                          <ChevronLeft className="text-slate-600 group-hover:text-purple-400 group-hover:translate-x-[-4px] transition-all" size={24} />
+                        </div>
+                        <div className="mt-8 grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                          <div>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">الطيور الموزعة</p>
+                            <h4 className="text-2xl font-black text-white tabular-nums">{groupDistributed.toLocaleString()}</h4>
                           </div>
-
-                          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <div className="flex items-center justify-between mb-0.5">
-                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block me-1">العلف المستهلك (كجم)</label>
-                                    <button 
-                                      onClick={() => {
-                                        const targetVal = ((currentCount * dailyStats.dailyFeed) / 1000).toFixed(2);
-                                        const newDailyFeed = { ...(state.dailyBatteryTierFeed || {}) };
-                                        const dayFeed = [...(newDailyFeed[currentAge] || new Array(toNum(state.batteryTiers)).fill(0))];
-                                        dayFeed[idx] = targetVal;
-                                        newDailyFeed[currentAge] = dayFeed;
-                                        setState(prev => ({ ...prev, dailyBatteryTierFeed: newDailyFeed }));
-                                      }}
-                                      className="text-emerald-500 hover:text-emerald-400 transition-colors"
-                                      title="ضبط حسب المستهدف القياسي"
-                                    >
-                                      <Zap size={10} fill="currentColor" />
-                                    </button>
-                                </div>
-                                <input 
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={currentDayFeed}
-                                  onChange={e => {
-                                    const val = e.target.value.replace(/[^\d.]/g, '');
-                                    const newDailyFeed = { ...(state.dailyBatteryTierFeed || {}) };
-                                    const dayFeed = [...(newDailyFeed[currentAge] || new Array(toNum(state.batteryTiers)).fill(0))];
-                                    dayFeed[idx] = val;
-                                    newDailyFeed[currentAge] = dayFeed;
-                                    
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyBatteryTierFeed: newDailyFeed
-                                    }));
-                                  }}
-                                  className="w-full bg-slate-950/30 border border-white/5 rounded-xl px-3 py-2 text-white font-black text-center focus:outline-none focus:border-purple-500/30 transition-all text-xs"
-                                  placeholder="0.0"
-                                />
-                                <div className="flex items-center justify-between px-1">
-                                    <span className="text-[8px] font-bold text-slate-600">المستهدف:</span>
-                                    <span className="text-[8px] font-black text-slate-400">
-                                        {((currentCount * dailyStats.dailyFeed) / 1000).toFixed(2)} كجم
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex flex-col justify-end items-end text-left">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">معدل الاستهلاك</span>
-                                {(() => {
-                                  const actualRate = currentCount > 0 ? (toNum(currentDayFeed) * 1000) / currentCount : 0;
-                                  const diff = actualRate - dailyStats.dailyFeed;
-                                  const isChecking = toNum(currentDayFeed) > 0;
-                                  
-                                  return (
-                                    <div className={cn(
-                                      "flex flex-col gap-1 w-full p-2 rounded-xl border transition-all",
-                                      !isChecking ? "bg-slate-900/50 border-white/5" :
-                                      Math.abs(diff) < dailyStats.dailyFeed * 0.1 ? "bg-emerald-500/5 border-emerald-500/10" : "bg-red-500/5 border-red-500/10"
-                                    )}>
-                                      <div className="flex items-baseline gap-1 justify-center">
-                                          <span className={cn(
-                                            "text-sm font-black",
-                                            !isChecking ? "text-slate-500" :
-                                            Math.abs(diff) < dailyStats.dailyFeed * 0.1 ? "text-emerald-400" : "text-red-400"
-                                          )}>
-                                              {actualRate.toFixed(1)}
-                                          </span>
-                                          <span className="text-[8px] font-bold text-slate-600 uppercase">جم/طائر</span>
-                                      </div>
-                                      {isChecking && (
-                                        <div className="flex items-center justify-center gap-1">
-                                          {diff > 0 ? <ChevronUp size={8} className="text-red-400" /> : <ChevronDown size={8} className="text-emerald-400" />}
-                                          <span className={cn("text-[7px] font-black", diff > 0 ? "text-red-400" : "text-emerald-400")}>
-                                            {Math.abs(diff).toFixed(1)} عن القياسي
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                            </div>
+                          <div className="text-left">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">السعة المستهدفة</p>
+                            <h4 className="text-2xl font-black text-slate-400 tabular-nums">{groupCapacity.toLocaleString()}</h4>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
+                        <div className="mt-6 flex items-center gap-4">
+                          <div className="flex-1 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                             <div 
+                               className={cn(
+                                 "h-full transition-all duration-1000",
+                                 groupDistributed > groupCapacity ? "bg-red-500" : "bg-purple-600"
+                               )}
+                               style={{ width: `${utilization}%` }}
+                             />
+                          </div>
+                          <span className="text-xs font-black text-white">{utilization}%</span>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
 
-                  <div className="pt-4 border-t border-white/5">
-                    <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-2xl flex gap-4 items-start">
-                      <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
-                        <AlertCircle size={18} />
+              {/* LEVEL 2: Batteries Grid in Group */}
+              {activeBatteryGroup && activeBatteryIdx === null && (
+                <div className="space-y-6">
+                  {(() => {
+                    const group = (state.batteryGroups || []).find(g => g.id === activeBatteryGroup);
+                    if (!group) return null;
+                    const count = toNum(group.count);
+                    const currentAge = String(state.age);
+                    const dayData = state.dailyBatteryGroupTierCounts?.[currentAge] || {};
+
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {Array.from({ length: count }).map((_, bIdx) => {
+                          const birds = dayData[`${group.id}_${bIdx}`] || [];
+                          const sum = toNum(birds.reduce((accValue: number, currentVal: any) => accValue + toNum(currentVal), 0));
+                          const density = densityPerM2At(toNum(state.age));
+                          const mult = state.externalEquipment ? 1.15 : 1;
+                          const capacity = Math.floor(toNum(group.length) * toNum(group.width) * density * mult * toNum(group.tiers));
+                          const util = Math.min(100, Math.round((sum / (capacity || 1)) * 100));
+
+                          // Battery States
+                          const bKey = `${group.id}_${bIdx}`;
+                          const isAutoFilled = sum > 0;
+                          const isManuallyActivated = state.manuallyActivatedBatteries?.[bKey];
+                          const batteryState = isAutoFilled ? 'auto' : (isManuallyActivated ? 'manual' : 'inactive');
+
+                          return (
+                            <motion.button
+                              key={bIdx}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                if (batteryState === 'inactive') {
+                                  setActivationCandidate({ groupId: group.id, bIdx });
+                                } else {
+                                  setActiveBatteryIdx(bIdx);
+                                }
+                              }}
+                              className={cn(
+                                "bg-slate-900/60 border p-4 rounded-3xl flex flex-col items-center gap-3 transition-all relative overflow-hidden",
+                                batteryState === 'auto' ? "border-emerald-500/40 hover:border-emerald-500/60 shadow-lg shadow-emerald-500/5" :
+                                batteryState === 'manual' ? "border-white/20 hover:border-white/40 bg-slate-800/80 shadow-lg shadow-white/5" :
+                                "border-white/5 opacity-50 hover:opacity-80 grayscale"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
+                                batteryState === 'auto' ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" :
+                                batteryState === 'manual' ? "bg-white text-slate-900 shadow-lg shadow-white/10" : 
+                                "bg-slate-800 text-slate-600"
+                              )}>
+                                {batteryState === 'auto' ? <Check size={24} /> : (batteryState === 'manual' ? <Box size={24} /> : <Lock size={24} />)}
+                              </div>
+                              <div className="text-center">
+                                <span className="text-[10px] font-black text-white block">بطارية {bIdx + 1}</span>
+                                <span className={cn(
+                                  "text-[9px] font-bold mt-0.5 block",
+                                  batteryState === 'auto' ? "text-emerald-400" : (batteryState === 'manual' ? "text-slate-300" : "text-slate-500")
+                                )}>
+                                  {batteryState === 'inactive' ? "غير مفعلة" : `${sum} طائر`}
+                                </span>
+                              </div>
+                              {sum > 0 && (
+                                <div className="w-full h-1 bg-slate-950 rounded-full mt-1 overflow-hidden">
+                                  <div 
+                                    className={cn("h-full", sum > capacity ? "bg-red-500" : "bg-purple-500")} 
+                                    style={{ width: `${util}%` }} 
+                                  />
+                                </div>
+                              )}
+                            </motion.button>
+                          );
+                        })}
                       </div>
-                      <div className="text-right">
-                        <h4 className="text-[11px] font-black text-white mb-1">معيار الكثافة الحالي (عمر {state.age} يوم)</h4>
-                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                          الكثافة الموصى بها لهذا العمر هي {
-                            Number(state.age) <= 7 ? 45 :
-                            Number(state.age) <= 14 ? 32 :
-                            Number(state.age) <= 21 ? 22 :
-                            Number(state.age) <= 28 ? 17 :
-                            Number(state.age) <= 35 ? 14 : 12
-                          } طائر لكل متر مربع.
-                        </p>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* LEVEL 3: Battery Details (Tiers) */}
+              {activeBatteryGroup && activeBatteryIdx !== null && (
+                <div className="space-y-8">
+                  {(() => {
+                    const group = (state.batteryGroups || []).find(g => g.id === activeBatteryGroup);
+                    if (!group) return null;
+                    const bIdx = activeBatteryIdx;
+                    const bKey = `${group.id}_${bIdx}`;
+                    const currentAge = String(state.age);
+                    const tierCounts = state.dailyBatteryGroupTierCounts?.[currentAge]?.[bKey] || new Array(toNum(group.tiers)).fill(0);
+                    const tierFeeds = state.dailyBatteryGroupTierFeed?.[currentAge]?.[bKey] || new Array(toNum(group.tiers)).fill(0);
+
+                    const density = densityPerM2At(toNum(state.age));
+                    const mult = state.externalEquipment ? 1.15 : 1;
+                    const tierCapacity = Math.floor(toNum(group.length) * toNum(group.width) * density * mult);
+                    const birdsSum = tierCounts.reduce((a: number, b: any) => a + toNum(b), 0);
+                    const batteryCapacity = tierCapacity * toNum(group.tiers);
+
+                    return (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        {/* Battery Sidebar (Visual) */}
+                        <div className="lg:col-span-3 space-y-4">
+                           <Card className="p-6 bg-slate-900/60 border-white/5 backdrop-blur-xl rounded-[40px] flex flex-col items-center">
+                              <h3 className="text-xl font-black text-white mb-6">البطارية {bIdx + 1}</h3>
+                              <div className="flex flex-col-reverse gap-3 w-full">
+                                {tierCounts.map((c, tIdx) => {
+                                  const count = toNum(c);
+                                  const pct = Math.min(100, Math.round((count / (tierCapacity || 1)) * 100));
+                                  return (
+                                    <div key={tIdx} className={cn(
+                                      "h-24 w-full rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all overflow-hidden relative",
+                                      count > tierCapacity ? "bg-red-500/10 border-red-500/30" : (count > 0 ? "bg-purple-600/10 border-purple-600/30" : "bg-slate-800/40 border-white/5")
+                                    )}>
+                                      <div className={cn("absolute bottom-0 left-0 w-full transition-all duration-700 bg-purple-600/20", count > tierCapacity && "bg-red-500/20")} style={{ height: `${pct}%` }} />
+                                      <span className="text-[10px] font-black text-white z-10">الدور {tIdx + 1}</span>
+                                      <span className="text-[16px] font-black text-white z-10 tabular-nums">{count}</span>
+                                      <span className="text-[8px] font-bold text-slate-500 z-10 uppercase">السعة {tierCapacity}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="mt-8 pt-6 border-t border-white/5 w-full text-center">
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">الإجمالي للتسكين</p>
+                                <h4 className="text-3xl font-black text-white">{birdsSum}</h4>
+                                <p className="text-[10px] text-slate-500 mt-1">من إجمالي {batteryCapacity} طائر</p>
+                              </div>
+
+                              <button 
+                                onClick={() => {
+                                  // Auto-fill this specific battery
+                                  const totalChicksNum = toNum(state.totalChicks);
+                                  const alreadyFilledElsewhere = toNum(totalDistributedBirds) - birdsSum;
+                                  let balance = Math.max(0, totalChicksNum - alreadyFilledElsewhere);
+
+                                  const newTiers = [...tierCounts].map(() => {
+                                    const amount = Math.min(balance, tierCapacity);
+                                    balance -= amount;
+                                    return amount;
+                                  });
+
+                                  setState(prev => ({
+                                    ...prev,
+                                    dailyBatteryGroupTierCounts: {
+                                      ...(prev.dailyBatteryGroupTierCounts || {}),
+                                      [currentAge]: {
+                                        ...(prev.dailyBatteryGroupTierCounts?.[currentAge] || {}),
+                                        [bKey]: newTiers
+                                      }
+                                    }
+                                  }));
+                                }}
+                                className="w-full mt-6 py-4 bg-purple-600 text-white rounded-2xl font-black text-xs hover:bg-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20 active:scale-[0.98]"
+                              >
+                                <Zap size={16} fill="currentColor" />
+                                تعبئة ذكية للوحدة
+                              </button>
+                           </Card>
+                        </div>
+
+                        {/* Edit Area */}
+                        <div className="lg:col-span-9 space-y-6">
+                           <div className="flex items-center justify-between px-2">
+                             <div className="flex flex-col text-right">
+                               <h4 className="text-sm font-black text-white uppercase tracking-widest">إدخال البيانات التفصيلية</h4>
+                               <p className="text-[10px] text-slate-500 font-bold mt-1">المساحة: {group.length}×{group.width} م لكل دور</p>
+                             </div>
+                             <div className="flex items-center gap-3">
+                               <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/80 rounded-xl border border-white/5">
+                                 <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                 <span className="text-[10px] font-black text-slate-300">السعة الموصى بها: {tierCapacity}</span>
+                               </div>
+                             </div>
+                           </div>
+
+                           <div className="grid gap-4">
+                             {tierCounts.map((c, tIdx) => {
+                               const count = toNum(c);
+                               const feed = tierFeeds[tIdx] || 0;
+                               const isOver = count > tierCapacity;
+                               const utilization = Math.min(100, Math.round((count / (tierCapacity || 1)) * 100));
+
+                               return (
+                                 <Card key={tIdx} className={cn(
+                                   "p-0 bg-slate-900/60 border-2 backdrop-blur-xl rounded-[32px] transition-all overflow-hidden",
+                                   isOver ? "border-red-500/40 shadow-lg shadow-red-500/5" : "border-white/5 shadow-xl shadow-black/20"
+                                 )}>
+                                   <div className="grid grid-cols-1 md:grid-cols-12 gap-0 items-stretch">
+                                      <div className={cn(
+                                        "md:col-span-2 flex flex-col items-center justify-center p-6 border-l border-white/5",
+                                        isOver ? "bg-red-500/5" : "bg-white/[0.02]"
+                                      )}>
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-950 flex items-center justify-center text-lg font-black text-white shadow-inner mb-2">
+                                          {tIdx + 1}
+                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase">
+                                          {tIdx === 0 ? 'الأرضي' : (tIdx === 1 ? 'الأوسط' : (tIdx === 2 ? 'العلوي' : `رقم ${tIdx + 1}`))}
+                                        </p>
+                                      </div>
+
+                                      <div className="md:col-span-10 p-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                          <div className="space-y-3">
+                                            <div className="flex items-center justify-between px-1">
+                                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">عدد الطيور</label>
+                                              <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-lg", isOver ? "bg-red-500/20 text-red-400" : "bg-white/5 text-slate-500")}>
+                                                كثافة: {utilization}%
+                                              </span>
+                                            </div>
+                                            <input 
+                                              type="text"
+                                              inputMode="numeric"
+                                              value={c ?? ''}
+                                              onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, '');
+                                                const numericVal = toNum(val);
+                                                
+                                                // Check if this update would exceed total chicks
+                                                const otherBirds = toNum(totalDistributedBirds) - count;
+                                                const finalVal = Math.min(numericVal, toNum(state.totalChicks) - otherBirds);
+                                                const safeVal = finalVal < 0 ? 0 : finalVal;
+
+                                                const newTiers = [...tierCounts];
+                                                newTiers[tIdx] = safeVal;
+                                                setState(prev => ({
+                                                  ...prev,
+                                                  dailyBatteryGroupTierCounts: {
+                                                    ...(prev.dailyBatteryGroupTierCounts || {}),
+                                                    [currentAge]: {
+                                                      ...(prev.dailyBatteryGroupTierCounts?.[currentAge] || {}),
+                                                      [bKey]: newTiers
+                                                    }
+                                                  }
+                                                }));
+                                              }}
+                                              className={cn(
+                                                "w-full bg-slate-950/80 border rounded-2xl px-6 py-4 text-2xl font-black text-white focus:outline-none transition-all text-center",
+                                                isOver ? "border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "border-white/10 focus:border-purple-500"
+                                              )}
+                                              placeholder="0"
+                                            />
+                                          </div>
+
+                                          <div className="space-y-3">
+                                             <div className="flex items-center justify-between px-1">
+                                               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">العلف (كجم)</label>
+                                               <button 
+                                                  disabled={count === 0}
+                                                  onClick={() => {
+                                                    const targetVal = ((count * (dailyStats.dailyFeed || 0)) / 1000).toFixed(2);
+                                                    const newFeeds = [...tierFeeds];
+                                                    newFeeds[tIdx] = targetVal;
+                                                    setState(prev => ({
+                                                      ...prev,
+                                                      dailyBatteryGroupTierFeed: {
+                                                        ...(prev.dailyBatteryGroupTierFeed || {}),
+                                                        [currentAge]: {
+                                                          ...(prev.dailyBatteryGroupTierFeed?.[currentAge] || {}),
+                                                          [bKey]: newFeeds
+                                                        }
+                                                      }
+                                                    }));
+                                                  }}
+                                                  className="text-emerald-500 hover:text-emerald-400 disabled:opacity-30 disabled:grayscale transition-all"
+                                                  title="مقترح العلف بناءً على العدد"
+                                                >
+                                                  <Zap size={14} fill="currentColor" />
+                                                </button>
+                                             </div>
+                                             <input 
+                                              type="text"
+                                              inputMode="decimal"
+                                              value={tierFeeds[tIdx] ?? ''}
+                                              onChange={e => {
+                                                const val = e.target.value.replace(/[^\d.]/g, '');
+                                                const newFeeds = [...tierFeeds];
+                                                newFeeds[tIdx] = val;
+                                                setState(prev => ({
+                                                  ...prev,
+                                                  dailyBatteryGroupTierFeed: {
+                                                    ...(prev.dailyBatteryGroupTierFeed || {}),
+                                                    [currentAge]: {
+                                                      ...(prev.dailyBatteryGroupTierFeed?.[currentAge] || {}),
+                                                      [bKey]: newFeeds
+                                                    }
+                                                  }
+                                                }));
+                                              }}
+                                              className="w-full bg-slate-950/80 border border-white/10 rounded-2xl px-6 py-4 text-2xl font-black text-emerald-400 focus:outline-none focus:border-emerald-500 transition-all text-center"
+                                              placeholder="0.00"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                   </div>
+                                 </Card>
+                               );
+                             })}
+                           </div>
+                        </div>
                       </div>
-                    </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Logic Guard Info (Always visible at bottom for density reference) */}
+              <div className="pt-4 border-t border-white/5">
+                <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-3xl flex gap-5 items-start">
+                  <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-400 shadow-inner">
+                    <AlertCircle size={24} />
+                  </div>
+                  <div className="text-right">
+                    <h4 className="text-[12px] font-black text-white mb-1.5 uppercase tracking-widest">معيار الكثافة الحيوي (عمر {state.age} يوم)</h4>
+                    <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+                      الكثافة الموصى بها لهذا العمر هي {
+                        densityPerM2At(toNum(state.age))
+                      } طائر لكل متر مربع. يتم احتساب السعة المتاحة تلقائياً لكل مجموعة بطاريات بناءً على أبعادها وعدد الأدوار المتاحة بها.
+                    </p>
                   </div>
                 </div>
-              </Card>
+              </div>
+
+              {/* Manual Activation Modal */}
+              <AnimatePresence>
+                {activationCandidate && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setActivationCandidate(null)}
+                      className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      className="relative w-full max-w-sm bg-slate-900 border border-white/10 p-8 rounded-[40px] shadow-2xl flex flex-col items-center text-center gap-6"
+                    >
+                      <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center text-white">
+                        <Box size={40} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-white mb-2">تفعيل البطارية</h3>
+                        <p className="text-[11px] font-bold text-slate-400 leading-relaxed">
+                          هذه البطارية فارغة حالياً حسب العدد الكلي للكتاكيت. هل تريد تفعيلها للإدخال اليدوي؟
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 w-full">
+                        <button
+                          onClick={() => setActivationCandidate(null)}
+                          className="py-4 bg-slate-800 text-white rounded-2xl font-black text-xs hover:bg-slate-700 transition-all"
+                        >
+                          إلغاء
+                        </button>
+                        <button
+                          onClick={confirmActivation}
+                          className="py-4 bg-purple-600 text-white rounded-2xl font-black text-xs hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
+                        >
+                          تفعيل الآن
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
@@ -6841,6 +7567,7 @@ export default function App() {
                   onSearch={handleWeatherSearch}
                   onRetry={handleWeatherRetry}
                   onLocationSelect={(lat, lon, name) => fetchWeather(lat, lon, name)}
+                  onNavigate={setScreen}
                 />
               </motion.div>
             )}
@@ -6870,6 +7597,7 @@ export default function App() {
                 loading={marketLoading}
                 error={marketError}
                 onRefresh={fetchMarketData}
+                onNavigate={setScreen}
               />
               </motion.div>
             )}
@@ -6904,13 +7632,22 @@ export default function App() {
                   </div>
                   برنامج الأدوية
                 </h2>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="text-[14px] font-black text-white bg-blue-600 px-5 py-2.5 rounded-2xl shadow-lg border border-white/10 flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="p-2 sm:p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
+                    title="عرض الإحصائيات"
+                  >
+                    <BarChart2 size={24} />
+                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                  <div className="text-[12px] font-black text-white bg-blue-600 px-4 py-2.5 rounded-2xl shadow-lg border border-white/10 flex items-center gap-2">
                     <Droplets size={16} />
-                    {dailyWaterTotalLiters} لتر (إجمالي اليوم)
+                    إجمالي المياه {dailyWaterTotalLiters} لتر - {waterPerBattery} لتر/بطارية
                   </div>
                 </div>
-              </header>
+              </div>
+            </header>
 
               <div className="px-0 mb-4 space-y-4">
                 {/* Unified Timeline Header */}
@@ -7486,8 +8223,8 @@ export default function App() {
                                              </div>
                                            )}
                                            <div className="flex items-center justify-between px-2">
-                                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">على مياه:</span>
-                                              <span className="text-xs font-black text-white">{med.calculatedWater} لتر</span>
+                                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">إجمالي المياه:</span>
+                                              <span className="text-xs font-black text-white">{med.calculatedWater} لتر/بطارية</span>
                                            </div>
                                            {toNum(med.doseValue) > 0 && (
                                               <div className="flex items-center justify-between px-2 pt-1 border-t border-white/5 opacity-60">
@@ -7745,8 +8482,8 @@ export default function App() {
                                           </div>
                                         )}
                                         <div className="flex items-center justify-between px-2">
-                                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">على مياه:</span>
-                                          <span className="text-xs font-black text-white">{med.calculatedWater} لتر</span>
+                                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">إجمالي المياه:</span>
+                                          <span className="text-xs font-black text-white">{med.calculatedWater} لتر/بطارية</span>
                                         </div>
                                       </div>
                                     )}
@@ -8059,205 +8796,315 @@ export default function App() {
           {screen === 'charts' && (
             <motion.div 
               key="charts"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8 pb-32"
             >
-               <h2 className="text-2xl font-black text-white tracking-tight px-2">لوحة التحليلات المتقدمة</h2>
+               <header className="px-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-white tracking-tighter">لوحة التحليلات المتقدمة</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
+                    <Activity size={10} className="text-indigo-500" />
+                    تحليل ذكي للبيانات الحيوية والإنتاجية
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 shadow-lg shadow-indigo-500/5 transition-transform hover:scale-110">
+                   <BarChart2 size={24} />
+                </div>
+               </header>
                
-               {/* Growth Curve */}
-               <Card className="h-80 border-white/5 pt-8">
-                <div className="flex items-center justify-between mb-8 px-2">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">منحنى النمو (جم)</p>
-                    <p className="text-[9px] text-emerald-400 font-bold">مقارنة الأداء الفعلي بالمعايير العالمية</p>
+               {/* Main Performance Curve */}
+               <Card className="h-[320px] md:h-[400px] border-white/5 pt-6 bg-slate-900/40 relative overflow-hidden group shadow-2xl">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/40 via-indigo-500/40 to-emerald-500/40" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-10 px-4 md:px-6 gap-3">
+                  <div className="space-y-0.5">
+                    <h3 className="text-base md:text-lg font-black text-white">معدل تحويل الوزن</h3>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 bg-slate-950/50 p-2 rounded-xl border border-white/5 backdrop-blur-sm">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                      <span className="text-[9px] font-black text-emerald-500 uppercase">المتوقع</span>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase">الفعلي</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-700"></div>
-                      <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">المعياري</span>
+                      <div className="w-2 h-2 rounded-full bg-indigo-500/40"></div>
+                      <span className="text-[9px] font-black text-slate-500 uppercase">المعيار</span>
                     </div>
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height="70%">
-                  <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 7, 45))}>
-                    <defs>
-                      <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                    <XAxis dataKey="day" reversed hide />
-                    <YAxis hide />
-                    <Tooltip 
-                      isAnimationActive={false}
-                      contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
-                      labelFormatter={(value) => `اليوم: ${value}`}
-                      labelClassName="font-black text-slate-500 text-[10px] uppercase mb-1"
-                      itemStyle={{ color: '#fff', fontSize: '13px', fontWeight: '900' }}
-                    />
-                    <Area type="monotone" name="المتوقع" dataKey="weight" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorWeight)" animationDuration={1000} />
-                    <Line type="monotone" name="المعياري" dataKey="standardWeight" stroke="#475569" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <div className="h-[210px] md:h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 7, 45))} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="mainWeightGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="stdWeightGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.05}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" strokeOpacity={0.2} />
+                      <XAxis 
+                        dataKey="day" 
+                        stroke="#475569" 
+                        fontSize={9} 
+                        tickFormatter={(tick) => `يوم ${tick}`}
+                        tick={{ fill: '#64748b', fontWeight: 600 }}
+                        axisLine={false}
+                        tickLine={false}
+                        dy={8}
+                        minTickGap={20}
+                      />
+                      <YAxis 
+                        stroke="#475569" 
+                        fontSize={9} 
+                        width={50}
+                        tickFormatter={(tick) => `${tick}ج`}
+                        tick={{ fill: '#64748b', fontWeight: 600 }}
+                        axisLine={false}
+                        tickLine={false}
+                        dx={-5}
+                      />
+                      <Tooltip 
+                        cursor={{ stroke: '#334155', strokeWidth: 1 }}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(15, 23, 42, 0.95)', 
+                          backdropFilter: 'blur(12px)',
+                          borderRadius: '16px', 
+                          border: '1px solid rgba(255,255,255,0.08)', 
+                          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)',
+                          padding: '12px'
+                        }}
+                        itemStyle={{ fontSize: '12px', fontWeight: '800' }}
+                      />
+                      <Area type="monotone" name="الأداء الفعلي" dataKey="weight" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#mainWeightGradient)" isAnimationActive={false} />
+                      <Area type="monotone" name="الأداء المعياري" dataKey="standardWeight" stroke="#4f46e5" strokeWidth={2} strokeDasharray="6 4" fillOpacity={1} fill="url(#stdWeightGradient)" isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
                </Card>
 
                {/* Bio-Metrics Grid */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="h-64 border-white/5 pt-6 group transition-all hover:bg-slate-900/40">
-                    <div className="flex items-center justify-between mb-6 px-4">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">تتبع المدخلات الحيوية</p>
-                        <p className="text-[9px] text-blue-400 font-bold">الاستهلاك اليومي: علف (جم) و ماء (مل)</p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <Card className="h-64 border-white/5 pt-5 bg-slate-900/40 relative transition-all group shadow-lg">
+                    <div className="flex items-center justify-between mb-6 px-5">
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                           <Droplets size={10} className="text-blue-500" />
+                           استهلاك الموارد
+                        </p>
+                        <h4 className="text-xs font-black text-white italic">توازن العلف والماء</h4>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                          نسبة الماء/العلف: {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.wfRatio}
-                        </div>
-                        <Droplets size={14} className="text-blue-500" />
+                      <div className="text-[8px] font-black text-blue-400 bg-blue-500/5 px-2 py-0.5 rounded-lg border border-blue-500/10 backdrop-blur-sm">
+                        Ratio: {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.wfRatio}
                       </div>
                     </div>
-                    <ResponsiveContainer width="100%" height="70%">
-                      <LineChart data={chartData.slice(0, Math.min(toNum(state.age) + 3, 45))}>
-                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#1e293b" />
-                        <XAxis dataKey="day" reversed hide />
-                        <YAxis hide />
-                        <Tooltip 
-                          isAnimationActive={false}
-                          contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
-                        />
-                        <Line type="step" name="العلف (جم)" dataKey="feed" stroke="#f59e0b" strokeWidth={3} dot={false} strokeOpacity={0.8} />
-                        <Line type="step" name="الماء (مل)" dataKey="water" stroke="#3b82f6" strokeWidth={3} dot={false} strokeOpacity={0.8} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="h-[160px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData.slice(0, Math.min(toNum(state.age) + 3, 45))} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" strokeOpacity={0.2} />
+                          <XAxis dataKey="day" stroke="#475569" fontSize={8} tickLine={false} axisLine={false} dy={5} minTickGap={20} />
+                          <YAxis stroke="#475569" fontSize={8} width={45} tickLine={false} axisLine={false} dx={-5} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '10px' }} />
+                          <Line type="stepAfter" name="علف (جم)" dataKey="feed" stroke="#f59e0b" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                          <Line type="stepAfter" name="ماء (مل)" dataKey="water" stroke="#3b82f6" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
 
-                  <Card className="h-64 border-white/5 pt-6 relative overflow-hidden group transition-all hover:bg-slate-900/40">
-                    <div className="flex items-center justify-between mb-6 px-4 relative z-10">
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">معدل التراكمي للنافق</p>
-                        <p className="text-[9px] text-red-400 font-bold">كلما انخفضت النسبة زاد مؤشر النجاح (%)</p>
+                  <Card className="h-64 border-white/5 pt-5 bg-slate-900/40 relative overflow-hidden group shadow-lg">
+                    <div className="flex items-center justify-between mb-6 px-5 relative z-10">
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                           <AlertTriangle size={10} className="text-rose-500" />
+                           معدل الأمان الحيوي
+                        </p>
+                        <h4 className="text-xs font-black text-white italic">تراكمي النفوق</h4>
                       </div>
-                      <AlertTriangle size={14} className="text-red-500" />
+                      <div className="text-[10px] font-black text-rose-400 bg-rose-500/5 px-2 py-0.5 rounded-lg border border-rose-500/10">
+                         {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate}%
+                      </div>
                     </div>
-                    <ResponsiveContainer width="100%" height="70%" className="relative z-10">
-                      <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 1, 45))}>
-                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke="#1e293b" />
-                        <XAxis dataKey="day" reversed hide />
-                        <YAxis hide />
-                        <Tooltip 
-                          isAnimationActive={false}
-                          contentStyle={{ backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', textAlign: 'right' }}
-                        />
-                        <Area type="stepAfter" name="النافق (%)" dataKey="mortalityRate" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                    <div className="h-[160px] w-full relative z-10">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 1, 45))} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="mortalityGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" strokeOpacity={0.2} />
+                          <XAxis dataKey="day" stroke="#475569" fontSize={8} tickLine={false} axisLine={false} dy={5} minTickGap={20} />
+                          <YAxis stroke="#475569" fontSize={8} width={45} tickFormatter={(tick) => `${tick}%`} tickLine={false} axisLine={false} dx={-5} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '10px' }} />
+                          <Area type="monotone" name="النافق (%)" dataKey="mortalityRate" stroke="#f43f5e" strokeWidth={2.5} fill="url(#mortalityGradient)" isAnimationActive={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </Card>
                </div>
 
                {/* Advanced Performance Scoring */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* EPEF Card */}
-                  <Card className="col-span-1 md:col-span-1 bg-indigo-600/10 border-indigo-500/20 p-6 flex flex-col justify-between overflow-hidden relative group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* EPEF Scoring */}
+                  <Card className="p-6 md:p-8 bg-gradient-to-br from-indigo-600/20 to-indigo-950/40 border-indigo-500/20 relative overflow-hidden group shadow-2xl flex flex-col justify-between">
+                    <div className="absolute -right-6 -bottom-6 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-1000" />
                     <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">معامل الكفاءة الأوروبي (EPEF)</span>
-                        <Zap size={16} className="text-indigo-400" />
+                      <div className="flex items-center justify-between mb-6 md:mb-8">
+                         <div className="p-3 bg-indigo-500/20 rounded-2xl text-indigo-400 border border-indigo-500/20 shadow-lg">
+                            <Zap size={20} />
+                         </div>
+                         <div className="text-right">
+                            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none">مؤشر EPEF</p>
+                            <p className="text-[8px] text-slate-500 font-bold italic mt-1">كفاءة الإنتاج</p>
+                         </div>
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <h3 className="text-4xl font-black text-white italic">
-                          {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0}
-                        </h3>
-                        <span className="text-[10px] font-bold text-indigo-400 px-2 py-0.5 bg-indigo-500/10 rounded-lg">درجة</span>
-                      </div>
-                      <div className="mt-4 flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                           <motion.div 
-                             initial={{ width: 0 }}
-                             animate={{ width: `${Math.min((chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0) / 450 * 100, 100)}%` }}
-                             className="h-full bg-indigo-500"
-                           />
-                        </div>
-                        <span className="text-[8px] font-black text-slate-500 uppercase">الهدف 400+</span>
+                      <div className="flex items-end gap-2 mb-6">
+                         <h3 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none italic">
+                            {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0}
+                         </h3>
+                         <div className="mb-1 text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-lg glass">نقطة</div>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-4 leading-relaxed font-bold">هذا المؤشر يدمج معدلات (النمو، التحويل الغذائي، والنافق) في رقم واحد لتقييم الاحترافية.</p>
+                    <div className="space-y-4 relative z-10">
+                       <div className="flex justify-between items-center text-[10px] font-black">
+                          <span className="text-slate-500 uppercase tracking-widest">تصنيف الدورة</span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-md text-[9px]",
+                            toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef) >= 400 ? "bg-emerald-500/10 text-emerald-400" : "bg-indigo-500/10 text-indigo-400"
+                          )}>
+                            {toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef) >= 400 ? 'احترافي ممتاز' : 'أداء قياسي'}
+                          </span>
+                       </div>
+                       <div className="h-1.5 bg-slate-900/50 rounded-full overflow-hidden border border-white/5">
+                          <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${Math.min((chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.epef || 0) / 450 * 100, 100)}%` }}
+                             className="h-full bg-gradient-to-r from-indigo-600 to-indigo-300 rounded-full"
+                          />
+                       </div>
+                       <p className="text-[9px] text-slate-500 leading-relaxed font-bold">المؤشر العالمي المعتمد لتقييم نجاح دورات التسمين فنياً ومالياً.</p>
+                    </div>
                   </Card>
 
                   {/* FCR Analysis Card */}
-                  <Card className="col-span-1 md:col-span-2 bg-slate-900/60 border-white/5 p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
-                           <Scale size={18} />
-                        </div>
-                        <div>
-                          <h4 className="font-black text-white text-sm tracking-tight">تحليل معامل التحويل الغذائي (FCR)</h4>
-                          <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">معدل تحويل العلف إلى لحم</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                         <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الوضع الحالي</span>
-                         <span className={cn(
-                           "text-lg font-black",
-                           toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) <= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr) ? "text-emerald-400" : "text-amber-400"
-                         )}>
-                           {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr || '0.00'}
-                         </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-8">
-                       <div className="space-y-3">
-                          <div className="flex justify-between text-[9px] font-black uppercase">
-                            <span className="text-slate-500">الفعلي</span>
-                            <span className="text-white">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr}</span>
+                  <Card className="lg:col-span-2 p-6 md:p-8 bg-slate-900/40 border-white/5 flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-white/[0.02] to-transparent pointer-events-none" />
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 md:mb-12 relative z-10 gap-4">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20 shadow-xl">
+                             <Scale size={24} />
                           </div>
-                          <div className="h-6 bg-slate-800 rounded-lg overflow-hidden flex items-center px-1 border border-white/5">
-                             <motion.div 
-                               initial={{ width: 0 }}
-                               animate={{ width: `${Math.min(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) / 2 * 100, 100)}%` }}
-                               className="h-4 bg-orange-500 rounded-sm"
-                             />
-                          </div>
-                          <div className="flex justify-between text-[9px] font-black uppercase">
-                            <span className="text-slate-500">المعياري للسلالة</span>
-                            <span className="text-slate-400">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr}</span>
+                          <div>
+                            <h4 className="text-xl md:text-2xl font-black text-white tracking-tight">معامل التحويل (FCR)</h4>
+                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">كفاءة استهلاك المادة الجافة</p>
                           </div>
                        </div>
-                       <div className="bg-slate-950/40 rounded-2xl p-4 border border-white/5">
+                       <div className="text-right w-full sm:w-auto">
+                          <div className={cn(
+                            "px-5 py-2 rounded-2xl font-black text-2xl md:text-3xl shadow-2xl transition-all inline-block sm:block",
+                            toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) <= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr) ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          )}>
+                            {chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr || '0.00'}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
+                       <div className="space-y-6">
+                           <div className="space-y-2">
+                             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest px-1">
+                               <span className="text-slate-500">التحويل الفعلي</span>
+                               <span className="text-white bg-white/5 px-2 py-0.5 rounded-lg">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr}</span>
+                             </div>
+                             <div className="h-4 bg-slate-950/60 rounded-full border border-white/5 overflow-hidden p-0.5 shadow-inner">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr) / 2 * 100, 100)}%` }}
+                                  className="h-full bg-gradient-to-r from-amber-600 to-orange-400 rounded-full"
+                                />
+                             </div>
+                           </div>
+                           <div className="space-y-2">
+                             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest px-1">
+                               <span className="text-slate-500">المعيار ({STRAIN_NAMES[state.strain]})</span>
+                               <span className="text-slate-400">{chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr}</span>
+                             </div>
+                             <div className="h-4 bg-slate-950/60 rounded-full border border-white/5 overflow-hidden p-0.5 shadow-inner opacity-60">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr) / 2 * 100, 100)}%` }}
+                                  className="h-full bg-slate-600 rounded-full"
+                                />
+                             </div>
+                           </div>
+                       </div>
+
+                       <div className="bg-slate-950/40 rounded-3xl p-5 border border-white/5 backdrop-blur-xl flex flex-col justify-center gap-3">
                           <div className="flex items-start gap-3">
-                            <Info size={14} className="text-indigo-400 mt-1 shrink-0" />
-                            <p className="text-[10px] text-slate-400 leading-relaxed font-bold">
-                              كلما كان الرقم <span className="text-emerald-400 italic">أقل</span> من الرقم المعياري ({chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr})، زادت أرباحك الصافية نتيجة توفير العلف.
-                            </p>
+                             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/10">
+                                <Info size={16} />
+                             </div>
+                             <div className="space-y-1">
+                               <p className="text-[10px] text-slate-400 leading-tight font-bold">
+                                 كلما انخفض الرقم عن المعياري، زاد الربح الصافي.
+                               </p>
+                               <div className="mt-2">
+                                  {(() => {
+                                    const currentFcr = toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.fcr);
+                                    const stdFcr = toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardFcr);
+                                    if (currentFcr === 0) return <span className="text-slate-600 italic font-bold text-[8px]">بانتظار البيانات...</span>;
+                                    if (currentFcr <= stdFcr) {
+                                      return (
+                                        <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                          <span className="text-[9px] font-black text-emerald-400 uppercase">أداء استثنائي</span>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="flex items-center gap-2 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
+                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                        <span className="text-[9px] font-black text-amber-500 uppercase">هدر طفيف</span>
+                                      </div>
+                                    );
+                                  })()}
+                               </div>
+                             </div>
                           </div>
                        </div>
                     </div>
                   </Card>
                </div>
 
-               {/* Performance Summary Cards */}
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {/* Dynamic Performance Summary */}
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-1">
                   {[
-                    { label: 'الوزن الحالي', value: Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight)).toLocaleString(), unit: 'جم', color: 'text-white' },
-                    { label: 'انحراف الوزن', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) > 0 ? '+' : '') + Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight)), unit: 'جم', color: toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) >= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) ? "text-emerald-400" : "text-red-400" },
-                    { label: 'نسبة النافق', value: chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate || '0.00', unit: '%', color: toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate) > 5 ? "text-red-400" : "text-emerald-400" },
-                    { label: 'العلف التراكمي', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.cumulativeFeed) / 1000).toFixed(2), unit: 'كجم', color: 'text-white' }
+                    { label: 'الوزن الحالي', value: Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight)).toLocaleString(), unit: 'جم', color: 'text-white', icon: TrendingUp },
+                    { label: 'انحراف المعيار', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) > 0 ? '+' : '') + Math.round(toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight)), unit: 'جم', color: toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.weight) >= toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.standardWeight) ? "text-emerald-400" : "text-rose-400", icon: Activity },
+                    { label: 'نسبة الحيوية', value: (100 - toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.mortalityRate)).toFixed(1), unit: '%', color: 'text-indigo-400', icon: ShieldCheck },
+                    { label: 'العلف المستهلك', value: (toNum(chartData[Math.min(toNum(state.age) - 1, chartData.length - 1)]?.cumulativeFeed) / 1000).toFixed(2), unit: 'كجم', color: 'text-amber-400', icon: Database }
                   ].map((stat, i) => (
-                    <Card key={i} className="p-4 bg-slate-900/40 border-white/5 space-y-1">
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
-                      <p className={cn("text-xl font-black italic", stat.color)}>
-                        {stat.value} <span className="text-[10px] opacity-40 non-italic">{stat.unit}</span>
+                    <motion.div 
+                      key={i}
+                      whileHover={{ y: -4, backgroundColor: 'rgba(15, 23, 42, 0.6)' }}
+                      className="p-4 md:p-6 bg-slate-900/40 backdrop-blur-xl rounded-[2rem] border border-white/5 shadow-2xl transition-all duration-300 relative overflow-hidden group"
+                    >
+                      <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                      <div className="flex items-center justify-between mb-3 relative z-10">
+                         <div className="w-8 h-8 md:w-10 md:h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
+                            <stat.icon size={14} />
+                         </div>
+                         <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                      </div>
+                      <p className={cn("text-xl md:text-3xl font-black italic tracking-tighter relative z-10", stat.color)}>
+                        {stat.value} <span className="text-[9px] md:text-[11px] opacity-40 font-bold non-italic tracking-normal">{stat.unit}</span>
                       </p>
-                    </Card>
+                    </motion.div>
                   ))}
                </div>
             </motion.div>
@@ -8271,9 +9118,18 @@ export default function App() {
              exit={{ opacity: 0, x: -20 }}
              className="space-y-6"
            >
-              <header className="px-2">
-                <h2 className="text-2xl font-black text-white tracking-tight">إدارة الحرارة والتشخيص الذكي</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">عقل العنبر: ربط الحرارة بالحالة الفسيولوجية</p>
+              <header className="px-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">إدارة الحرارة والتشخيص الذكي</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">عقل العنبر: ربط الحرارة بالحالة الفسيولوجية</p>
+                </div>
+                <button 
+                  onClick={() => setScreen('charts')}
+                  className="p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
+                  title="عرض الإحصائيات"
+                >
+                  <BarChart2 size={24} />
+                </button>
               </header>
 
               {/* Input Section */}
@@ -8331,6 +9187,96 @@ export default function App() {
                        <p className="text-md font-black text-white">{Math.round(herdBiomass).toLocaleString()} <span className="text-[9px] opacity-40">كجم</span></p>
                     </div>
                  </div>
+              </div>
+
+              {/* Heat Load Analysis Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <Card className="bg-slate-900/60 border-white/5 p-6 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-[50px] -z-10 group-hover:bg-orange-500/10 transition-colors duration-1000" />
+                    <div className="flex items-center gap-4 mb-6">
+                       <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
+                          <Zap size={20} />
+                       </div>
+                       <div>
+                          <h4 className="text-sm font-black text-white">تحليل الأحمال الحرارية للقطيع</h4>
+                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">إنتاج الحرارة الحيوية (Biological Heat)</p>
+                       </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
+                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الحرارة المحسوسة</span>
+                          <div className="flex items-baseline gap-1">
+                             <span className="text-xl font-black text-white">{(environmentalLoad.qSensibleBird / 1000).toFixed(2)}</span>
+                             <span className="text-[8px] text-slate-500 font-bold">kW</span>
+                          </div>
+                       </div>
+                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
+                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الحرارة الكامنة</span>
+                          <div className="flex items-baseline gap-1">
+                             <span className="text-xl font-black text-blue-400">{(environmentalLoad.qLatentBird / 1000).toFixed(2)}</span>
+                             <span className="text-[8px] text-slate-500 font-bold">kW</span>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="mt-4 p-4 rounded-2xl bg-slate-950/40 border border-white/5">
+                       <div className="flex justify-between items-center mb-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الحرارة المنتجة</span>
+                          <span className="text-xl font-black text-orange-400">{(environmentalLoad.qTotalBird / 1000).toFixed(1)} kW</span>
+                       </div>
+                       <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden flex border border-white/5">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(environmentalLoad.qSensibleBird / (environmentalLoad.qTotalBird || 1)) * 100}%` }}
+                            className="h-full bg-white transition-all duration-1000" 
+                          />
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(environmentalLoad.qLatentBird / (environmentalLoad.qTotalBird || 1)) * 100}%` }}
+                            className="h-full bg-blue-500 transition-all duration-1000" 
+                          />
+                       </div>
+                       <div className="flex justify-between mt-2 opacity-50 px-1">
+                         <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">الحرارة الجافة (جسم الطائر)</span>
+                         <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">الحرارة الكامنة (تنفس وبخار)</span>
+                       </div>
+                    </div>
+                 </Card>
+
+                 <Card className="bg-slate-900/60 border-white/5 p-6 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] -z-10 group-hover:bg-blue-500/10 transition-colors duration-1000" />
+                    <div className="flex items-center gap-4 mb-6">
+                       <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                          <Wind size={20} />
+                       </div>
+                       <div>
+                          <h4 className="text-sm font-black text-white">اكتساب الحرارة الكلي للعنبر</h4>
+                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">الحمل الحراري الإجمالي (House Load)</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4">
+                       <div className="flex items-baseline justify-between mb-4">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الحمل الحراري</span>
+                          <span className="text-3xl font-black text-white tracking-tighter">{(environmentalLoad.qTotalHouse / 1000).toFixed(1)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">kW</span></span>
+                       </div>
+                       
+                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                          <div className="flex items-center gap-2 mb-1">
+                             <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">توصية فنية</span>
+                          </div>
+                          <p className="text-[10.5px] font-bold text-slate-400 leading-relaxed text-right">
+                            {state.environmentalLoadInsulation 
+                              ? "⚠️ العزل الرديء يزيد بشكل كبير من الحرارة المكتسبة من جدران العنبر. يوصى بزيادة كثافة التبريد (الخلايا) لتعويض هذا النقص."
+                              : "✅ العزل الجيد يحافظ على درجة الحرارة المستهدفة بكفاءة ويقلل من استهلاك الكهرباء في الشفاطات."
+                            }
+                            {" "}حمولة اللحم الكبيرة تتطلب سرعة هواء لا تقل عن 2.5 م/ث في الأعمار الكبيرة.
+                          </p>
+                       </div>
+                    </div>
+                 </Card>
               </div>
 
               {/* Diagnostic Engine Table */}
@@ -8429,7 +9375,7 @@ export default function App() {
               {/* Dynamic Alerts Section */}
               <div className="space-y-4">
                  <AnimatePresence>
-                    {thi > 155 && (
+                    {realFeelTemp > targetTemp + 3.5 && (
                        <motion.div 
                          initial={{ opacity: 0, y: 10 }}
                          animate={{ opacity: 1, y: 0 }}
@@ -8544,11 +9490,73 @@ export default function App() {
              exit={{ opacity: 0, x: -20 }}
              className="space-y-6"
            >
-              <header className="px-2">
-                <h2 className="text-2xl font-black text-white tracking-tight">نظام التهوية الذكي</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">إحصائيات وقدرات الشفاطات وإدارة التوزيع المتقطع</p>
+              <header className="px-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">نظام التهوية الذكي</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">إحصائيات وقدرات الشفاطات وإدارة التوزيع المتقطع</p>
+                </div>
+                <button 
+                  onClick={() => setScreen('charts')}
+                  className="p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
+                  title="عرض الإحصائيات"
+                >
+                  <BarChart2 size={24} />
+                </button>
               </header>
               
+              {/* Engineering Ventilation Load Section */}
+              <Card className="border-s-4 border-s-indigo-600 bg-slate-900/60 border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[50px] -z-10" />
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-indigo-500">
+                    <Wind size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-lg text-white">متطلبات التهوية الهندسية</h4>
+                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">بناءً على الحمل الحراري و Delta T</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                  <div className="space-y-4">
+                    <div className="flex items-baseline justify-between mb-2">
+                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الهواء المطلوب للتبريد</span>
+                       <span className="text-3xl font-black text-white tracking-tighter">{Math.round(environmentalLoad.requiredAirflow).toLocaleString()} <span className="text-[10px] text-slate-500 font-bold uppercase ms-1">م³/ساعة</span></span>
+                    </div>
+                    <div className="h-2 bg-slate-950 rounded-full overflow-hidden shadow-inner">
+                       <motion.div 
+                         initial={{ width: 0 }}
+                         animate={{ width: `${Math.min(100, (environmentalLoad.requiredAirflow / (totalActiveCapacity || 1)) * 100)}%` }}
+                         className={cn(
+                           "h-full transition-all duration-1000",
+                           environmentalLoad.requiredAirflow <= totalActiveCapacity ? "bg-emerald-500" : "bg-red-500"
+                         )}
+                       />
+                    </div>
+                    <div className="flex justify-between text-[8px] font-black uppercase tracking-widest opacity-40 italic">
+                       <span>Delta T: {state.environmentalLoadDeltaT}</span>
+                       <span>الحمل المحسوس: {(environmentalLoad.qSensibleHouse / 1000).toFixed(1)} kW</span>
+                    </div>
+                  </div>
+                  
+                  <div className={cn(
+                    "p-4 rounded-2xl border flex flex-col gap-2 transition-all duration-500 shadow-lg shadow-black/20",
+                    environmentalLoad.requiredAirflow <= totalActiveCapacity ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400" : "bg-red-500/5 border-red-500/10 text-red-400"
+                  )}>
+                     <div className="flex items-center gap-2">
+                       {environmentalLoad.requiredAirflow <= totalActiveCapacity ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+                       <span className="text-xs font-black">تحليل القدرة التشغيلية</span>
+                     </div>
+                     <p className="text-[10.5px] font-bold leading-relaxed opacity-80">
+                        {environmentalLoad.requiredAirflow <= totalActiveCapacity 
+                          ? `الشفاطات الحالية تغطي الاحتياج بكفاءة. سعة الفائض المتاحة: ${Math.round(totalActiveCapacity - environmentalLoad.requiredAirflow).toLocaleString()} م³/س.`
+                          : `تحذير: القدرة المتوفرة (${totalActiveCapacity.toLocaleString()}) غير كافية لسحب الحرارة المكتسبة بناءً على فرق Delta T الحالي.`
+                        }
+                     </p>
+                  </div>
+                </div>
+              </Card>
+
               <Card className="border-s-4 border-s-blue-600 bg-slate-900/60 border-white/5">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-500">
@@ -8968,6 +9976,15 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+                <div className="px-4 sm:px-6">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-cyan-500/10"
+                    title="الإحصائيات"
+                  >
+                    <BarChart2 size={20} />
+                  </button>
+                </div>
               </header>
 
               {/* DASHBOARD GRID */}
@@ -9202,6 +10219,42 @@ export default function App() {
                       </div>
                     </motion.div>
                   </AnimatePresence>
+
+                  {/* Moisture Production Insight */}
+                  <Card className="bg-slate-900 border-white/5 p-6 border-b-4 border-b-cyan-500 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -z-10" />
+                    <div className="flex items-center gap-4 mb-6">
+                       <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                         <Droplet size={20} />
+                       </div>
+                       <div>
+                         <h4 className="text-sm font-black text-white leading-none">إنتاج الرطوبة الهيكلي</h4>
+                         <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">الميزان المائي للقطيع</p>
+                       </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                       <div className="flex items-baseline justify-between">
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المعدل اليومي للقطيع</span>
+                         <span className="text-3xl font-black text-cyan-400 tracking-tighter">{Math.round(environmentalLoad.moisturePerDayKg)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">كجم / يوم</span></span>
+                       </div>
+                       
+                       <div className="p-4 bg-slate-950/50 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                          <p className="text-[10.5px] font-bold text-slate-400 leading-relaxed text-right">
+                             {(() => {
+                                const currentH = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
+                                if (currentH > targetHumidity.max) {
+                                   return "⚠️ الرطوبة مرتفعة؛ الطيور تفرز بخار ماء بمعدل عالٍ. يجب زيادة معدلات سحب الهواء لتجنب ابتلال الفرشة وإصابة الطيور بأمراض تنفسية.";
+                                 } else if (currentH < targetHumidity.min) {
+                                   return "⚠️ الرطوبة منخفضة؛ العنبر جاف جداً مما قد يؤدي لجفاف الطيور وانتشار الغبار. يوصى بتشغيل المرطبات (Humidifiers) أو تقليل التهوية الزائدة عن الحد الأدنى.";
+                                 } else {
+                                   return "✅ الرطوبة مثالية؛ تأكد من استمرار التهوية بالحد الأدنى لسحب الرطوبة الناتجة عن تنفس القطيع وفضلاته للحفاظ على هذا النطاق.";
+                                 }
+                             })()}
+                          </p>
+                       </div>
+                    </div>
+                  </Card>
                 </div>
 
                 {/* 2. TARGET PROFILE SECTION */}
@@ -9594,6 +10647,262 @@ export default function App() {
 
               </motion.div>
           )}
+
+          {screen === 'environmental_load' && (
+             <motion.div 
+             key="environmental_load"
+             initial={{ opacity: 0, scale: 0.98 }}
+             animate={{ opacity: 1, scale: 1 }}
+             exit={{ opacity: 0, scale: 1.02 }}
+             className="space-y-6 pb-24"
+           >
+               <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
+                <div className="flex items-center gap-4 px-4 sm:px-6">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+                    <Activity size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white tracking-tight leading-none">وحدة الحمل الحراري والرطوبة</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5 grayscale opacity-70">
+                      <Settings size={10} /> حسابات الحمل الحراري وإنتاج الرطوبة الهندسية
+                    </p>
+                  </div>
+                </div>
+                <div className="px-4 sm:px-6">
+                  <button 
+                    onClick={() => setScreen('charts')}
+                    className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
+                    title="الإحصائيات"
+                  >
+                    <BarChart2 size={20} />
+                  </button>
+                </div>
+              </header>
+
+              {/* HEAT STRESS ALERT */}
+              {environmentalLoad.heatStress && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-[2.5rem] bg-red-500/10 border border-red-500/20 shadow-2xl relative overflow-hidden mb-6"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[50px] -z-10" />
+                  <div className="flex items-center gap-4 text-red-500 mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center animate-pulse">
+                      <AlertTriangle size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black">خطر إجهاد حراري مرتفع!</h3>
+                      <p className="text-xs font-bold opacity-80">درجة الحرارة تتجاوز الحد الآمن لهذا العمر ({Math.max(32, Math.round(targetTemp + 2)) + 1} درجة مئوية)</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-slate-950/50 border border-white/5 space-y-2">
+                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">توصيات هندسية:</h4>
+                       <ul className="text-xs font-bold text-white space-y-1.5 list-disc pr-4 opacity-90">
+                         <li>زيادة سرعة الهواء (التهوية الطولية)</li>
+                         <li>تقليل الكثافة العددية للمتر المربع</li>
+                         <li>استخدام أنظمة التبريد التبخيري</li>
+                         <li>التغذية الليلية فقط</li>
+                       </ul>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-slate-950/50 border border-white/5 flex items-center justify-center">
+                       <p className="text-sm font-black text-red-400 text-center leading-relaxed">
+                         يجب التدخل الفوري لخفض الحرارة الشعورية للطيور للحفاظ على استهلاك العلف ومنع النفوق.
+                       </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* 1. INPUTS SECTION */}
+                <div className="lg:col-span-4 space-y-6">
+                  <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-indigo-500 shadow-xl">
+                    <h3 className="text-lg font-black text-white mb-6 flex items-center gap-3">
+                      <Sliders size={20} className="text-indigo-400 opacity-60" />
+                      مدخلات الحساب الهندسية
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pr-2">فرق الحرارة (Delta T)</label>
+                        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 shadow-inner">
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.max(1, toNum(prev.environmentalLoadDeltaT || 3) - 0.5) }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                             <Minus size={14} strokeWidth={4} />
+                           </button>
+                           <input type="text" inputMode="decimal" value={state.environmentalLoadDeltaT} onChange={e => {
+                             const val = e.target.value;
+                             if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                               setState(prev => ({ ...prev, environmentalLoadDeltaT: val }));
+                             }
+                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0" />
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.min(10, toNum(prev.environmentalLoadDeltaT || 3) + 0.5) }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                             <Plus size={14} strokeWidth={4} />
+                           </button>
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-bold px-2">الفرق المسموح به بين حرارة الداخل والخارج (3-5 مئوي)</p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pr-2">الكثافة (كجم/متر²)</label>
+                        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 shadow-inner">
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.max(0, toNum(prev.environmentalLoadDensity || 30) - 1) }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                             <Minus size={14} strokeWidth={4} />
+                           </button>
+                           <input type="text" inputMode="decimal" value={state.environmentalLoadDensity} onChange={e => {
+                             const val = e.target.value;
+                             if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                               setState(prev => ({ ...prev, environmentalLoadDensity: val }));
+                             }
+                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0" />
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.min(50, toNum(prev.environmentalLoadDensity || 30) + 1) }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                             <Plus size={14} strokeWidth={4} />
+                           </button>
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-bold px-2">يؤثر في تصحيح إنتاج الحرارة الكلي (خاصة فوق 35 كجم/م²)</p>
+                      </div>
+
+                      <div className="pt-6 border-t border-white/5">
+                        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950/40 border border-white/10">
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
+                               <ShieldAlert size={18} />
+                             </div>
+                             <div className="flex flex-col">
+                               <span className="text-xs font-black text-white">العزل الحراري</span>
+                               <span className="text-[9px] text-slate-500 font-bold">جودة بناء وتجهيز العنبر</span>
+                             </div>
+                           </div>
+                           <div className="flex bg-slate-900/80 p-1 rounded-xl border border-white/10 shrink-0">
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, environmentalLoadInsulation: false }))}
+                                className={cn(
+                                  "px-4 py-1.5 rounded-lg text-[10px] font-black transition-all",
+                                  !state.environmentalLoadInsulation 
+                                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
+                                    : "text-slate-500 hover:text-slate-300"
+                                )}
+                              >
+                                جيد
+                              </button>
+                              <button 
+                                onClick={() => setState(prev => ({ ...prev, environmentalLoadInsulation: true }))}
+                                className={cn(
+                                  "px-4 py-1.5 rounded-lg text-[10px] font-black transition-all",
+                                  state.environmentalLoadInsulation 
+                                    ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" 
+                                    : "text-slate-500 hover:text-slate-300"
+                                )}
+                              >
+                                ضعيف
+                              </button>
+                            </div>
+                        </div>
+                        {state.environmentalLoadInsulation && (
+                          <p className="text-[9px] text-orange-500 font-black mt-2 pr-2 animate-pulse bg-orange-500/5 py-1 px-2 rounded-lg inline-block">
+                            * العزل الضعيف يرفع الإنتاج الحراري المحسوس بنسبة 10%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* 2. RESULTS SECTION */}
+                <div className="lg:col-span-8 space-y-6">
+                   {/* ROW 1: HEAT PRODUCTION */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-orange-500 relative overflow-hidden group hover:border-orange-500/50 transition-all">
+                       <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 blur-[40px] -z-10" />
+                       <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                         <Thermometer size={14} className="text-orange-500" /> إنتاج الحرارة (للطائر الواحد)
+                       </h4>
+                       <div className="space-y-6">
+                         <div className="flex items-baseline justify-between">
+                            <span className="text-xs font-bold text-slate-300">إجمالي الحرارة</span>
+                            <span className="text-3xl font-black text-white tracking-tighter">{environmentalLoad.qTotalBird.toFixed(2)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">واط</span></span>
+                         </div>
+                         <div className="grid grid-cols-2 gap-4">
+                           <div className="p-4 bg-slate-950/50 rounded-2xl border border-white/5 shadow-inner">
+                             <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">المحسوسة (Sensible)</p>
+                             <p className="text-xl font-black text-orange-400 tabular-nums tracking-tight">{environmentalLoad.qSensibleBird.toFixed(2)} واط</p>
+                           </div>
+                           <div className="p-4 bg-slate-950/50 rounded-2xl border border-white/5 shadow-inner">
+                             <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 shadow-sm">الكامنة (Latent)</p>
+                             <p className="text-xl font-black text-cyan-400 tabular-nums tracking-tight">{environmentalLoad.qLatentBird.toFixed(2)} واط</p>
+                           </div>
+                         </div>
+                       </div>
+                     </Card>
+
+                     <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-indigo-500 relative overflow-hidden group hover:border-indigo-500/50 transition-all">
+                       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] -z-10" />
+                       <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                         <Layout size={14} className="text-indigo-500" /> إجمالي أحمال العنبر
+                       </h4>
+                       <div className="space-y-6">
+                         <div className="flex items-baseline justify-between">
+                            <span className="text-xs font-bold text-slate-300">الحمل الحراري الكلي</span>
+                            <span className="text-3xl font-black text-white tracking-tighter">{(environmentalLoad.qTotalHouse / 1000).toFixed(1)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">كيلو واط</span></span>
+                         </div>
+                         <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-white/5 shadow-inner">
+                            <div>
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">الحمل المحسوس للعنبر</p>
+                              <p className="text-base font-black text-white tabular-nums">{(environmentalLoad.qSensibleHouse / 1000).toFixed(1)} كيلو واط</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">عامل الحرارة المحسوسة</p>
+                              <p className="text-base font-black text-indigo-400 tabular-nums tracking-tighter">{environmentalLoad.sensibleFactor.toFixed(2)} SHF</p>
+                            </div>
+                         </div>
+                       </div>
+                     </Card>
+                   </div>
+
+                   {/* ROW 2: AIRFLOW & MOISTURE */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-cyan-500 relative overflow-hidden group hover:border-cyan-500/50 transition-all">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-[40px] -z-10" />
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                          <Droplet size={14} className="text-cyan-500" /> إنتاج الرطوبة (بخار الماء)
+                        </h4>
+                        <div className="space-y-4">
+                           <div className="flex items-baseline justify-between">
+                              <span className="text-xs font-bold text-slate-300">إنتاج الرطوبة يومياً</span>
+                              <span className="text-3xl font-black text-cyan-400 tracking-tighter">{Math.round(environmentalLoad.moisturePerDayKg)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">كجم / يوم</span></span>
+                           </div>
+                           <div className="p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/10 shadow-inner">
+                              <p className="text-[10.5px] font-bold text-white leading-relaxed text-right italic opacity-90">
+                                <Info size={12} className="inline-block ms-1 text-cyan-500" />
+                                هذا الميزان من بخار الماء يجب سحبه من العنبر دورياً عبر التهوية لتجنب الفرشة المبللة.
+                              </p>
+                           </div>
+                        </div>
+                     </Card>
+
+                     <Card className="bg-slate-900 border-white/5 p-6 border-t-4 border-t-emerald-500 relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-[40px] -z-10" />
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                          <Wind size={14} className="text-emerald-500" /> التهوية اللازمة للتبريد
+                        </h4>
+                        <div className="space-y-4">
+                           <div className="flex items-baseline justify-between">
+                              <span className="text-xs font-bold text-slate-300">سحب الهواء المكتسب</span>
+                              <span className="text-3xl font-black text-emerald-400 tracking-tighter">{Math.round(environmentalLoad.requiredAirflow)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">م³ / ساعة</span></span>
+                           </div>
+                           <div className="flex items-center gap-3 p-4 bg-slate-950/50 rounded-2xl border border-white/5 text-[10px] font-black text-slate-400 shadow-inner">
+                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                             يتم حسابه بناءً على {state.environmentalLoadDeltaT} فرق درجة حرارة وحمل الطيور المحسوس.
+                           </div>
+                        </div>
+                     </Card>
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {screen === 'expert' && (
             <motion.div 
               key="expert"
@@ -9601,7 +10910,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <ExpertScreen age={toNum(state.age)} />
+              <ExpertScreen age={toNum(state.age)} onNavigate={setScreen} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -9722,6 +11031,15 @@ export default function App() {
           label="الرئيسية" 
         />
         <NavButton 
+          active={screen === 'charts'} 
+          onClick={() => {
+            setScreen('charts');
+            setIsNavVisible(true);
+          }} 
+          icon={BarChart2} 
+          label="الإحصائيات" 
+        />
+        <NavButton 
           active={screen === 'medication'} 
           onClick={() => {
             setScreen('medication');
@@ -9776,13 +11094,13 @@ export default function App() {
           label="الرطوبة" 
         />
         <NavButton 
-          active={screen === 'charts'} 
+          active={screen === 'environmental_load'} 
           onClick={() => {
-            setScreen('charts');
+            setScreen('environmental_load');
             setIsNavVisible(true);
           }} 
-          icon={BarChart2} 
-          label="الإحصائيات" 
+          icon={Activity} 
+          label="الحمل الحراري" 
         />
         <NavButton 
           active={screen === 'finances'} 

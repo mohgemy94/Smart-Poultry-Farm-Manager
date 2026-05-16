@@ -37,58 +37,6 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Generate App Icons
-        run: |
-          pip install Pillow
-          python3 << 'EOF'
-          from PIL import Image
-          import os
-
-          img = Image.open("assets/icon.png").convert("RGBA")
-
-          sizes = {
-            "android/app/src/main/res/mipmap-mdpi":    {"launcher": 48,  "foreground": 108},
-            "android/app/src/main/res/mipmap-hdpi":    {"launcher": 72,  "foreground": 162},
-            "android/app/src/main/res/mipmap-xhdpi":   {"launcher": 96,  "foreground": 216},
-            "android/app/src/main/res/mipmap-xxhdpi":  {"launcher": 144, "foreground": 324},
-            "android/app/src/main/res/mipmap-xxxhdpi": {"launcher": 192, "foreground": 432},
-          }
-
-          for folder, s in sizes.items():
-            os.makedirs(folder, exist_ok=True)
-
-            launcher = img.resize((s["launcher"], s["launcher"]), Image.LANCZOS)
-            launcher.save(f"{folder}/ic_launcher.png", "PNG")
-            launcher.save(f"{folder}/ic_launcher_round.png", "PNG")
-
-            fg_size = s["foreground"]
-            canvas = Image.new("RGBA", (fg_size, fg_size), (0, 0, 0, 0))
-            content_size = int(fg_size * 0.70)
-            img_resized = img.resize((content_size, content_size), Image.LANCZOS)
-            offset = (fg_size - content_size) // 2
-            canvas.paste(img_resized, (offset, offset), img_resized)
-            canvas.save(f"{folder}/ic_launcher_foreground.png", "PNG")
-
-            print(f"✅ {folder}")
-          EOF
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.5
-
-      - name: Build Android APK
-        run: |
-          cd android
-          gradle assembleDebug --no-daemon
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Smart-Poultry-Farm-Manager-Debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk          npx cap add android || true
-          npx cap sync android
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
