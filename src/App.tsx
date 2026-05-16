@@ -57,6 +57,8 @@ import {
   Moon,
   LogOut,
   FileText,
+  Copy,
+  Terminal,
   Info,
   Layout,
   Minus,
@@ -2555,7 +2557,7 @@ export default function App() {
     document.body.removeChild(link);
   };
 
-  const exportBackup = () => {
+  const exportBackup = async () => {
     const backupData = {
       app: 'poultry_manager',
       version: 4,
@@ -2567,17 +2569,82 @@ export default function App() {
       }
     };
     const dataStr = JSON.stringify(backupData, null, 2);
+    const timestamp = new Date().toISOString().split('T')[0];
+    const fileName = `poultry_backup_${timestamp}.json`;
+
+    // Attempt to use Web Share API (Primary for Mobile/APK)
+    if (navigator.share && navigator.canShare) {
+      try {
+        const file = new File([dataStr], fileName, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'نسخة احتياطية - مدير الدواجن',
+            text: 'ملف البيانات الكامل لبرنامج إدارة الدواجن'
+          });
+          return; 
+        }
+      } catch (err) {
+        console.error('Share API error:', err);
+      }
+    }
+
+    // Traditional download fallback
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const timestamp = new Date().toISOString().split('T')[0];
     link.href = url;
-    // Filename reflecting the app name clearly
-    link.download = `برنامج_إدارة_الدواجن_نسخة_احتياطية_${timestamp}.json`;
+    link.download = `بيانات_المزرعة_${timestamp}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const copyBackupCode = async () => {
+    try {
+      const backupData = {
+        app: 'poultry_manager',
+        version: 4,
+        timestamp: new Date().toISOString(),
+        activeCycle: state,
+        archive: allCycles,
+        settings: {
+          isAutoSave
+        }
+      };
+      const dataStr = JSON.stringify(backupData);
+      // Use Base64 to make it more "code-like" and avoid JSON formatting issues when pasting
+      const base64Code = btoa(unescape(encodeURIComponent(dataStr)));
+      
+      await navigator.clipboard.writeText(base64Code);
+      alert('تم نسخ كود النسخة الاحتياطية بنجاح! يمكنك حفظه في أي مكان واستعادته لاحقاً.');
+    } catch (err) {
+      alert('فشل في نسخ الكود');
+    }
+  };
+
+  const importFromCode = async () => {
+    const code = prompt('يرجى لصق كود النسخة الاحتياطية هنا:');
+    if (!code) return;
+
+    try {
+      const decodedData = decodeURIComponent(escape(atob(code)));
+      const data = JSON.parse(decodedData);
+      
+      if (data.app === 'poultry_manager' && data.activeCycle) {
+        if (confirm('سيتم استبدال البيانات الحالية بالكامل، هل أنت متأكد؟')) {
+          setState({ ...INITIAL_STATE, ...data.activeCycle });
+          if (Array.isArray(data.archive)) setAllCycles(data.archive);
+          if (data.settings?.isAutoSave !== undefined) setIsAutoSave(data.settings.isAutoSave);
+          alert('تم استيراد نسخة البرنامج الكاملة من الكود بنجاح');
+        }
+      } else {
+        alert('كود النسخة الاحتياطية غير صالح');
+      }
+    } catch (err) {
+      alert('حدث خطأ في قراءة الكود، تأكد من نسخه بشكل صحيح');
+    }
   };
 
   const importBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -4280,6 +4347,14 @@ export default function App() {
             <Download size={18} />
             تنزيل ملف النسخة (JSON)
           </button>
+
+          <button 
+            onClick={copyBackupCode}
+            className="w-full bg-purple-500/5 text-purple-300 border border-purple-500/10 py-3 rounded-2xl font-bold text-[10px] shadow-lg hover:bg-purple-500/10 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            <Copy size={16} />
+            نسخ كود البيانات (نص)
+          </button>
           
           <label className="w-full bg-amber-500/10 text-amber-400 border border-amber-500/20 py-4 rounded-2xl font-black text-xs shadow-lg hover:bg-amber-500/20 transition-all text-center cursor-pointer flex items-center justify-center gap-3 active:scale-[0.98]">
             <Upload size={18} />
@@ -5728,6 +5803,13 @@ export default function App() {
                           تنزيل ملف النسخة (JSON)
                         </button>
                         <button 
+                          onClick={copyBackupCode}
+                          className="w-full bg-slate-800 text-purple-300 py-3 rounded-2xl font-bold text-xs border border-purple-500/20 hover:bg-slate-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          <Copy size={16} />
+                          نسخ كود البيانات (نص)
+                        </button>
+                        <button 
                           onClick={exportCSV}
                           className="w-full bg-white/10 text-purple-200 py-3 rounded-2xl font-bold text-xs border border-purple-500/20 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
                         >
@@ -5753,10 +5835,19 @@ export default function App() {
                           <p className="text-[11px] text-amber-400/70 font-bold">استعادة البيانات من الموبايل أو ملف Google Drive المحمل</p>
                         </div>
                       </div>
-                      <label className="w-full bg-amber-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all active:scale-[0.98] text-center cursor-pointer">
-                        اختيار ملف للاستعادة
-                        <input type="file" accept=".json" onChange={importBackup} className="hidden" />
-                      </label>
+                      <div className="grid grid-cols-1 gap-2">
+                        <label className="w-full bg-amber-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-all active:scale-[0.98] text-center cursor-pointer">
+                          اختيار ملف للاستعادة
+                          <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+                        </label>
+                        <button 
+                          onClick={importFromCode}
+                          className="w-full bg-slate-800 text-amber-300 py-3 rounded-2xl font-bold text-xs border border-amber-500/20 hover:bg-slate-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          <Terminal size={16} />
+                          استعادة بواسطة الكود
+                        </button>
+                      </div>
                     </div>
                   </div>
 
