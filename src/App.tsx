@@ -84,6 +84,9 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Toast } from '@capacitor/toast';
 import { 
   LineChart, 
   Line, 
@@ -2572,7 +2575,49 @@ export default function App() {
     const timestamp = new Date().toISOString().split('T')[0];
     const fileName = `poultry_backup_${timestamp}.json`;
 
-    // Attempt to use Web Share API (Primary for Mobile/APK)
+    // Check if running on Native Platform (Android/iOS)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // 1. Request Runtime Permissions
+        const permStatus = await Filesystem.checkPermissions();
+        if (permStatus.publicStorage !== 'granted') {
+          const reqStatus = await Filesystem.requestPermissions();
+          if (reqStatus.publicStorage !== 'granted') {
+            alert('يجب الموافقة على صلاحيات الوصول للتخزين لكي نتمكن من حفظ النسخة الاحتياطية.');
+            return;
+          }
+        }
+
+        // 2. Save File
+        // On Android we try to save to the public "Download" folder
+        // On iOS we save to "Documents" (which is visible in the Files app if configured)
+        const isAndroid = Capacitor.getPlatform() === 'android';
+        
+        await Filesystem.writeFile({
+          path: isAndroid ? `Download/${fileName}` : fileName,
+          data: dataStr,
+          directory: isAndroid ? Directory.ExternalStorage : Directory.Documents,
+          encoding: Encoding.UTF8,
+          recursive: true
+        });
+
+        alert(`تم حفظ النسخة الاحتياطية بنجاح باسم: ${fileName}\n${isAndroid ? 'يمكنك العثور عليها في مجلد "Downloads" في جهازك.' : 'يمكنك العثور عليها في تطبيق "Files" الخاص بجهازك.'}`);
+        
+        if (Toast) {
+          await Toast.show({
+            text: 'تم الحفظ بنجاح',
+            duration: 'short'
+          });
+        }
+      } catch (err: any) {
+        console.error('Backup Error:', err);
+        alert(`فشل الحفظ: ${err.message || 'خطأ غير معروف'}`);
+      }
+      return;
+    }
+
+    // Web Fallback (Development/Browser)
+    // Attempt to use Web Share API
     if (navigator.share && navigator.canShare) {
       try {
         const file = new File([dataStr], fileName, { type: 'application/json' });
