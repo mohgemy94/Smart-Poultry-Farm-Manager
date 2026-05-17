@@ -2,5 +2,5 @@
   "name": "Smart Poultry Farm Manager",
   "description": "Smart management app for poultry fattening farms with live market data tracking including chicken, eggs, chicks, feed, gold, and currency rates.",
   "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
