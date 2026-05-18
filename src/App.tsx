@@ -208,6 +208,15 @@ const STRAIN_NAMES: Record<Strain, string> = {
 };
 
 // --- Utils ---
+const generateSafeId = () => {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+  } catch (e) {}
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+};
+
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
   const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
   return {
@@ -1744,18 +1753,22 @@ export default function App() {
   });
 
   const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem('poultry_app_state');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if ((parsed.version || 0) >= 4) {
-          return { ...INITIAL_STATE, ...parsed, version: 5 };
+    try {
+      const saved = localStorage.getItem('poultry_app_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if ((parsed.version || 0) >= 4) {
+            return { ...INITIAL_STATE, ...parsed, version: 5 };
+          }
+        } catch (e) {
+          console.error("Error parsing state", e);
         }
-      } catch (e) {
-        console.error("Error parsing state", e);
       }
+    } catch (e) {
+      console.error("localStorage access failed", e);
     }
-    return { ...INITIAL_STATE, id: crypto.randomUUID() };
+    return { ...INITIAL_STATE, id: generateSafeId() };
   });
 
   const [activeBatteryGroup, setActiveBatteryGroup] = useState<string | null>(null);
@@ -2511,7 +2524,7 @@ export default function App() {
     // 2. Create fresh state
     const newState: AppState = { 
       ...INITIAL_STATE, 
-      id: crypto.randomUUID(), 
+      id: generateSafeId(), 
       name: name || 'دورة غير مسمى',
       startDate: new Date().toISOString().split('T')[0],
       isManualOverride: false,
@@ -2554,7 +2567,7 @@ export default function App() {
       setAllCycles(prev => prev.filter(c => c.id !== deletingCycleId));
       if (state.id === deletingCycleId) {
         // If we are deleting the currently active cycle, reset to landing after creating a new ID
-        setState({ ...INITIAL_STATE, id: crypto.randomUUID() });
+        setState({ ...INITIAL_STATE, id: generateSafeId() });
       }
       setDeletingCycleId(null);
       setDeleteStep(0);
@@ -2767,7 +2780,7 @@ export default function App() {
           alert('تم استيراد نسخة البرنامج الكاملة بنجاح');
         } else {
           // Legacy or single cycle import
-          setState({ ...INITIAL_STATE, ...data, id: data.id || crypto.randomUUID() });
+          setState({ ...INITIAL_STATE, ...data, id: data.id || generateSafeId() });
           alert('تم استيراد بيانات الدورة بنجاح');
         }
       } catch (err) {
