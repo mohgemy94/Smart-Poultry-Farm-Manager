@@ -1653,6 +1653,7 @@ const INITIAL_STATE: AppState = {
 
 export default function App() {
   const [deviceId, setDeviceId] = useState<string>('');
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   useEffect(() => {
@@ -1660,38 +1661,71 @@ export default function App() {
       try {
         let identifier = '';
         
+        // Safety check for Capacitor and potential permission issues
         if (Capacitor.isNativePlatform()) {
           try {
+            console.log("[Init] Starting device initialization for platform:", Capacitor.getPlatform());
+            
             if (Capacitor.getPlatform() === 'android') {
-              // @ts-ignore - expo-application might have different typing in latest versions
-              identifier = Application.getAndroidId?.() || Application.androidId || '';
+              // Wrap Application.getAndroidId for safety
+              try {
+                // @ts-ignore - expo-application might have different typing in latest versions
+                identifier = Application.getAndroidId?.() || Application.androidId || '';
+              } catch (e) {
+                console.error("Critical error fetching Android ID via Application:", e);
+              }
             } else if (Capacitor.getPlatform() === 'ios') {
-              identifier = await Application.getIosIdForVendorAsync() || '';
+              try {
+                identifier = await Application.getIosIdForVendorAsync() || '';
+              } catch (e) {
+                console.error("Critical error fetching iOS ID via Application:", e);
+              }
             }
           } catch (e) {
             console.warn("Expo Application ID failed, falling back to Capacitor Device ID", e);
           }
         }
 
+        // Fallback to Capacitor Device.getId if still no identifier
         if (!identifier) {
-          const info = await Device.getId();
-          identifier = info.identifier;
+          try {
+            const info = await Device.getId();
+            identifier = info.identifier;
+          } catch (e) {
+            console.error("Device.getId failed:", e);
+            identifier = 'unknown_device_' + generateSafeId();
+          }
         }
 
         setDeviceId(identifier);
         console.log("Device ID loaded:", identifier);
 
-        // Check for existing session
-        const { value: isAuth } = await Preferences.get({ key: 'poultry_sheets_authenticated' });
-        if (isAuth === 'true') {
-          sessionStorage.setItem('poultry_gateway_passed', 'true');
-          setScreen('landing');
+        // Check for existing session safely
+        try {
+          const { value: isAuth } = await Preferences.get({ key: 'poultry_sheets_authenticated' });
+          if (isAuth === 'true') {
+            sessionStorage.setItem('poultry_gateway_passed', 'true');
+            setScreen('landing');
+          }
+        } catch (e) {
+          console.warn("Preferences.get failed during init:", e);
         }
       } catch (err) {
-        console.error("Error initializing device/session:", err);
+        console.error("Fatal error in initDevice:", err);
+      } finally {
+        // Guaranteed to hide the white screen
+        setIsInitializing(false);
       }
     };
+    
+    // Safety timeout to ensure app always renders
+    const safetyTimeout = setTimeout(() => {
+      setIsInitializing(false);
+    }, 5000);
+
     initDevice();
+    
+    return () => clearTimeout(safetyTimeout);
   }, []);
 
   const [screen, setScreen] = useState<Screen>(() => {
@@ -4498,6 +4532,34 @@ export default function App() {
       )}
     </AnimatePresence>
   );
+
+  // Show Initial Loading Screen to prevent White Screen on Android
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 p-6" dir="rtl">
+        <div className="relative">
+          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            className="relative z-10"
+          >
+            <RefreshCw className="w-16 h-16 text-blue-500" />
+          </motion.div>
+        </div>
+        
+        <div className="text-center space-y-2 relative z-10">
+          <h1 className="text-xl font-black text-white tracking-widest uppercase">Smart Poultry</h1>
+          <p className="text-slate-400 font-bold animate-pulse">جاري تهيئة النظام...</p>
+        </div>
+
+        <div className="mt-12 flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">نظام آمن وشفر</span>
+        </div>
+      </div>
+    );
+  }
 
   // Show Loading Screen if Auth is still checking
   if (authLoading) {
