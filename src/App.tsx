@@ -137,10 +137,10 @@ import { Preferences } from '@capacitor/preferences';
  * 5. جعل الـ Access: "Anyone".
  * 6. نسخ "Web App URL" ووضعه في ملف server.ts في مسار /api/auth/sheets.
  */
-const SHEETS_AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbw6korqk5leXYwXZP82Ov6-QueZiD2QL1-vIT5-JPO9ZwoFVeWWfFN1gundgFdBTcjE/exec'; 
+const SHEETS_AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec'; 
 
 // --- API Helpers ---
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbw6korqk5leXYwXZP82Ov6-QueZiD2QL1-vIT5-JPO9ZwoFVeWWfFN1gundgFdBTcjE/exec';
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec';
 
 const smartFetch = async (url: string, options: any = {}) => {
   // Ensure we have a full URL
@@ -2839,8 +2839,8 @@ export default function App() {
     e.preventDefault();
     setIsLoginLoading(true);
     try {
-      // 🌟 الرابط الجديد والنهائي المباشر لتجنب مشاكل الـ Environment Variables
-      const response = await smartFetch("https://script.google.com/macros/s/AKfycbw6korqk5leXYwXZP82Ov6-QueZiD2QL1-vIT5-JPO9ZwoFVeWWfFN1gundgFdBTcjE/exec", {
+      // 🌟 الرابط الجديد المباشر بعد التحديث الأخير لـ Apps Script
+      const response = await smartFetch("https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec", {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8', // لتجاوز الـ CORS بنجاح
@@ -2888,8 +2888,8 @@ export default function App() {
     
     setIsLoginLoading(true);
     try {
-      // 🌟 الرابط الجديد والنهائي المباشر لتجنب مشاكل الـ Environment Variables
-      const response = await smartFetch("https://script.google.com/macros/s/AKfycbw6korqk5leXYwXZP82Ov6-QueZiD2QL1-vIT5-JPO9ZwoFVeWWfFN1gundgFdBTcjE/exec", {
+      // 🌟 الرابط الجديد المباشر بعد التحديث الأخير لـ Apps Script
+      const response = await smartFetch("https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec", {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8', // لتجاوز الـ CORS بنجاح
