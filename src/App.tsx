@@ -140,17 +140,15 @@ import { Preferences } from '@capacitor/preferences';
 const SHEETS_AUTH_API_URL = '/api/auth/sheets'; 
 
 // --- API Helpers ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
 const smartFetch = async (url: string, options: any = {}) => {
-  // Use CapacitorHttp on native platforms to bypass CORS
+  // Ensure we have a full URL if it's relative
+  const targetUrl = url.startsWith('http') ? url : (API_BASE_URL ? `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}` : url);
+  
   if (Capacitor.isNativePlatform()) {
     try {
-      // For absolute URLs that are remote, CapacitorHttp is essential for CORS bypass
-      const isRemote = url.startsWith('http');
-      const targetUrl = isRemote ? url : (API_BASE_URL ? `${API_BASE_URL}${url}` : url);
-      
-      console.log(`SmartFetch (${Capacitor.getPlatform()}): fetching ${targetUrl}`);
+      console.log(`SmartFetch (Native): fetching ${targetUrl}`);
 
       const response = await CapacitorHttp.request({
         url: targetUrl,
@@ -161,7 +159,7 @@ const smartFetch = async (url: string, options: any = {}) => {
           'Cache-Control': 'no-cache',
           ...(options.headers || {})
         },
-        data: options.body,
+        data: options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined,
         connectTimeout: 30000,
         readTimeout: 30000
       });
@@ -173,7 +171,12 @@ const smartFetch = async (url: string, options: any = {}) => {
         status: response.status,
         json: async () => {
           if (typeof resData === 'string') {
-            try { return JSON.parse(resData); } catch (e) { return resData; }
+            try { 
+              return JSON.parse(resData); 
+            } catch (e) { 
+              console.error("JSON Parse Error in smartFetch:", e, "Data snippet:", resData.substring(0, 100));
+              throw new Error("استجابة السيرفر ليست بتنسيق JSON صحيح. ربما الرابط غير صحيح أو السيرفر يواجه مشكلة.");
+            }
           }
           return resData;
         },
@@ -182,16 +185,16 @@ const smartFetch = async (url: string, options: any = {}) => {
           get: (name: string) => response.headers[name] || response.headers[name.toLowerCase()]
         }
       } as any;
-    } catch (error) {
+    } catch (error: any) {
       console.error("CapacitorHttp error:", error);
       // Fallback to regular fetch if CapacitorHttp fails
-      return fetch(url, options);
+      return fetch(targetUrl, options);
     }
   }
-  return fetch(url, options);
+  return fetch(targetUrl, options);
 };
 
-if (Capacitor.isNativePlatform() && !API_BASE_URL) {
+if (Capacitor.isNativePlatform() && !import.meta.env.VITE_API_URL) {
   console.warn("VITE_API_URL is not set! API calls from the APK to the backend will fail. Please set VITE_API_URL to your server URL.");
 }
 
@@ -2831,7 +2834,7 @@ export default function App() {
       const response = await smartFetch(SHEETS_AUTH_API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify({
           email: loginEmail,
@@ -2839,11 +2842,15 @@ export default function App() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`خطأ في السيرفر: ${response.status}`);
+      }
+
       let result;
       try {
         result = await response.json();
-      } catch (e) {
-        throw new Error("الرابط الذي قدمته لا يرجع بيانات JSON صحيحة. تأكد من أنك قمت بعمل Deploy للكود كـ Web App وليس مجرد مشاركة الرابط.");
+      } catch (e: any) {
+        throw new Error(`تعذر قراءة بيانات السيرفر (Error: ${e.message}). تأكد من أن رابط السيرفر (VITE_API_URL) صحيح وأن السيرفر يعمل.`);
       }
 
       if (result.status === 'success') {
@@ -2880,7 +2887,7 @@ export default function App() {
       const response = await smartFetch(SHEETS_AUTH_API_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify({
           email: gatewayEmail,
@@ -2888,11 +2895,15 @@ export default function App() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`خطأ في السيرفر: ${response.status}`);
+      }
+
       let result;
       try {
         result = await response.json();
-      } catch (e) {
-        throw new Error("الرابط لا يرجع JSON. تأكد من إعدادات الـ Deployment (Set access to 'Anyone').");
+      } catch (e: any) {
+        throw new Error(`تعذر قراءة بيانات السيرفر (Error: ${e.message}). تأكد من أن رابط السيرفر (VITE_API_URL) صحيح وأن السيرفر يعمل.`);
       }
 
       if (result.status === 'success') {
