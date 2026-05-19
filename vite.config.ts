@@ -17,8 +17,6 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-        'react-native': path.resolve(__dirname, 'src/lib/react-native-alias.ts'),
-        'expo-modules-core': path.resolve(__dirname, 'src/lib/react-native-alias.ts'),
       },
     },
     server: {
