@@ -121,9 +121,7 @@ import {
   onAuthStateChanged, 
   signOut 
 } from '@/src/lib/firebase';
-import { Device } from '@capacitor/device';
 import { Preferences } from '@capacitor/preferences';
-import * as Application from 'expo-application';
 
 // --- Constants ---
 /** 
@@ -208,15 +206,6 @@ const STRAIN_NAMES: Record<Strain, string> = {
 };
 
 // --- Utils ---
-const generateSafeId = () => {
-  try {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-  } catch (e) {}
-  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-};
-
 const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
   const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
   return {
@@ -1652,80 +1641,21 @@ const INITIAL_STATE: AppState = {
 };
 
 export default function App() {
-  const [deviceId, setDeviceId] = useState<string>('');
-  const [isInitializing, setIsInitializing] = useState(true);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   useEffect(() => {
-    const initDevice = async () => {
+    const checkSession = async () => {
       try {
-        let identifier = '';
-        
-        // Safety check for Capacitor and potential permission issues
-        if (Capacitor.isNativePlatform()) {
-          try {
-            console.log("[Init] Starting device initialization for platform:", Capacitor.getPlatform());
-            
-            if (Capacitor.getPlatform() === 'android') {
-              // Wrap Application.getAndroidId for safety
-              try {
-                // @ts-ignore - expo-application might have different typing in latest versions
-                identifier = Application.getAndroidId?.() || Application.androidId || '';
-              } catch (e) {
-                console.error("Critical error fetching Android ID via Application:", e);
-              }
-            } else if (Capacitor.getPlatform() === 'ios') {
-              try {
-                identifier = await Application.getIosIdForVendorAsync() || '';
-              } catch (e) {
-                console.error("Critical error fetching iOS ID via Application:", e);
-              }
-            }
-          } catch (e) {
-            console.warn("Expo Application ID failed, falling back to Capacitor Device ID", e);
-          }
+        const { value: isAuth } = await Preferences.get({ key: 'poultry_sheets_authenticated' });
+        if (isAuth === 'true') {
+          sessionStorage.setItem('poultry_gateway_passed', 'true');
+          setScreen('landing');
         }
-
-        // Fallback to Capacitor Device.getId if still no identifier
-        if (!identifier) {
-          try {
-            const info = await Device.getId();
-            identifier = info.identifier;
-          } catch (e) {
-            console.error("Device.getId failed:", e);
-            identifier = 'unknown_device_' + generateSafeId();
-          }
-        }
-
-        setDeviceId(identifier);
-        console.log("Device ID loaded:", identifier);
-
-        // Check for existing session safely
-        try {
-          const { value: isAuth } = await Preferences.get({ key: 'poultry_sheets_authenticated' });
-          if (isAuth === 'true') {
-            sessionStorage.setItem('poultry_gateway_passed', 'true');
-            setScreen('landing');
-          }
-        } catch (e) {
-          console.warn("Preferences.get failed during init:", e);
-        }
-      } catch (err) {
-        console.error("Fatal error in initDevice:", err);
-      } finally {
-        // Guaranteed to hide the white screen
-        setIsInitializing(false);
+      } catch (e) {
+        console.warn("Session check failed:", e);
       }
     };
-    
-    // Safety timeout to ensure app always renders
-    const safetyTimeout = setTimeout(() => {
-      setIsInitializing(false);
-    }, 5000);
-
-    initDevice();
-    
-    return () => clearTimeout(safetyTimeout);
+    checkSession();
   }, []);
 
   const [screen, setScreen] = useState<Screen>(() => {
@@ -1740,10 +1670,8 @@ export default function App() {
   });
   const [gatewayEmail, setGatewayEmail] = useState('');
   const [gatewayPassword, setGatewayPassword] = useState('');
-  const [rememberMeGateway, setRememberMeGateway] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMeLogin, setRememberMeLogin] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isDriveLoading, setIsDriveLoading] = useState(false);
@@ -1802,7 +1730,7 @@ export default function App() {
     } catch (e) {
       console.error("localStorage access failed", e);
     }
-    return { ...INITIAL_STATE, id: generateSafeId() };
+    return { ...INITIAL_STATE, id: Math.random().toString(36).substring(2, 9) };
   });
 
   const [activeBatteryGroup, setActiveBatteryGroup] = useState<string | null>(null);
@@ -2236,14 +2164,12 @@ export default function App() {
         const { email, password } = JSON.parse(savedGateway);
         setGatewayEmail(email);
         setGatewayPassword(password);
-        setRememberMeGateway(true);
       } catch (e) {
         localStorage.removeItem('poultry_gateway_credentials');
       }
     } else {
       setGatewayEmail('');
       setGatewayPassword('');
-      setRememberMeGateway(false);
     }
 
     const savedLogin = localStorage.getItem('poultry_login_credentials');
@@ -2252,14 +2178,12 @@ export default function App() {
         const { email, password } = JSON.parse(savedLogin);
         setLoginEmail(email);
         setLoginPassword(password);
-        setRememberMeLogin(true);
       } catch (e) {
         localStorage.removeItem('poultry_login_credentials');
       }
     } else {
       setLoginEmail('');
       setLoginPassword('');
-      setRememberMeLogin(false);
     }
   }, [screen]); // Re-sync when returning to login screens
 
@@ -2558,7 +2482,7 @@ export default function App() {
     // 2. Create fresh state
     const newState: AppState = { 
       ...INITIAL_STATE, 
-      id: generateSafeId(), 
+      id: Math.random().toString(36).substring(2, 9), 
       name: name || 'دورة غير مسمى',
       startDate: new Date().toISOString().split('T')[0],
       isManualOverride: false,
@@ -2601,7 +2525,7 @@ export default function App() {
       setAllCycles(prev => prev.filter(c => c.id !== deletingCycleId));
       if (state.id === deletingCycleId) {
         // If we are deleting the currently active cycle, reset to landing after creating a new ID
-        setState({ ...INITIAL_STATE, id: generateSafeId() });
+        setState({ ...INITIAL_STATE, id: Math.random().toString(36).substring(2, 9) });
       }
       setDeletingCycleId(null);
       setDeleteStep(0);
@@ -2814,7 +2738,7 @@ export default function App() {
           alert('تم استيراد نسخة البرنامج الكاملة بنجاح');
         } else {
           // Legacy or single cycle import
-          setState({ ...INITIAL_STATE, ...data, id: data.id || generateSafeId() });
+          setState({ ...INITIAL_STATE, ...data, id: data.id || Math.random().toString(36).substring(2, 9) });
           alert('تم استيراد بيانات الدورة بنجاح');
         }
       } catch (err) {
@@ -2910,8 +2834,7 @@ export default function App() {
         },
         body: JSON.stringify({
           email: loginEmail,
-          password: loginPassword,
-          deviceId: deviceId
+          password: loginPassword
         })
       });
 
@@ -2929,13 +2852,6 @@ export default function App() {
           value: 'true'
         });
         
-        if (rememberMeLogin) {
-          localStorage.setItem('poultry_login_credentials', JSON.stringify({ 
-            email: loginEmail, 
-            password: loginPassword 
-          }));
-        }
-
         sessionStorage.setItem('poultry_gateway_passed', 'true');
         setScreen('landing');
         alert("تم تسجيل الدخول بنجاح!");
@@ -2967,8 +2883,7 @@ export default function App() {
         },
         body: JSON.stringify({
           email: gatewayEmail,
-          password: gatewayPassword,
-          deviceId: deviceId
+          password: gatewayPassword
         })
       });
 
@@ -2986,13 +2901,6 @@ export default function App() {
           value: 'true'
         });
         
-        if (rememberMeGateway) {
-          localStorage.setItem('poultry_gateway_credentials', JSON.stringify({ 
-            email: gatewayEmail, 
-            password: gatewayPassword 
-          }));
-        }
-
         sessionStorage.setItem('poultry_gateway_passed', 'true');
         setScreen('landing');
         alert("تم التصريح بالدخول بنجاح!");
@@ -3017,20 +2925,10 @@ export default function App() {
     Preferences.remove({ key: 'poultry_sheets_authenticated' });
     signOut(auth).catch(() => {});
     
-    // Clear states if not remembered
-    const savedGateway = localStorage.getItem('poultry_gateway_credentials');
-    if (!savedGateway) {
-      setGatewayEmail('');
-      setGatewayPassword('');
-      setRememberMeGateway(false);
-    }
-
-    const savedLogin = localStorage.getItem('poultry_login_credentials');
-    if (!savedLogin) {
-      setLoginEmail('');
-      setLoginPassword('');
-      setRememberMeLogin(false);
-    }
+    setGatewayEmail('');
+    setGatewayPassword('');
+    setLoginEmail('');
+    setLoginPassword('');
 
     setScreen('gateway');
     setIsLogoutConfirming(false);
@@ -4533,34 +4431,6 @@ export default function App() {
     </AnimatePresence>
   );
 
-  // Show Initial Loading Screen to prevent White Screen on Android
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 p-6" dir="rtl">
-        <div className="relative">
-          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-            className="relative z-10"
-          >
-            <RefreshCw className="w-16 h-16 text-blue-500" />
-          </motion.div>
-        </div>
-        
-        <div className="text-center space-y-2 relative z-10">
-          <h1 className="text-xl font-black text-white tracking-widest uppercase">Smart Poultry</h1>
-          <p className="text-slate-400 font-bold animate-pulse">جاري تهيئة النظام...</p>
-        </div>
-
-        <div className="mt-12 flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">نظام آمن وشفر</span>
-        </div>
-      </div>
-    );
-  }
-
   // Show Loading Screen if Auth is still checking
   if (authLoading) {
     return (
@@ -4678,28 +4548,6 @@ export default function App() {
               />
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer group select-none">
-              <div className="relative">
-                <input 
-                  type="checkbox" 
-                  checked={rememberMeGateway}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setRememberMeGateway(checked);
-                    if (!checked) {
-                      localStorage.removeItem('poultry_gateway_credentials');
-                    }
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-6 h-6 bg-slate-950/50 border-2 border-white/10 rounded-lg transition-all peer-checked:bg-blue-600 peer-checked:border-blue-500 group-hover:border-blue-400"></div>
-                <div className="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform">
-                  <Check size={14} strokeWidth={4} />
-                </div>
-              </div>
-              <span className="text-sm font-bold text-slate-400 group-hover:text-slate-300 transition-colors">تذكرني</span>
-            </label>
-
             <motion.button 
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
@@ -4763,34 +4611,6 @@ export default function App() {
                 required
                 className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
               />
-              
-              <div className="flex flex-col items-center gap-2">
-                <div className="text-[10px] text-slate-500 font-mono text-center opacity-70 bg-slate-900/50 px-2 py-1 rounded border border-white/5">
-                  ID: {deviceId || 'جاري التحميل...'}
-                </div>
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer group select-none">
-                <div className="relative">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMeLogin}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setRememberMeLogin(checked);
-                      if (!checked) {
-                        localStorage.removeItem('poultry_login_credentials');
-                      }
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-6 h-6 bg-slate-900 border-2 border-white/10 rounded-lg transition-all peer-checked:bg-blue-600 peer-checked:border-blue-500 group-hover:border-blue-400"></div>
-                  <div className="absolute inset-0 flex items-center justify-center text-white scale-0 peer-checked:scale-100 transition-transform">
-                    <Check size={14} strokeWidth={4} />
-                  </div>
-                </div>
-                <span className="text-sm font-bold text-slate-400 group-hover:text-slate-300 transition-colors">تذكر بياناتي</span>
-              </label>
 
               <motion.button 
                 whileHover={{ scale: 1.02 }}
