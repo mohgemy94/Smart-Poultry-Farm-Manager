@@ -90,6 +90,7 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Toast } from '@capacitor/toast';
 import { Share } from '@capacitor/share';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { 
   LineChart, 
   Line, 
@@ -3656,9 +3657,9 @@ export default function App() {
 
   // Derived Calculations
   const herdBiomass = (toNum(state.totalChicks) * dailyStats.weight) / 1000; // in kg
-  const dailyFeedTotal = (toNum(state.totalChicks) * dailyStats.dailyFeed) / 1000; // in kg
+  const dailyFeedTotal = Math.ceil((toNum(state.totalChicks) * dailyStats.dailyFeed) / 1000); // in kg
   const dailyWaterTotal = (dailyFeedTotal * (climateInfo?.waterFactor || 1.8)); // Standard water/feed ratio
-  const dailyWaterTotalLiters = Math.round((toNum(state.totalChicks) * dailyStats.dailyWater * ((climateInfo?.waterFactor || 1.8) / 1.8)) / 1000); // Adjusted for climate
+  const dailyWaterTotalLiters = Math.ceil((toNum(state.totalChicks) * dailyStats.dailyWater * ((climateInfo?.waterFactor || 1.8) / 1.8)) / 1000); // Adjusted for climate
   
   const totalBatteries = state.batteryGroups.reduce((acc, g) => acc + toNum(g.count), 0);
   const waterPerBattery = totalBatteries > 0 ? (dailyWaterTotalLiters / totalBatteries).toFixed(1) : dailyWaterTotalLiters;
@@ -4423,6 +4424,219 @@ export default function App() {
   const coldStress = targetTemp - realFeelTemp;
   const isColdAlert = coldStress > 1.5;
   const isColdDanger = coldStress > 3.5;
+
+  // --- Mobile & Browser Notifications Logic ---
+  useEffect(() => {
+    const requestNotifPermissions = async () => {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          const check = await LocalNotifications.checkPermissions();
+          if (check.display !== 'granted') {
+            await LocalNotifications.requestPermissions();
+          }
+        } else if ('Notification' in window) {
+          if (Notification.permission === 'default') {
+            await Notification.requestPermission();
+          }
+        }
+      } catch (err) {
+        console.warn("Could not request notification permissions:", err);
+      }
+    };
+    requestNotifPermissions();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const runSync = async () => {
+      if (!active) return;
+      
+      const currentAgeStr = String(state.age);
+      const currentTemp = toNum(effectiveTemp);
+      const diff = currentTemp - targetTemp;
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const perm = await LocalNotifications.checkPermissions();
+          if (perm.display !== 'granted') return;
+
+          // Request cancellation of previous schedules to avoid clutter
+          const pending = await LocalNotifications.getPending();
+          if (pending && pending.notifications.length > 0) {
+            await LocalNotifications.cancel({ notifications: pending.notifications });
+          }
+
+          const notificationsToSchedule: any[] = [];
+
+          // 1. Temperature Alert (High/Low)
+          if (Math.abs(diff) > 2) {
+            notificationsToSchedule.push({
+              title: diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض حرارة المزرعة!",
+              body: `درجة الحرارة الحالية ${currentTemp}°م (المستهدفة ${targetTemp}°م). الفارق ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م! يرجى فحص التهوية والتبريد فوراً.`,
+              id: 9991201,
+              schedule: { at: new Date(Date.now() + 1000) },
+              sound: 'beep.wav'
+            });
+          }
+
+          // 2. High Heat Stress (THI)
+          if (thi > targetThi + 3) {
+            notificationsToSchedule.push({
+              title: "🚨 إجهاد حراري مرتفع جداً!",
+              body: `درجة الإجهاد الفعلي هي ${thi} تفوق الحد المريح (${targetThi}). شغل خلايا التبريد والشفاطات الآن!`,
+              id: 9991202,
+              schedule: { at: new Date(Date.now() + 1000) },
+              sound: 'beep.wav'
+            });
+          }
+
+          // 3. Medication Timings
+          unifiedTimeline.forEach((med: any, idx: number) => {
+            const logKey = `${state.age}-${med.id || med.name}`;
+            const startTimeStr = state.medicationLogs[logKey];
+            if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
+              const [h, m] = startTimeStr.split(':').map(Number);
+              const startDate = new Date();
+              startDate.setHours(h, m, 0, 0);
+
+              const duration = toNum(med.recommendedHours || med.duration || 8);
+              const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+
+              // Dose End Alert
+              if (endDate.getTime() > Date.now()) {
+                notificationsToSchedule.push({
+                  title: `⏰ انتهاء جرعة الدواء (${med.name})`,
+                  body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                  id: 20000 + idx * 2,
+                  schedule: { at: endDate },
+                  sound: 'beep.wav'
+                });
+              }
+
+              // Next Dose alert
+              const nextAct = unifiedTimeline[idx + 1];
+              if (nextAct) {
+                const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
+                const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
+
+                if (nextStartDate.getTime() > Date.now()) {
+                  notificationsToSchedule.push({
+                    title: `💊 تنبيه بالجرعة التالية (${nextAct.name})`,
+                    body: `حان الآن موعد تقديم جرعة الدواء التالية: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
+                    id: 20000 + idx * 2 + 1,
+                    schedule: { at: nextStartDate },
+                    sound: 'beep.wav'
+                  });
+                }
+              }
+            }
+          });
+
+          if (notificationsToSchedule.length > 0) {
+            await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+          }
+        } catch (err) {
+          console.warn("Capacitor local notifications update issue:", err);
+        }
+      } else if ('Notification' in window) {
+        // Web PWA fallback notifications
+        try {
+          if (Notification.permission === 'granted') {
+            const now = Date.now();
+            const w = window as any;
+
+            // Debounced Temperature Alert
+            if (Math.abs(diff) > 2) {
+              if (!w._lastTempNotifTime || now - w._lastTempNotifTime > 60000) {
+                new Notification(diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض في الحرارة!", {
+                  body: `الحرارة الحالية: ${currentTemp}°م، المستهدفة: ${targetTemp}°م. الفارق: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م!`,
+                  icon: '/assets/icon.png'
+                });
+                w._lastTempNotifTime = now;
+              }
+            }
+
+            // Debounced THI Alert
+            if (thi > targetThi + 3) {
+              if (!w._lastThiNotifTime || now - w._lastThiNotifTime > 60000) {
+                new Notification("🚨 إجهاد حراري مرتفع جداً!", {
+                  body: `مؤشر الإجهاد الحالي ${thi} يتجاوز الحد المريح والمستهدف لكتاكيتك (${targetThi}).`,
+                  icon: '/assets/icon.png'
+                });
+                w._lastThiNotifTime = now;
+              }
+            }
+
+            // Web Medication timeout triggers
+            if (w._medicationTimers) {
+              w._medicationTimers.forEach(clearTimeout);
+            }
+            w._medicationTimers = [];
+
+            unifiedTimeline.forEach((med: any, idx: number) => {
+              const logKey = `${state.age}-${med.id || med.name}`;
+              const startTimeStr = state.medicationLogs[logKey];
+              if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
+                const [h, m] = startTimeStr.split(':').map(Number);
+                const startDate = new Date();
+                startDate.setHours(h, m, 0, 0);
+
+                const duration = toNum(med.recommendedHours || med.duration || 8);
+                const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+
+                const delayEnd = endDate.getTime() - Date.now();
+                if (delayEnd > 0 && delayEnd < 86400000) {
+                  const tId = setTimeout(() => {
+                    new Notification(`⏰ انتهاء جرعة الدواء (${med.name})`, {
+                      body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                      icon: '/assets/icon.png'
+                    });
+                  }, delayEnd);
+                  w._medicationTimers.push(tId);
+                }
+
+                const nextAct = unifiedTimeline[idx + 1];
+                if (nextAct) {
+                  const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
+                  const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
+                  const delayNext = nextStartDate.getTime() - Date.now();
+                  if (delayNext > 0 && delayNext < 86400000) {
+                    const tId = setTimeout(() => {
+                      new Notification(`💊 تنبيه بالجرعة التالية (${nextAct.name})`, {
+                        body: `حان الآن موعد تقديم جرعة الدواء التالية: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
+                        icon: '/assets/icon.png'
+                      });
+                    }, delayNext);
+                    w._medicationTimers.push(tId);
+                  }
+                }
+              }
+            });
+          }
+        } catch (err) {
+          console.warn("Web notifications update issue:", err);
+        }
+      }
+    };
+
+    runSync();
+    return () => {
+      active = false;
+    };
+  }, [
+    state.age,
+    state.internalTemp,
+    state.currentHumidity,
+    state.dailyInternalTemp,
+    state.dailyHumidity,
+    state.medicationLogs,
+    state.startDate,
+    targetTemp,
+    unifiedTimeline,
+    targetThi,
+    thi,
+    effectiveTemp
+  ]);
 
   const chartData = useMemo(() => {
     // Find all days with manual weight entries
