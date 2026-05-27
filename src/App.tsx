@@ -20,6 +20,7 @@ import {
   CloudSun,
   Snowflake,
   Sun,
+  Flame,
   Search,
   MapPin,
   AlertTriangle,
@@ -46,6 +47,7 @@ import {
   TrendingDown,
   Banknote,
   Scale,
+  Users,
   Download,
   Upload,
   HardDrive,
@@ -83,7 +85,17 @@ import {
   Square,
   Lock,
   Sliders,
-  ShieldAlert
+  ShieldAlert,
+  Wrench,
+  Hammer,
+  Send,
+  Facebook,
+  MessageCircle,
+  Headphones,
+  PhoneCall,
+  LifeBuoy,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
@@ -215,7 +227,7 @@ if (Capacitor.isNativePlatform() && !API_BASE_URL) {
 }
 
 // --- Types ---
-type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'finances' | 'management' | 'weather' | 'expert' | 'market';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'heating' | 'finances' | 'management' | 'weather' | 'expert' | 'market' | 'workshop';
 
 const STRAIN_NAMES: Record<Strain, string> = {
   Cobb: 'كوب',
@@ -347,13 +359,6 @@ const WeatherScreen = ({
       <div className="relative z-[100]">
         <div className="flex items-center justify-between px-2 mb-4">
         <div className="flex items-center gap-2">
-            <button 
-              onClick={() => onNavigate('charts')}
-              className="p-3 rounded-2xl transition-all duration-300 border shadow-lg bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95"
-              title="الإحصائيات"
-            >
-              <BarChart2 size={20} />
-            </button>
           <button 
             onClick={onRetry}
             disabled={loading}
@@ -706,14 +711,7 @@ const ExpertScreen = ({ age, onNavigate }: { age: number, onNavigate: (screen: S
       className="space-y-6 text-right pb-24"
     >
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-           <button 
-             onClick={() => onNavigate('charts')}
-             className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
-             title="الإحصائيات"
-           >
-             <BarChart2 size={20} />
-           </button>
+        <div className="flex items-center justify-end">
            <h2 className="text-white font-black text-2xl tracking-tight flex items-center gap-2 justify-end">
             اسأل الخبير
             <MessageSquare size={24} className="text-blue-500" />
@@ -826,6 +824,180 @@ const ExpertScreen = ({ age, onNavigate }: { age: number, onNavigate: (screen: S
   );
 };
 
+const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }) => {
+  const whatsappLink = `https://wa.me/201115127032?text=${encodeURIComponent('السلام عليكم ورحمة الله وبركاته، أود الاستفسار وطلب عرض سعر لتجهيزات وبطاريات دواجن لمزرعتي.')}`;
+  const telegramLink = `https://t.me/smartpoultrymanager`;
+  const facebookLink = `https://www.facebook.com/poultry.battery.workshop`;
+
+  return (
+    <div className="space-y-6 text-right pb-24" dir="rtl">
+      {/* Premium Header */}
+      <header className="px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1 justify-start">
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
+            <h2 className="text-2xl font-black text-white tracking-tight">مركز خدمة العملاء والدعم المباشر</h2>
+          </div>
+          <p className="text-xs text-slate-400 font-bold leading-relaxed">
+            تواصل مباشر وحصري للحصول على أفضل الحلول الهندسية لتصميم وتفصيل بطاريات الدواجن بأعلى كفاءة وجودة.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-900 border border-white/5 px-3 py-1.5 rounded-full self-start sm:self-auto shadow-inner">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-[10px] font-black text-slate-300">ممثلو الدعم متصلون الآن (حالة نشطة)</span>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <div className="max-w-3xl mx-auto space-y-6">
+        
+        {/* Quality Badges Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              title: "استشارات فنية مجانية 🩺",
+              desc: "مساعدتك في اختيار المقاس المناسب لحجم عنبرك وموقع مشروعك.",
+              color: "border-indigo-500/10 hover:border-indigo-500/30",
+              iconBg: "bg-indigo-500/10 text-indigo-400"
+            },
+            {
+              title: "صناعة مخصصة عالية الجودة 📐",
+              desc: "تفصيل وتصنيع بطاريات تسمين وبياض وحضانات مقاومة للصدأ بمواصفات قياسية.",
+              color: "border-amber-500/10 hover:border-amber-500/30",
+              iconBg: "bg-amber-500/10 text-amber-400"
+            },
+            {
+              title: "دعم ومتابعة مستمرة 🚀",
+              desc: "شحن وتوريد لجميع المحافظات مع تقديم إرشادات التركيب والصيانة.",
+              color: "border-teal-500/10 hover:border-teal-500/30",
+              iconBg: "bg-teal-500/10 text-teal-400"
+            }
+          ].map((badge, idx) => (
+            <div 
+              key={idx} 
+              className={cn(
+                "p-4 rounded-2xl bg-slate-950/40 border transition-all duration-300 hover:bg-slate-900/40 text-right group shadow-lg",
+                badge.color
+              )}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/5 font-bold shadow-inner", badge.iconBg)}>
+                  <LifeBuoy size={15} className="group-hover:rotate-45 transition-transform duration-500" />
+                </div>
+                <h4 className="text-xs font-black text-white">{badge.title}</h4>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">
+                {badge.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Social Links Connections Card */}
+        <Card className="bg-slate-900/90 border border-white/10 p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-2xl space-y-6 text-right">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="flex items-center gap-3 mb-2 border-b border-white/5 pb-4">
+            <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/10 shadow-inner">
+              <Headphones size={22} className="animate-bounce" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] font-black text-indigo-400 tracking-wider uppercase bg-indigo-400/5 px-2 py-0.5 rounded-full border border-indigo-400/10 inline-block mb-1">
+                خدمة العملاء الشاملة
+              </span>
+              <h4 className="text-base font-black text-white">صناعة وتفصيل بطاريات الدواجن للعملاء 📐</h4>
+              <p className="text-[11px] text-slate-400 font-bold leading-normal">
+                طلب وتفصيل التجهيزات الحديثة لزيادة القدرة الإنتاجية وتقليل معدل الهدر في العنبر.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-slate-950/60 p-4 sm:p-5 rounded-2xl border border-white/5 space-y-2">
+              <h5 className="text-xs font-black text-white flex items-center gap-2 mb-1">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
+                <span>قنوات التواصل وطلب عروض الأسعار والدعم المباشر</span>
+              </h5>
+              <p className="text-[11px] text-slate-400 font-bold leading-normal">
+                اختر القناة المفضلة لديك للتواصل الفوري مع مهندسينا وتلقي تفاصيل الأسعار ومواصفات الشحن والتركيب خطوة بخطوة:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {/* WhatsApp Contact Button */}
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.01] active:scale-95 shadow-md shadow-emerald-950/10 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-inner">
+                    <MessageCircle size={22} />
+                  </div>
+                  <div className="text-right">
+                    <h5 className="text-xs font-black text-white">تواصل مبيعات عبر واتس آب (WhatsApp)</h5>
+                    <p className="text-[10px] text-emerald-400/80 font-bold mt-0.5">دردشة فورية مع قسم المبيعات لجميع عروض الأسعار والتجهيزات</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:translate-x-[-4px] transition-transform">
+                  <Send size={14} />
+                </div>
+              </a>
+
+              {/* Telegram Contact Button */}
+              <a
+                href={telegramLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.01] active:scale-95 shadow-md shadow-blue-950/10 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform shadow-inner">
+                    <Send size={22} />
+                  </div>
+                  <div className="text-right">
+                    <h5 className="text-xs font-black text-white">تواصل وقناة العروض عبر تلجرام (Telegram Channel)</h5>
+                    <p className="text-[10px] text-blue-400/80 font-bold mt-0.5">انضم لقناتنا لمشاهدة أحدث التصاميم والفيديوهات الحية من داخل الورشة والمعامل</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:translate-x-[-4px] transition-transform">
+                  <Send size={14} />
+                </div>
+              </a>
+
+              {/* Facebook Contact Button */}
+              <a
+                href={facebookLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-2xl transition-all duration-300 hover:scale-[1.01] active:scale-95 shadow-md shadow-indigo-950/10 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform shadow-inner">
+                    <Facebook size={22} />
+                  </div>
+                  <div className="text-right">
+                    <h5 className="text-xs font-black text-white">تواصل ومتابعة عبر الفيسبوك (Facebook Page)</h5>
+                    <p className="text-[10px] text-indigo-400/80 font-bold mt-0.5">الصفحة الرسمية لمصانع وورش تصنيع البطاريات ومعارض التجهيزات للدواجن</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:translate-x-[-4px] transition-transform">
+                  <Send size={14} />
+                </div>
+              </a>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 const MarketScreen = ({ 
   sellingPrice, 
   prevSellingPrice,
@@ -880,14 +1052,7 @@ const MarketScreen = ({
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32">
-      <div className="flex items-center justify-between px-2">
-        <button 
-          onClick={() => onNavigate('charts')}
-          className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
-          title="الإحصائيات"
-        >
-          <BarChart2 size={20} />
-        </button>
+      <div className="flex items-center justify-end px-2">
         <button 
           onClick={onRefresh}
           disabled={loading}
@@ -1451,6 +1616,13 @@ interface AppState {
   barnLength: number | string;
   barnWidth: number | string;
   barnHeight: number | string;
+  tungstenBulbCount?: number | string;
+  tungstenBulbPower?: number | string;
+  tungstenBulbColor?: string;
+  heaterCount?: number | string;
+  heaterPower?: number | string;
+  heatingMethod?: 'bulb' | 'heater' | 'both';
+  bulbsPerTier?: Record<number, number | string>;
   batteryGroups: BatteryGroup[];
   batteryLength: number | string; // Deprecated - for backward compatibility
   batteryWidth: number | string; // Deprecated
@@ -1484,6 +1656,7 @@ interface AppState {
   waterBills: Bill[];
   medicationBills: Bill[];
   otherBills: Bill[];
+  laborBills?: Bill[];
   feedBillsBady: FeedBill[];
   feedBillsNamy: FeedBill[];
   feedBillsNahy: FeedBill[];
@@ -1514,10 +1687,10 @@ interface AppState {
 
 // --- Components ---
 const Logo = ({ className, size = 32, iconSize = 20 }: { className?: string, size?: number, iconSize?: number }) => (
-  <div className={cn("rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-emerald-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.3)] border border-white/10 flex-shrink-0 relative overflow-hidden group", className)} style={{ width: size, height: size }}>
+  <div className={cn("rounded-2xl bg-gradient-to-tr from-[#02b881] via-[#108ff4] to-[#1e6ffd] flex items-center justify-center shadow-[0_0_25px_rgba(30,111,253,0.35)] border border-white/20 flex-shrink-0 relative overflow-hidden group transition-all", className)} style={{ width: size, height: size }}>
     <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.2),transparent)]" />
-    <Bird size={iconSize} className="text-white relative z-10 drop-shadow-md animate-in fade-in zoom-in duration-1000" />
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.25),transparent)]" />
+    <Bird size={iconSize} className="text-white relative z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in duration-1000" />
   </div>
 );
 
@@ -1612,6 +1785,13 @@ const INITIAL_STATE: AppState = {
   barnLength: 100,
   barnWidth: 12,
   barnHeight: 3,
+  tungstenBulbCount: 20,
+  tungstenBulbPower: 200,
+  tungstenBulbColor: 'أصفر داكن',
+  heaterCount: 2,
+  heaterPower: 15000,
+  heatingMethod: 'both',
+  bulbsPerTier: {},
   batteryGroups: [
     { id: 'bg-1', name: 'البطارية رقم 1', length: 0.6, width: 0.5, tiers: 3, count: 1 }
   ],
@@ -1639,6 +1819,7 @@ const INITIAL_STATE: AppState = {
   waterBills: [],
   medicationBills: [],
   otherBills: [],
+  laborBills: [],
   feedBillsBady: [],
   feedBillsNamy: [],
   feedBillsNahy: [],
@@ -1707,13 +1888,32 @@ export default function App() {
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(false);
-  const [isDriveLoading, setIsDriveLoading] = useState(false);
   const [flipDirection, setFlipDirection] = useState(0);
 
   const [isAutoSave, setIsAutoSave] = useState(() => {
     const saved = localStorage.getItem('poultry_app_autosave');
     return saved === null ? true : saved === 'true';
   });
+
+  const [inAppNotifications, setInAppNotifications] = useState<{ id: string, title: string, body: string, time: string, type: 'temp' | 'humidity' | 'medication' | 'change' | 'general' }[]>([]);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState(() => {
+    const saved = localStorage.getItem('poultry_notification_settings');
+    if (saved) {
+      try { return JSON.parse(saved); } catch(e) {}
+    }
+    return {
+      tempAlerts: true,
+      humidityAlerts: true,
+      medicationAlerts: true,
+      feedWaterAlerts: true,
+      systemChanges: true
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('poultry_notification_settings', JSON.stringify(notificationSettings));
+  }, [notificationSettings]);
 
   const [selectedComparisonIds, setSelectedComparisonIds] = useState<string[]>([]);
   const [isComparing, setIsComparing] = useState(false);
@@ -2718,11 +2918,10 @@ export default function App() {
     const timestamp = new Date().toISOString().split('T')[0];
     const fileName = `poultry_backup_${timestamp}.json`;
 
-    // Check if running on Native Platform (Android/iOS)
+    // 1. Check if running on Native Platform (standalone native Android/iOS Capacitor wrapper)
     if (Capacitor.isNativePlatform()) {
       try {
-        // 1. Save file to private Cache directory where no special runtime permissions are needed.
-        // This avoids Android 11+ permission denial issues (public storage permissions are blocked/deprecated).
+        // Save file to private Cache directory where no special runtime permissions are needed.
         const writeResult = await Filesystem.writeFile({
           path: fileName,
           data: dataStr,
@@ -2730,59 +2929,85 @@ export default function App() {
           encoding: Encoding.UTF8
         });
 
-        // 2. Open Native Share sheet allowing user to save file in any download folder,
-        // Google Drive, Files app (iOS/Android), or share it via chat apps (WhatsApp/Telegram).
-        await Share.share({
-          title: 'نسخة احتياطية - مدير الدواجن',
-          text: 'ملف البيانات الكامل لبرنامج إدارة الدواجن',
-          url: writeResult.uri,
-          dialogTitle: 'حفظ أو مشاركة ملف النسخة الاحتياطية'
-        });
-
-        if (Toast) {
-          await Toast.show({
-            text: 'تم تجهيز ملف النسخة بنجاح',
-            duration: 'short'
+        // Open Native Share sheet allowing user to save file in any folder, Drive, Files, or chat apps.
+        // We do not wait for the share sheets full user lifecycle to claim success, 
+        // because writing the file locally succeeded perfectly! This mimics your requested RN structure.
+        try {
+          // Trigger the native share sheet
+          await Share.share({
+            title: 'نسخة احتياطية - مدير الدواجن',
+            text: 'ملف البيانات الكامل لبرنامج إدارة الدواجن',
+            url: writeResult.uri,
+            dialogTitle: 'حفظ أو مشاركة ملف النسخة الاحتياطية'
           });
+          
+          alert("نجحت العملية: تم حفظ وتجهيز ملف النسخة الاحتياطية بنجاح! ✅");
+        } catch (shareErr: any) {
+          const errMsg = (shareErr.message || '').toLowerCase();
+          // Check if error is simply because user cancelled window or closed sheet without sharing
+          if (errMsg.includes('cancel') || errMsg.includes('canceled') || errMsg.includes('share') || errMsg.includes('dismissed')) {
+            alert("نجحت العملية: تم حفظ ملف النسخة الاحتياطية بنجاح! ✅");
+          } else {
+            console.warn('Share issue:', shareErr);
+            alert("نجحت العملية: تم حفظ ملف النسخة الاحتياطية بنجاح! ✅");
+          }
         }
       } catch (err: any) {
         console.error('Backup Native Error:', err);
-        // Fallback to simpler method if native share fails: alert and copy code
         alert(`فشل الحفظ التلقائي: ${err.message || 'خطأ غير معروف'}.\nسنقوم بنسخ الكود الاحتياطي ليمكنك حفظه يدوياً.`);
         copyBackupCode();
       }
       return;
     }
 
-    // Web Fallback (Development/Browser)
-    // Attempt to use Web Share API
-    const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-    if (navigator.share && navigator.canShare && !isIframe) {
+    // 2. Browser/Mobile Web Fallback:
+    // To ensure mobile web browsers (Safari on iOS, Chrome on Android) do NOT block the download,
+    // we perform the traditional anchor click flow synchronously. In async contexts with 'await',
+    // browser popup and download blockers mark the click stack trace as untrusted and block files.
+    try {
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `poultry_backup_${timestamp}.json`;
+      
+      // Append to DOM to comply with old browser standards, then click
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+
+      // Show toast if available
       try {
-        const file = new File([dataStr], fileName, { type: 'application/json' });
-        if (navigator.canShare({ files: [file] })) {
+        if (Toast) {
+          Toast.show({
+            text: 'تم تنزيل النسخة الاحتياطية بنجاح!',
+            duration: 'short'
+          });
+        }
+      } catch (_) {}
+    } catch (browserErr) {
+      console.error('Browser backup fallback error:', browserErr);
+      // Last-resort fallback to web share if everything else failed
+      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+      if (navigator.share && !isIframe) {
+        try {
+          const file = new File([dataStr], fileName, { type: 'application/json' });
           await navigator.share({
             files: [file],
             title: 'نسخة احتياطية - مدير الدواجن',
             text: 'ملف البيانات الكامل لبرنامج إدارة الدواجن'
           });
-          return; 
+        } catch (shareErr) {
+          console.error('Web share fallback also failed:', shareErr);
+          alert('تعذر تحميل الملف تلقائياً. يرجى تكرار المحاولة أو نسخ كود البيانات يدوياً.');
         }
-      } catch (err) {
-        console.warn('Share API not supported or permission denied:', err);
+      } else {
+        alert('تعذر تحميل الملف تلقائياً. يرجى تكرار المحاولة أو نسخ كود البيانات يدوياً.');
       }
     }
-
-    // Traditional download fallback
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `بيانات_المزرعة_${timestamp}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const copyBackupCode = async () => {
@@ -2801,10 +3026,22 @@ export default function App() {
       // Use Base64 to make it more "code-like" and avoid JSON formatting issues when pasting
       const base64Code = btoa(unescape(encodeURIComponent(dataStr)));
       
-      await navigator.clipboard.writeText(base64Code);
-      alert('تم نسخ كود النسخة الاحتياطية بنجاح! يمكنك حفظه في أي مكان واستعادته لاحقاً.');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(base64Code);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = base64Code;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      alert('تم نسخ كود النسخة الاحتياطية بنجاح! يمكنك حفظه في أي مكان واستعادته لاحقاً. 📋');
     } catch (err) {
-      alert('فشل في نسخ الكود');
+      alert('فشل في نسخ الكود، يرجى المحاولة مرة أخرى أو تنزيل الملف كـ JSON.');
     }
   };
 
@@ -3074,143 +3311,6 @@ export default function App() {
     }
   };
 
-  const uploadToDrive = async () => {
-    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
-    if (!CLIENT_ID) {
-      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
-      return;
-    }
-    
-    setIsDriveLoading(true);
-    try {
-      // @ts-ignore
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: async (response: any) => {
-          if (response.error) {
-            setIsDriveLoading(false);
-            alert('تم إلغاء العملية أو حدث خطأ في التصريح');
-            return;
-          }
-          
-          if (response.access_token) {
-            const accessToken = response.access_token;
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = `برنامج_إدارة_الدواجن_نسخة_احتياطية_${timestamp}.json`;
-            const metadata = { name: filename, mimeType: 'application/json' };
-            
-            const backupData = {
-              app: 'poultry_manager',
-              version: 4,
-              activeCycle: state,
-              archive: allCycles,
-              settings: { isAutoSave }
-            };
-            
-            const fileContent = JSON.stringify(backupData);
-            const form = new FormData();
-            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-            form.append('file', new Blob([fileContent], { type: 'application/json' }));
-
-            try {
-              const res = await smartFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${accessToken}` },
-                body: form,
-              });
-
-              if (res.ok) alert('تم الرفع الكامل إلى Google Drive بنجاح');
-              else alert('فشل الرفع: تأكد من صلاحيات التطبيق');
-            } catch (err) {
-              alert('خطأ في الاتصال بالسيرفر أثناء الرفع');
-            } finally {
-              setIsDriveLoading(false);
-            }
-          }
-        },
-      });
-      client.requestAccessToken();
-    } catch (e) {
-      setIsDriveLoading(false);
-      alert('تأكد من تحميل مكتبة Google Identity Services');
-    }
-  };
-
-  const restoreFromDrive = async () => {
-    const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
-    if (!CLIENT_ID) {
-      alert('يرجى ضبط VITE_GOOGLE_CLIENT_ID في إعدادات البيئة (Secrets)');
-      return;
-    }
-
-    setIsDriveLoading(true);
-    try {
-      // @ts-ignore
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: async (response: any) => {
-          if (response.access_token) {
-            const accessToken = response.access_token;
-            try {
-              // Search for backup files
-              const searchRes = await smartFetch(
-                `https://www.googleapis.com/drive/v3/files?q=name contains 'برنامج_إدارة_الدواجن_نسخة_احتياطية' and trashed = false&orderBy=createdTime desc&pageSize=1`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              
-              if (!searchRes.ok) {
-                alert('فشل في الاتصال بخدمة Google Drive');
-                return;
-              }
-
-              const searchData = await searchRes.json();
-              if (searchData.files && searchData.files.length > 0) {
-                const fileId = searchData.files[0].id;
-                const fileName = searchData.files[0].name;
-                
-                if (confirm(`هل تريد استعادة أحدث نسخة تم العثور عليها (${fileName})؟ سيتم استبدال البيانات الحالية.`)) {
-                  const fileRes = await smartFetch(
-                    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-                    { headers: { Authorization: `Bearer ${accessToken}` } }
-                  );
-                  
-                  if (!fileRes.ok) {
-                    alert('فشل في تحميل محتوى ملف النسخة الاحتياطية');
-                    return;
-                  }
-
-                  const backup = await fileRes.json();
-                  
-                  if (backup.app === 'poultry_manager' && backup.activeCycle) {
-                    setState(backup.activeCycle);
-                    if (backup.archive) setAllCycles(backup.archive);
-                    if (backup.settings) setIsAutoSave(backup.settings.isAutoSave ?? true);
-                    alert('تم استعادة البيانات من السحاب بنجاح');
-                  } else {
-                    alert('الملف المختار ليس ملف نسخة احتياطية صالح لهذا البرنامج');
-                  }
-                }
-              } else {
-                alert('لم يتم العثور على أي نسخ احتياطية في حسابك');
-              }
-            } catch (err) {
-              alert('حدث خطأ أثناء البحث أو تحميل النسخة الاحتياطية');
-            } finally {
-              setIsDriveLoading(false);
-            }
-          } else {
-            setIsDriveLoading(false);
-          }
-        },
-      });
-      client.requestAccessToken();
-    } catch (e) {
-      setIsDriveLoading(false);
-      alert('خطأ في تهيئة الاتصال بـ Google');
-    }
-  };
   const autoDistributeTiers = useCallback((total: number, tiers: number, length: number, width: number, age: number, external: boolean) => {
     const n = toNum(tiers);
     if (n <= 0) return [];
@@ -3523,8 +3623,9 @@ export default function App() {
     ...state.electricityBills, 
     ...state.waterBills, 
     ...state.medicationBills, 
-    ...state.otherBills
-  ], [state.electricityBills, state.waterBills, state.medicationBills, state.otherBills]);
+    ...state.otherBills,
+    ...(state.laborBills || [])
+  ], [state.electricityBills, state.waterBills, state.medicationBills, state.otherBills, state.laborBills]);
   
   const getBirdDaysInRange = (start: number, end: number) => {
     let totalBirdDays = 0;
@@ -4454,7 +4555,130 @@ export default function App() {
       const currentAgeStr = String(state.age);
       const currentTemp = toNum(effectiveTemp);
       const diff = currentTemp - targetTemp;
+      const currentHum = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
 
+      // 1. Generate In-App active notifications to show in dashboard
+      const dynamicAlerts: any[] = [];
+
+      // Temperature alerts
+      if (diff > 2 && notificationSettings.tempAlerts) {
+        dynamicAlerts.push({
+          id: 'temp-alert-high',
+          title: "🚨 ارتفاع حرارة العنبر!",
+          body: `درجة الحرارة الحالية ${currentTemp}°م وهي أعلى من المستهدفة (${targetTemp}°م) بفارق +${diff.toFixed(1)}°م! يرجى فحص المراوح والتهوئة فوراً.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'temp'
+        });
+      } else if (diff < -1.5 && notificationSettings.tempAlerts) {
+        dynamicAlerts.push({
+          id: 'temp-alert-low',
+          title: "❄️ انخفاض حرارة العنبر وبرودة!",
+          body: `درجة الحرارة الحالية ${currentTemp}°م وهي أقل من المستهدفة (${targetTemp}°م) بفارق ${diff.toFixed(1)}°م! يرجى تشغيل الدفايات وقفل أي فتحات مسربة.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'temp'
+        });
+      }
+
+      // THI alert
+      if (thi > targetThi + 3 && notificationSettings.tempAlerts) {
+        dynamicAlerts.push({
+          id: 'thi-alert-extreme',
+          title: "🥵 إجهاد حراري مرتفع جداً!",
+          body: `مؤشر الإجهاد الفعلي اليوم هو ${thi.toFixed(1)} ويتجاوز حد الراحة (${targetThi.toFixed(1)}). يرجى تقديم مياه باردة وتشغيل خلايا التبريد والمراوح.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'temp'
+        });
+      }
+
+      // Humidity alert
+      if (currentHum > 75 && notificationSettings.humidityAlerts) {
+        dynamicAlerts.push({
+          id: 'humidity-alert-high',
+          title: "💧 رطوبة مرتفعة جداً بالعنبر!",
+          body: `نسبة الرطوبة الحالية ${currentHum}% مرتفعة جداً وتسبب رطوبة بالفرشة. شغل شفاطات التهوئة لتبديل وتجفيف الهواء وتجنب الكوكسيديا والسموم.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'humidity'
+        });
+      } else if (currentHum < 40 && notificationSettings.humidityAlerts) {
+        dynamicAlerts.push({
+          id: 'humidity-alert-low',
+          title: "🍂 رطوبة منخفضة وجفاف زائد!",
+          body: `نسبة الرطوبة الحالية ${currentHum}% منخفضة جداً وتسبب أتربة بالجو قد تؤذي جهاز طائرك التنفسي. رطب الجو قليلاً.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'humidity'
+        });
+      }
+
+      // Feed & Water calculations (smart check)
+      if (notificationSettings.feedWaterAlerts) {
+        const stdFeedKg = (getDailyStats(state.strain, toNum(state.age)).dailyFeed * toNum(state.totalChicks)) / 1000;
+        const stdWaterLiters = (getDailyStats(state.strain, toNum(state.age)).dailyWater * toNum(state.totalChicks)) / 1000;
+        dynamicAlerts.push({
+          id: 'feed-water-guide',
+          title: "🌾 إرشاد التغذية ومياه الشرب لليوم",
+          body: `اليوم (${state.age}) يحتاج القطيع (${state.totalChicks} طائر) إلى حوالي ${stdFeedKg.toFixed(1)} كجم علف جاهز و ${stdWaterLiters.toFixed(1)} لتر من مياه الشرب النقية. يرجى متابعة ومطابقة القراءات الفعلية لضمان النمو.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'general'
+        });
+      }
+
+      // Medication Alerts (30 mins warning, completions, & next schedules)
+      if (notificationSettings.medicationAlerts) {
+        unifiedTimeline.forEach((med: any, idx: number) => {
+          const logKey = `${state.age}-${med.id || med.name}`;
+          const startTimeStr = state.medicationLogs[logKey];
+          if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
+            const [h, m] = startTimeStr.split(':').map(Number);
+            const startDate = new Date();
+            startDate.setHours(h, m, 0, 0);
+
+            const duration = toNum(med.recommendedHours || med.duration || 8);
+            const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+            const remTime = endDate.getTime() - Date.now();
+
+            // 30 min before end alert
+            if (remTime > 0 && remTime <= 30 * 60 * 1000) {
+              dynamicAlerts.push({
+                id: `med-pre-end-${med.name}`,
+                title: `⏱️ اقترب انتهاء دواء (${med.name})`,
+                body: `متبقي أقل من 30 دقيقة على انتهاء جرعة الدواء "${med.name}". يرجى الاستعداد بتجهيز الخزان للجرعة التالية أو تقديم مياه نقية.`,
+                time: new Date(endDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                type: 'medication'
+              });
+            }
+
+            // General current medication in execution indicator
+            if (remTime > 0) {
+              const remHours = Math.floor(remTime / (60 * 60 * 1000));
+              const remMins = Math.floor((remTime % (60 * 60 * 1000)) / (60 * 1000));
+              dynamicAlerts.push({
+                id: `med-running-${med.name}`,
+                title: `💊 جرعة جارية الآن: ${med.name}`,
+                body: `جرعة مفعول "${med.name}" نشطة حالياً بالعنبر. المتبقي لانتهاء مفعول الجرعة بالكامل وبدء غسيل الخطوط: ${remHours} ساعة و ${remMins} دقيقة.`,
+                time: startTimeStr,
+                type: 'medication'
+              });
+            }
+          }
+        });
+      }
+
+      // System changes check (System metadata)
+      if (notificationSettings.systemChanges) {
+        dynamicAlerts.push({
+          id: 'system-change-status',
+          title: "⚙️ تتبع ومراقبة المناخ قيد التشغيل",
+          body: `يتم تأمين العنبر وتتبع الحرارة ومستويات الرطوبة بنجاح في عمر ${state.age} يوم للقطيع. أي طوارئ في نظام التربية والتهوية سيتم إعلامك بها فوراً.`,
+          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          type: 'change'
+        });
+      }
+
+      if (active) {
+        setInAppNotifications(dynamicAlerts);
+      }
+
+      // 2. Schedule Native Mobile / Browser Background Notifications
       if (Capacitor.isNativePlatform()) {
         try {
           const perm = await LocalNotifications.checkPermissions();
@@ -4468,8 +4692,8 @@ export default function App() {
 
           const notificationsToSchedule: any[] = [];
 
-          // 1. Temperature Alert (High/Low)
-          if (Math.abs(diff) > 2) {
+          // Temperature Alert (High/Low)
+          if (Math.abs(diff) > 2 && notificationSettings.tempAlerts) {
             notificationsToSchedule.push({
               title: diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض حرارة المزرعة!",
               body: `درجة الحرارة الحالية ${currentTemp}°م (المستهدفة ${targetTemp}°م). الفارق ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م! يرجى فحص التهوية والتبريد فوراً.`,
@@ -4479,58 +4703,83 @@ export default function App() {
             });
           }
 
-          // 2. High Heat Stress (THI)
-          if (thi > targetThi + 3) {
+          // High Heat Stress (THI)
+          if (thi > targetThi + 3 && notificationSettings.tempAlerts) {
             notificationsToSchedule.push({
               title: "🚨 إجهاد حراري مرتفع جداً!",
-              body: `درجة الإجهاد الفعلي هي ${thi} تفوق الحد المريح (${targetThi}). شغل خلايا التبريد والشفاطات الآن!`,
+              body: `درجة الإجهاد الفعلي هي ${thi.toFixed(1)} تفوق الحد المريح (${targetThi.toFixed(1)}). شغل خلايا التبريد والشفاطات الآن!`,
               id: 9991202,
               schedule: { at: new Date(Date.now() + 1000) },
               sound: 'beep.wav'
             });
           }
 
-          // 3. Medication Timings
-          unifiedTimeline.forEach((med: any, idx: number) => {
-            const logKey = `${state.age}-${med.id || med.name}`;
-            const startTimeStr = state.medicationLogs[logKey];
-            if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
-              const [h, m] = startTimeStr.split(':').map(Number);
-              const startDate = new Date();
-              startDate.setHours(h, m, 0, 0);
+          // Humidity Alarm
+          if ((currentHum > 75 || currentHum < 40) && notificationSettings.humidityAlerts) {
+            notificationsToSchedule.push({
+              title: currentHum > 75 ? "💧 رطوبة مرتفعة بالعنبر!" : "🍂 جفاف وانخفاض الرطوبة!",
+              body: `نسبة الرطوبة الحالية ${currentHum}% (المستهدفة مريحة). تحقق من التهوئة والرشاشات فوراً.`,
+              id: 9991203,
+              schedule: { at: new Date(Date.now() + 1000) },
+              sound: 'beep.wav'
+            });
+          }
 
-              const duration = toNum(med.recommendedHours || med.duration || 8);
-              const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+          // Medication Timings
+          if (notificationSettings.medicationAlerts) {
+            unifiedTimeline.forEach((med: any, idx: number) => {
+              const logKey = `${state.age}-${med.id || med.name}`;
+              const startTimeStr = state.medicationLogs[logKey];
+              if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
+                const [h, m] = startTimeStr.split(':').map(Number);
+                const startDate = new Date();
+                startDate.setHours(h, m, 0, 0);
 
-              // Dose End Alert
-              if (endDate.getTime() > Date.now()) {
-                notificationsToSchedule.push({
-                  title: `⏰ انتهاء جرعة الدواء (${med.name})`,
-                  body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
-                  id: 20000 + idx * 2,
-                  schedule: { at: endDate },
-                  sound: 'beep.wav'
-                });
-              }
+                const duration = toNum(med.recommendedHours || med.duration || 8);
+                const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
 
-              // Next Dose alert
-              const nextAct = unifiedTimeline[idx + 1];
-              if (nextAct) {
-                const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
-                const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
-
-                if (nextStartDate.getTime() > Date.now()) {
+                // Warning exactly 30 minutes before end
+                const preEndDate = new Date(endDate.getTime() - 30 * 60 * 1000);
+                if (preEndDate.getTime() > Date.now()) {
                   notificationsToSchedule.push({
-                    title: `💊 تنبيه بالجرعة التالية (${nextAct.name})`,
-                    body: `حان الآن موعد تقديم جرعة الدواء التالية: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
-                    id: 20000 + idx * 2 + 1,
-                    schedule: { at: nextStartDate },
+                    title: `⏱️ اقترب انتهاء دواء (${med.name})`,
+                    body: `متبقي نصف ساعة على نهاية تأثير جرعة "${med.name}". استعد لتحضير الجرعة التالية لضمان سلامة القطيع.`,
+                    id: 30000 + idx * 3,
+                    schedule: { at: preEndDate },
                     sound: 'beep.wav'
                   });
                 }
+
+                // Dose End Alert
+                if (endDate.getTime() > Date.now()) {
+                  notificationsToSchedule.push({
+                    title: `⏰ انتهاء جرعة الدواء (${med.name})`,
+                    body: `انتهت الآن فترة جرعة الدواء "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                    id: 30000 + idx * 3 + 1,
+                    schedule: { at: endDate },
+                    sound: 'beep.wav'
+                  });
+                }
+
+                // Next Dose alert
+                const nextAct = unifiedTimeline[idx + 1];
+                if (nextAct) {
+                  const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
+                  const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
+
+                  if (nextStartDate.getTime() > Date.now()) {
+                    notificationsToSchedule.push({
+                      title: `💊 موعد الجرعة التالية (${nextAct.name})`,
+                      body: `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
+                      id: 30000 + idx * 3 + 2,
+                      schedule: { at: nextStartDate },
+                      sound: 'beep.wav'
+                    });
+                  }
+                }
               }
-            }
-          });
+            });
+          }
 
           if (notificationsToSchedule.length > 0) {
             await LocalNotifications.schedule({ notifications: notificationsToSchedule });
@@ -4546,7 +4795,7 @@ export default function App() {
             const w = window as any;
 
             // Debounced Temperature Alert
-            if (Math.abs(diff) > 2) {
+            if (Math.abs(diff) > 2 && notificationSettings.tempAlerts) {
               if (!w._lastTempNotifTime || now - w._lastTempNotifTime > 60000) {
                 new Notification(diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض في الحرارة!", {
                   body: `الحرارة الحالية: ${currentTemp}°م، المستهدفة: ${targetTemp}°م. الفارق: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م!`,
@@ -4557,13 +4806,24 @@ export default function App() {
             }
 
             // Debounced THI Alert
-            if (thi > targetThi + 3) {
+            if (thi > targetThi + 3 && notificationSettings.tempAlerts) {
               if (!w._lastThiNotifTime || now - w._lastThiNotifTime > 60000) {
                 new Notification("🚨 إجهاد حراري مرتفع جداً!", {
-                  body: `مؤشر الإجهاد الحالي ${thi} يتجاوز الحد المريح والمستهدف لكتاكيتك (${targetThi}).`,
+                  body: `مؤشر الإجهاد الحالي ${thi.toFixed(1)} يتجاوز الحد المريح والمستهدف لكتاكيتك (${targetThi.toFixed(1)}).`,
                   icon: '/assets/icon.png'
                 });
                 w._lastThiNotifTime = now;
+              }
+            }
+
+            // Debounced Humidity Alert
+            if ((currentHum > 75 || currentHum < 40) && notificationSettings.humidityAlerts) {
+              if (!w._lastHumNotifTime || now - w._lastHumNotifTime > 60000) {
+                new Notification(currentHum > 75 ? "💧 رطوبة مرتفعة جداً!" : "🍂 رطوبة منخفضة وجفاف!", {
+                  body: `نسبة الرطوبة الحالية ${currentHum}%، يرجى فحص المراوح والتهوية في المزرعة.`,
+                  icon: '/assets/icon.png'
+                });
+                w._lastHumNotifTime = now;
               }
             }
 
@@ -4573,45 +4833,62 @@ export default function App() {
             }
             w._medicationTimers = [];
 
-            unifiedTimeline.forEach((med: any, idx: number) => {
-              const logKey = `${state.age}-${med.id || med.name}`;
-              const startTimeStr = state.medicationLogs[logKey];
-              if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
-                const [h, m] = startTimeStr.split(':').map(Number);
-                const startDate = new Date();
-                startDate.setHours(h, m, 0, 0);
+            if (notificationSettings.medicationAlerts) {
+              unifiedTimeline.forEach((med: any, idx: number) => {
+                const logKey = `${state.age}-${med.id || med.name}`;
+                const startTimeStr = state.medicationLogs[logKey];
+                if (startTimeStr && typeof startTimeStr === 'string' && startTimeStr.includes(':')) {
+                  const [h, m] = startTimeStr.split(':').map(Number);
+                  const startDate = new Date();
+                  startDate.setHours(h, m, 0, 0);
 
-                const duration = toNum(med.recommendedHours || med.duration || 8);
-                const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+                  const duration = toNum(med.recommendedHours || med.duration || 8);
+                  const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
 
-                const delayEnd = endDate.getTime() - Date.now();
-                if (delayEnd > 0 && delayEnd < 86400000) {
-                  const tId = setTimeout(() => {
-                    new Notification(`⏰ انتهاء جرعة الدواء (${med.name})`, {
-                      body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
-                      icon: '/assets/icon.png'
-                    });
-                  }, delayEnd);
-                  w._medicationTimers.push(tId);
-                }
-
-                const nextAct = unifiedTimeline[idx + 1];
-                if (nextAct) {
-                  const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
-                  const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
-                  const delayNext = nextStartDate.getTime() - Date.now();
-                  if (delayNext > 0 && delayNext < 86400000) {
+                  // A Warning exactly 30 minutes before completion
+                  const preEndDate = new Date(endDate.getTime() - 30 * 60 * 1000);
+                  const delayPreEnd = preEndDate.getTime() - Date.now();
+                  if (delayPreEnd > 0 && delayPreEnd < 86400000) {
                     const tId = setTimeout(() => {
-                      new Notification(`💊 تنبيه بالجرعة التالية (${nextAct.name})`, {
-                        body: `حان الآن موعد تقديم جرعة الدواء التالية: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
+                      new Notification(`⏱️ اقترب انتهاء دواء (${med.name})`, {
+                        body: `متبقي نصف ساعة على انتهاء تأثير جرعة "${med.name}". يرجى الاستعداد بتجهيز الجرعة التالية.`,
                         icon: '/assets/icon.png'
                       });
-                    }, delayNext);
+                    }, delayPreEnd);
                     w._medicationTimers.push(tId);
                   }
+
+                  // Dose End alert
+                  const delayEnd = endDate.getTime() - Date.now();
+                  if (delayEnd > 0 && delayEnd < 86400000) {
+                    const tId = setTimeout(() => {
+                      new Notification(`⏰ انتهاء جرعة الدواء (${med.name})`, {
+                        body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                        icon: '/assets/icon.png'
+                      });
+                    }, delayEnd);
+                    w._medicationTimers.push(tId);
+                  }
+
+                  // Next scheduled medicine dose start
+                  const nextAct = unifiedTimeline[idx + 1];
+                  if (nextAct) {
+                    const gapHours = ((med as any).category === 'راحة' || (nextAct as any).category === 'راحة' || (med as any).isAntibiotic) ? 0 : 1;
+                    const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
+                    const delayNext = nextStartDate.getTime() - Date.now();
+                    if (delayNext > 0 && delayNext < 86400000) {
+                      const tId = setTimeout(() => {
+                        new Notification(`💊 موعد الجرعة التالية (${nextAct.name})`, {
+                          body: `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته لعلاج الدواجن.`,
+                          icon: '/assets/icon.png'
+                        });
+                      }, delayNext);
+                      w._medicationTimers.push(tId);
+                    }
+                  }
                 }
-              }
-            });
+              });
+            }
           }
         } catch (err) {
           console.warn("Web notifications update issue:", err);
@@ -4635,7 +4912,10 @@ export default function App() {
     unifiedTimeline,
     targetThi,
     thi,
-    effectiveTemp
+    effectiveTemp,
+    state.totalChicks,
+    state.strain,
+    notificationSettings
   ]);
 
   const chartData = useMemo(() => {
@@ -4810,32 +5090,6 @@ export default function App() {
           </label>
         </div>
 
-        <div className="w-full max-w-xs space-y-4">
-          <div className="text-center space-y-1 mb-2">
-            <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">خدمات Google Drive السحابية</h4>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <button 
-              onClick={uploadToDrive}
-              disabled={isDriveLoading}
-              className="bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black text-[10px] shadow-lg hover:bg-blue-600/30 transition-all flex flex-col items-center justify-center gap-2 active:scale-[0.95] disabled:opacity-50"
-            >
-              {isDriveLoading ? <RefreshCw size={18} className="animate-spin" /> : <Cloud size={18} />}
-              رفع للسحاب
-            </button>
-            
-            <button 
-              onClick={restoreFromDrive}
-              disabled={isDriveLoading}
-              className="bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 py-4 rounded-2xl font-black text-[10px] shadow-lg hover:bg-cyan-600/30 transition-all flex flex-col items-center justify-center gap-2 active:scale-[0.95] disabled:opacity-50"
-            >
-              {isDriveLoading ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
-              استعادة سحابية
-            </button>
-          </div>
-        </div>
-
         <p className="absolute bottom-8 text-[9px] font-black text-slate-700 tracking-[0.3em] uppercase">Poultry Manager Smart System</p>
       </div>
     );
@@ -4947,14 +5201,19 @@ export default function App() {
         >
           <div className="flex flex-row items-center justify-start gap-4 mb-10">
             <Logo size={64} iconSize={32} className="rounded-2xl" />
-            <div className="flex flex-col items-end select-none min-w-0">
-              <div className="flex flex-col items-center">
-                <h1 className="text-[17px] sm:text-[19px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
-                  مدير مزارع
-                </h1>
-                <h2 className="text-[32px] sm:text-[36px] font-black tracking-[-0.07em] bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500 leading-tight text-center -mt-1 whitespace-nowrap">
-                  الدواجن
-                </h2>
+            <div className="flex flex-col items-center select-none min-w-0 flex-1">
+              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
+                مدير مزارع
+              </h1>
+              <h2 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight leading-tight -mt-0.5 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] whitespace-nowrap">
+                الدواجن
+              </h2>
+              <div className="w-full mt-1.5 pb-0.5 border-t border-white/5 pt-1.5 flex justify-center">
+                <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none whitespace-nowrap">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+                  <span className="text-white/40 font-bold mx-0.5">..</span>
+                  <span className="text-white">إنتاج أفضل</span>
+                </p>
               </div>
             </div>
           </div>
@@ -5162,9 +5421,11 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="text-xs md:text-sm font-bold uppercase tracking-[0.4em] text-slate-500/80 mt-2 text-center"
+                className="text-xs md:text-sm font-black mt-2 text-center flex items-center justify-center gap-1.5"
               >
-                نظام الإدارة الذكي
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">إدارة ذكية</span>
+                <span className="text-slate-400">..</span>
+                <span className="text-white">إنتاج أفضل</span>
               </motion.p>
 
               {/* Decorative Accent Line */}
@@ -5175,7 +5436,7 @@ export default function App() {
                 className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mt-4"
               />
             </div>
-            <p className="text-slate-400 text-xl font-medium max-w-lg mx-auto leading-relaxed">مرحباً بك في نظام الإدارة الذكي، اختر دورة قائمة أو ابدأ دورة جديدة</p>
+            <p className="text-slate-400 text-xl font-medium max-w-lg mx-auto leading-relaxed">مرحباً بك، اختر دورة قائمة أو ابدأ دورة جديدة</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -5478,18 +5739,18 @@ export default function App() {
         >
           <div className="flex flex-row items-center justify-start gap-4 mb-10">
             <Logo size={64} iconSize={32} className="rounded-2xl" />
-            <div className="flex flex-col items-end select-none min-w-0">
-              <div className="flex flex-col items-center">
-                <h1 className="text-[17px] sm:text-[19px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
-                  مدير مزارع
-                </h1>
-                <h2 className="text-[32px] sm:text-[36px] font-black tracking-[-0.07em] bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500 leading-tight text-center -mt-1 whitespace-nowrap">
-                  الدواجن
-                </h2>
-              </div>
-              <div className="w-full mt-1">
-                <p className="text-[8px] font-bold uppercase tracking-[0.25em] text-slate-500 whitespace-nowrap border-t border-slate-800/50 pt-2 w-full text-center">
-                  نظام الإدارة الذكي
+            <div className="flex flex-col items-center select-none min-w-0 flex-1">
+              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
+                مدير مزارع
+              </h1>
+              <h2 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight leading-tight -mt-0.5 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] whitespace-nowrap">
+                الدواجن
+              </h2>
+              <div className="w-full mt-1.5 pb-0.5 border-t border-white/5 pt-1.5 flex justify-center">
+                <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none whitespace-nowrap">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+                  <span className="text-white/40 font-bold mx-0.5">..</span>
+                  <span className="text-white">إنتاج أفضل</span>
                 </p>
               </div>
             </div>
@@ -5519,6 +5780,44 @@ export default function App() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">نظام التربية</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setState(prev => ({ ...prev, breedingSystem: 'Floor' }))}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                      state.breedingSystem === 'Floor' 
+                        ? "bg-emerald-600/20 border-emerald-600 text-white" 
+                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                       <LayoutGrid size={14} className={state.breedingSystem === 'Floor' ? "text-emerald-400" : "text-slate-600"} />
+                       <span className="font-black text-[11px]">تربية أرضي</span>
+                    </div>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight">تربية تقليدية مفرودة على الأرض مع فرشة نشارة.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setState(prev => ({ ...prev, breedingSystem: 'Battery-3' }))}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                      state.breedingSystem === 'Battery-3' 
+                        ? "bg-blue-600/20 border-blue-600 text-white" 
+                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                    )}
+                  >
+                    <div className="flex items-center gap-2 w-full justify-between">
+                       <Layers size={14} className={state.breedingSystem === 'Battery-3' ? "text-blue-400" : "text-slate-600"} />
+                       <span className="font-black text-[11px]">تربية بطاريات</span>
+                    </div>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight">تربية حديثة داخل بطاريات معدنية رأسية متعددة الأدوار.</p>
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">العدد الكلي للكتاكيت</label>
                 <input 
                   type="text"
@@ -5535,43 +5834,45 @@ export default function App() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">نمط توزيع الطيور</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setState(prev => ({ ...prev, distributionMode: 'sequential' }))}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
-                      state.distributionMode === 'sequential' 
-                        ? "bg-purple-600/20 border-purple-600 text-white" 
-                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 w-full justify-between">
-                       <Zap size={14} className={state.distributionMode === 'sequential' ? "text-purple-400" : "text-slate-600"} fill="currentColor" />
-                       <span className="font-black text-[11px]">متسلسل (تحضين)</span>
-                    </div>
-                    <p className="text-[8px] font-bold opacity-70 leading-tight">ملأ البطاريات بالترتيب لتوفير التدفئة.</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setState(prev => ({ ...prev, distributionMode: 'equal' }))}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
-                      state.distributionMode === 'equal' 
-                        ? "bg-emerald-600/20 border-emerald-600 text-white" 
-                        : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 w-full justify-between">
-                       <Activity size={14} className={state.distributionMode === 'equal' ? "text-emerald-400" : "text-slate-600"} />
-                       <span className="font-black text-[11px]">متساوي (توسعة)</span>
-                    </div>
-                    <p className="text-[8px] font-bold opacity-70 leading-tight">توزيع متوازن لتحسين التهوية والنمو.</p>
-                  </button>
+              {state.breedingSystem !== 'Floor' && (
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">نمط توزيع الطيور</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setState(prev => ({ ...prev, distributionMode: 'sequential' }))}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                        state.distributionMode === 'sequential' 
+                          ? "bg-purple-600/20 border-purple-600 text-white" 
+                          : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full justify-between">
+                         <Zap size={14} className={state.distributionMode === 'sequential' ? "text-purple-400" : "text-slate-600"} fill="currentColor" />
+                         <span className="font-black text-[11px]">متسلسل (تحضين)</span>
+                      </div>
+                      <p className="text-[8px] font-bold opacity-70 leading-tight">ملأ البطاريات بالترتيب لتوفير التدفئة.</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setState(prev => ({ ...prev, distributionMode: 'equal' }))}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-3 rounded-2xl transition-all border-2 text-right",
+                        state.distributionMode === 'equal' 
+                          ? "bg-emerald-600/20 border-emerald-600 text-white" 
+                          : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10 shadow-inner"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 w-full justify-between">
+                         <Activity size={14} className={state.distributionMode === 'equal' ? "text-emerald-400" : "text-slate-600"} />
+                         <span className="font-black text-[11px]">متساوي (توسعة)</span>
+                      </div>
+                      <p className="text-[8px] font-bold opacity-70 leading-tight">توزيع متوازن لتحسين التهوية والنمو.</p>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">مدة الدورة المتوقعة (يوم)</label>
@@ -5813,169 +6114,171 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex items-center justify-between">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const newId = `bg-${Date.now()}`;
-                      setState(prev => ({
-                        ...prev,
-                        batteryGroups: [
-                          ...(prev.batteryGroups || []),
-                          { id: newId, name: `مجموعة ${prev.batteryGroups.length + 1}`, length: 0.6, width: 0.5, tiers: 3, count: 1 }
-                        ]
-                      }));
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black hover:bg-emerald-500/20 transition-all active:scale-95"
-                  >
-                    <Plus size={14} />
-                    إضافة مجموعة بطاريات
-                  </button>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">مواصفات البطاريات</label>
-                </div>
+              {state.breedingSystem !== 'Floor' && (
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newId = `bg-${Date.now()}`;
+                        setState(prev => ({
+                          ...prev,
+                          batteryGroups: [
+                            ...(prev.batteryGroups || []),
+                            { id: newId, name: `مجموعة ${prev.batteryGroups.length + 1}`, length: 0.6, width: 0.5, tiers: 3, count: 1 }
+                          ]
+                        }));
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black hover:bg-emerald-500/20 transition-all active:scale-95"
+                    >
+                      <Plus size={14} />
+                      إضافة مجموعة بطاريات
+                    </button>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">مواصفات البطاريات</label>
+                  </div>
 
-                {(state.batteryGroups || []).map((group, idx) => (
-                  <div key={group.id} className="bg-slate-900/40 border border-white/5 rounded-3xl p-5 space-y-4 relative group">
-                    <div className="flex items-center justify-between">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          if (state.batteryGroups.length <= 1) return;
-                          setState(prev => ({
-                            ...prev,
-                            batteryGroups: prev.batteryGroups.filter(g => g.id !== group.id)
-                          }));
-                        }}
-                        className="text-red-500/50 hover:text-red-500 transition-colors p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">المجموعة {idx + 1}</span>
-                    </div>
+                  {(state.batteryGroups || []).map((group, idx) => (
+                    <div key={group.id} className="bg-slate-900/40 border border-white/5 rounded-3xl p-5 space-y-4 relative group">
+                      <div className="flex items-center justify-between">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (state.batteryGroups.length <= 1) return;
+                            setState(prev => ({
+                              ...prev,
+                              batteryGroups: prev.batteryGroups.filter(g => g.id !== group.id)
+                            }));
+                          }}
+                          className="text-red-500/50 hover:text-red-500 transition-colors p-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">المجموعة {idx + 1}</span>
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Group Count */}
-                      <div className="col-span-2">
-                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2 text-right">عدد البطاريات في هذه المجموعة</label>
-                        <div className="flex items-center gap-3 bg-slate-950/80 p-1.5 rounded-3xl border-2 border-white/5 shadow-inner">
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const current = parseInt(String(group.count)) || 1;
-                              const newCount = Math.max(1, current - 1);
-                              setState(prev => ({
-                                ...prev,
-                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
-                              }));
-                            }}
-                            className="w-12 h-12 bg-slate-800 text-white rounded-2xl flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-90 border border-white/5 shadow-lg"
-                          >
-                            <Minus size={20} strokeWidth={3} />
-                          </button>
-                          <div className="flex-1 flex flex-col items-center justify-center">
-                            <input 
-                              type="text"
-                              inputMode="numeric"
-                              value={group.count}
-                              onChange={e => {
-                                const val = e.target.value.replace(/\D/g, '');
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Group Count */}
+                        <div className="col-span-2">
+                          <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2 text-right">عدد البطاريات في هذه المجموعة</label>
+                          <div className="flex items-center gap-3 bg-slate-950/80 p-1.5 rounded-3xl border-2 border-white/5 shadow-inner">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const current = parseInt(String(group.count)) || 1;
+                                const newCount = Math.max(1, current - 1);
                                 setState(prev => ({
                                   ...prev,
-                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: val } : g)
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
                                 }));
                               }}
-                              className="w-full bg-transparent border-none text-center font-black text-2xl text-white focus:ring-0 p-0 leading-none"
-                            />
-                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-0.5">وحدة</span>
+                              className="w-12 h-12 bg-slate-800 text-white rounded-2xl flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-90 border border-white/5 shadow-lg"
+                            >
+                              <Minus size={20} strokeWidth={3} />
+                            </button>
+                            <div className="flex-1 flex flex-col items-center justify-center">
+                              <input 
+                                type="text"
+                                inputMode="numeric"
+                                value={group.count}
+                                onChange={e => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  setState(prev => ({
+                                    ...prev,
+                                    batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: val } : g)
+                                  }));
+                                }}
+                                className="w-full bg-transparent border-none text-center font-black text-2xl text-white focus:ring-0 p-0 leading-none"
+                              />
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-0.5">وحدة</span>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const current = parseInt(String(group.count)) || 1;
+                                const newCount = current + 1;
+                                setState(prev => ({
+                                  ...prev,
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
+                                }));
+                              }}
+                              className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-600/30 border border-white/10"
+                            >
+                              <Plus size={20} strokeWidth={3} />
+                            </button>
                           </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const current = parseInt(String(group.count)) || 1;
-                              const newCount = current + 1;
-                              setState(prev => ({
-                                ...prev,
-                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
-                              }));
-                            }}
-                            className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:bg-blue-500 transition-all active:scale-90 shadow-xl shadow-blue-600/30 border border-white/10"
-                          >
-                            <Plus size={20} strokeWidth={3} />
-                          </button>
                         </div>
-                      </div>
 
-                      {/* Dimensions */}
-                      <div>
-                        <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">الطول (م)</span>
-                        <input 
-                          type="text"
-                          inputMode="decimal"
-                          value={group.length}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                              setState(prev => ({
-                                ...prev,
-                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, length: val } : g)
-                              }));
-                            }
-                          }}
-                          className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
-                          placeholder="0.6"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">العرض (م)</span>
-                        <input 
-                          type="text"
-                          inputMode="decimal"
-                          value={group.width}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                              setState(prev => ({
-                                ...prev,
-                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, width: val } : g)
-                              }));
-                            }
-                          }}
-                          className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
-                          placeholder="0.5"
-                        />
-                      </div>
-
-                      {/* Tiers */}
-                      <div className="col-span-2 space-y-2">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[9px] font-black text-slate-600 uppercase">عدد الأدوار: {group.tiers}</span>
-                          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest text-right">طوابق البطارية</span>
-                        </div>
-                        <div className="flex items-center gap-4 bg-slate-950/50 p-2 rounded-2xl border border-white/5">
+                        {/* Dimensions */}
+                        <div>
+                          <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">الطول (م)</span>
                           <input 
-                            type="range"
-                            min="1"
-                            max="6"
-                            value={group.tiers}
+                            type="text"
+                            inputMode="decimal"
+                            value={group.length}
                             onChange={e => {
-                              const tiers = parseInt(e.target.value);
-                              setState(prev => ({
-                                ...prev,
-                                batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, tiers } : g)
-                              }));
+                              const val = e.target.value;
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                setState(prev => ({
+                                  ...prev,
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, length: val } : g)
+                                }));
+                              }
                             }}
-                            style={{
-                              background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
-                            }}
-                            className="flex-1 appearance-none h-1.5 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500"
+                            className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
+                            placeholder="0.6"
                           />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-600 block mb-1 text-center">العرض (م)</span>
+                          <input 
+                            type="text"
+                            inputMode="decimal"
+                            value={group.width}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                setState(prev => ({
+                                  ...prev,
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, width: val } : g)
+                                }));
+                              }
+                            }}
+                            className="w-full bg-slate-950 border border-white/5 rounded-xl px-2 py-3 focus:border-blue-600 focus:outline-none font-black text-white text-sm text-center transition-all"
+                            placeholder="0.5"
+                          />
+                        </div>
+
+                        {/* Tiers */}
+                        <div className="col-span-2 space-y-2">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-[9px] font-black text-slate-600 uppercase">عدد الأدوار: {group.tiers}</span>
+                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest text-right">طوابق البطارية</span>
+                          </div>
+                          <div className="flex items-center gap-4 bg-slate-950/50 p-2 rounded-2xl border border-white/5">
+                            <input 
+                              type="range"
+                              min="1"
+                              max="6"
+                              value={group.tiers}
+                              onChange={e => {
+                                const tiers = parseInt(e.target.value);
+                                setState(prev => ({
+                                  ...prev,
+                                  batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, tiers } : g)
+                                }));
+                              }}
+                              style={{
+                                background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
+                              }}
+                              className="flex-1 appearance-none h-1.5 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               <button 
                 type="submit"
@@ -6015,48 +6318,91 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-32 font-sans antialiased text-white overflow-x-hidden" dir="rtl">
+    <div className="min-h-screen bg-slate-950 pb-32 font-sans antialiased text-white overflow-x-clip" dir="rtl">
       {/* Top Header */}
-      <header className="bg-slate-900/50 backdrop-blur-xl px-6 pt-6 pb-6 border-b border-white/5 sticky top-0 z-20">
-        <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <div className="w-12 h-12" /> { /* Empty placeholder for balance */ }
+      <header className="bg-slate-900/50 backdrop-blur-xl px-4 sm:px-6 py-4 border-b border-white/5 sticky top-0 z-30">
+        <div className="max-w-3xl mx-auto flex flex-col gap-4">
+          
+          {/* Top Row: Symmetrical 3-Column Layout */}
+          <div className="flex items-center justify-between gap-3 w-full">
+            
+            {/* Right Column (Logo) - Constrained to balance the layout */}
+            <div className="w-24 flex justify-start flex-shrink-0">
+              <Logo size={46} iconSize={23} className="rounded-xl shadow-[0_0_15px_rgba(30,111,253,0.25)]" />
+            </div>
 
-          <div className="flex flex-row items-center justify-start gap-4">
-            <Logo size={48} iconSize={24} className="rounded-xl" />
-            <div className="flex flex-col items-end select-none min-w-0">
-              <div className="flex flex-col items-center">
-                <h1 className="text-[14px] sm:text-[16px] font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-600 leading-none text-center whitespace-nowrap">
+            {/* Center Column: Title & Slogan perfectly centered mathematically */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center select-none min-w-0">
+              <div className="w-[140px] flex flex-col items-center justify-center">
+                <h1 className="text-[12px] font-black tracking-[0.14em] text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase text-center w-full">
                   مدير مزارع
                 </h1>
-                <h2 className="text-[24px] sm:text-[28px] font-black tracking-[-0.07em] bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500 leading-tight text-center -mt-0.5 whitespace-nowrap">
+                <h2 className="text-[22px] font-black text-white tracking-[0.05em] leading-tight mt-1 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] text-center w-full">
                   الدواجن
                 </h2>
               </div>
-              <div className="w-full mt-1">
-                <p className="text-[7px] font-bold uppercase tracking-[0.2em] text-slate-500 whitespace-nowrap border-t border-slate-800/50 pt-1 w-full text-center">
-                  نظام الإدارة الذكي
+              <div className="mt-1.5 pb-0.5 border-t border-white/10 pt-1 w-[140px] flex justify-center">
+                <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none text-center w-full">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+                  <span className="text-white/40 font-bold mx-0.5">..</span>
+                  <span className="text-white">إنتاج أفضل</span>
                 </p>
               </div>
             </div>
+
+            {/* Left Column (Actions) - Constrained to matching w-24 for absolute symmetry */}
+            <div className="w-24 flex justify-end items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowNotificationsModal(true)}
+                className="w-10 h-10 rounded-xl bg-slate-800/80 border border-white/10 hover:border-violet-500/50 flex items-center justify-center text-white transition-all active:scale-95 relative outline-none"
+                title="مركز التنبيهات والإشعارات"
+              >
+                {inAppNotifications.length > 0 ? (
+                  <BellRing size={16} className="text-violet-400 animate-bounce" />
+                ) : (
+                  <Bell size={16} className="text-slate-400" />
+                )}
+                {inAppNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black flex items-center justify-center text-white ring-1 ring-slate-950 animate-pulse">
+                    {inAppNotifications.length}
+                  </span>
+                )}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setScreen('setup')}
+                className={cn(
+                  "w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-95 outline-none",
+                  (screen as string) === 'setup'
+                    ? "bg-blue-500 text-white border-blue-400 shadow-lg"
+                    : "bg-slate-800/80 text-slate-400 border-white/10 hover:border-blue-500/50 hover:text-white"
+                )}
+                title="الإعدادات"
+              >
+                <Settings size={18} />
+              </button>
+            </div>
+
           </div>
-          
-          <div className="flex flex-col items-center gap-2">
-            <button 
-              onClick={() => setScreen('setup')}
-              className="p-2.5 bg-slate-800 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white transition-all border border-white/5"
-            >
-              <Settings size={18} />
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="status-dot w-1.5 h-1.5 bg-green-500 animate-pulse glow-green"></span>
-              <div className="text-slate-500 text-[9px] font-bold uppercase tracking-tighter text-center">
-                <div className="flex items-center gap-2 justify-center sm:justify-end" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
+
+          {/* Bottom Row / Status Bar - Centered precisely on all screen sizes */}
+          <div className="flex justify-center w-full">
+            <div className="flex items-center justify-center gap-2 bg-slate-950/40 border border-white/5 py-1.5 px-3.5 rounded-xl sm:rounded-2xl transition-all w-full sm:w-auto max-w-sm">
+              <span className="status-dot w-1.5 h-1.5 bg-green-500 animate-pulse glow-green flex-shrink-0"></span>
+              <div className="text-slate-400 text-[10px] sm:text-xs font-black uppercase text-center">
+                <div className="flex items-center gap-1.5 justify-center" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
                    {state.isManualOverride ? <Edit3 size={11} className="text-amber-500" /> : <RefreshCw size={11} className="text-blue-400 animate-spin-slow" />}
-                   {state.age} يوم • {STRAIN_NAMES[state.strain]} • {toNum(state.totalChicks).toLocaleString()} طائر
+                   <span>{state.age} يوم</span>
+                   <span className="text-slate-600">•</span>
+                   <span>{STRAIN_NAMES[state.strain]}</span>
+                   <span className="text-slate-600">•</span>
+                   <span>{toNum(state.totalChicks).toLocaleString()} طائر</span>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
       </header>
 
@@ -6155,13 +6501,6 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setScreen('charts')}
-                    className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 hover:bg-purple-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-purple-500/10"
-                    title="الإحصائيات"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
-                  <button 
                     onClick={() => setScreen('landing')}
                     className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
                   >
@@ -6196,42 +6535,6 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Card 1: Google Cloud Backup */}
-                  <div className="bg-blue-600/10 p-6 rounded-[2rem] border border-blue-500/20 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Cloud size={80} className="text-blue-400" />
-                    </div>
-                    <div className="relative z-10 flex flex-col gap-4">
-                      <div className="flex items-center justify-between flex-row-reverse text-right">
-                        <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                          {isDriveLoading ? <RefreshCw size={28} className="animate-spin" /> : <Cloud size={28} />}
-                        </div>
-                        <div className="flex-1 me-4">
-                          <h4 className="text-lg font-black text-white">النسخ الاحتياطي على Google</h4>
-                          <p className="text-[11px] text-blue-400/70 font-bold">حفظ واستعادة النسخة في حسابك الشخصي على Google Drive</p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 gap-3">
-                        <button 
-                          onClick={uploadToDrive}
-                          disabled={isDriveLoading}
-                          className="w-full bg-blue-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-400 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {isDriveLoading ? 'جاري الاتصال...' : 'رفع نسخة جديدة للسحاب'}
-                        </button>
-                        
-                        <button 
-                          onClick={restoreFromDrive}
-                          disabled={isDriveLoading}
-                          className="w-full bg-blue-600/20 text-blue-300 py-3 rounded-2xl font-bold text-xs border border-blue-500/20 hover:bg-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                        >
-                          {isDriveLoading ? 'جاري البحث...' : 'استعادة أحدث نسخة من السحاب'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Card 2: Local Backup (Mobile/Storage) */}
                   <div className="bg-purple-600/10 p-6 rounded-[2rem] border border-purple-500/20 shadow-xl relative overflow-hidden group">
                     <div className="absolute top-0 left-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -6419,7 +6722,7 @@ export default function App() {
                                           const aliveFeed = birdsAlive * getDailyStats(cycle.strain, toNum(cycle.age)).cumFeed;
                                           const totalFeedKg = (deadFeed + aliveFeed) / 1000;
                                           const costs = (toNum(cycle.totalChicks) * toNum(cycle.chickPrice)) + (totalFeedKg * toNum(cycle.feedPrice)) + 
-                                                        ([...cycle.electricityBills, ...cycle.waterBills, ...cycle.medicationBills, ...cycle.otherBills].reduce((acc, b) => acc + toNum(b.amount), 0));
+                                                        ([...cycle.electricityBills, ...cycle.waterBills, ...cycle.medicationBills, ...cycle.otherBills, ...(cycle.laborBills || [])].reduce((acc, b) => acc + toNum(b.amount), 0));
                                           const revenue = cycle.salesRecords.reduce((acc, s) => acc + toNum(s.amount), 0);
                                           const profit = (revenue - costs) / toNum(cycle.totalChicks);
                                           return <td key={id} className={cn("text-center font-black", profit > 0 ? 'text-emerald-400' : 'text-red-400')}>{profit.toFixed(1)} ج.م</td>;
@@ -6470,13 +6773,6 @@ export default function App() {
                   </div>
                   <h2 className="text-2xl font-black text-white tracking-tight">الإدارة المالية</h2>
                 </div>
-                <button 
-                  onClick={() => setScreen('charts')}
-                  className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-emerald-500/10"
-                  title="الإحصائيات"
-                >
-                  <BarChart2 size={20} />
-                </button>
               </header>
 
               {/* Input Prices Card */}
@@ -6905,6 +7201,17 @@ export default function App() {
                    onUpdate={(id, field, val) => setState(prev => ({ ...prev, electricityBills: prev.electricityBills.map(b => b.id === id ? { ...b, [field]: val } : b) }))}
                 />
                 <BillSection 
+                   title="رواتب وأجور العمال" 
+                   bills={state.laborBills || []} 
+                   icon={Users}
+                   onAdd={() => setState(prev => ({ ...prev, laborBills: [...(prev.laborBills || []), { id: Math.random().toString(36).substr(2, 9), label: 'مرتب عامل / مكافأة', amount: 0, startDay: prev.targetCycleDays, endDay: 1, entryDate: new Date().toISOString().split('T')[0] }] }))}
+                   onRemove={(id) => {
+                     const bill = (state.laborBills || []).find(b => b.id === id);
+                     setBillToDelete({ id, section: 'laborBills', label: bill?.label || 'مرتب عامل' });
+                   }}
+                   onUpdate={(id, field, val) => setState(prev => ({ ...prev, laborBills: (prev.laborBills || []).map(b => b.id === id ? { ...b, [field]: val } : b) }))}
+                />
+                <BillSection 
                    title="فواتير المياه" 
                    bills={state.waterBills} 
                    icon={Droplets}
@@ -7090,14 +7397,7 @@ export default function App() {
                     </p>
                   </div>
                 </div>
-                <div className="px-4 sm:px-6">
-                  <button 
-                    onClick={() => setScreen('charts')}
-                    className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-blue-500/10"
-                    title="الإحصائيات"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
+                <div className="px-4 sm:px-6 flex items-center gap-2">
                 </div>
               </header>
 
@@ -7521,13 +7821,6 @@ export default function App() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <button 
-                    onClick={() => setScreen('charts')}
-                    className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20 hover:bg-purple-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-purple-500/10"
-                    title="الإحصائيات"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
                   <div className="flex bg-slate-950/50 p-1 rounded-2xl border border-white/5 order-2 sm:order-1 w-full sm:w-auto">
                     <button 
                       onClick={() => setState(prev => ({ ...prev, distributionMode: 'sequential' }))}
@@ -8176,13 +8469,6 @@ export default function App() {
                   برنامج الأدوية
                 </h2>
                 <div className="flex items-center gap-2 sm:gap-4">
-                  <button 
-                    onClick={() => setScreen('charts')}
-                    className="p-2 sm:p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
-                    title="عرض الإحصائيات"
-                  >
-                    <BarChart2 size={24} />
-                  </button>
                   <div className="flex flex-col items-end gap-2">
                   <div className="text-[12px] font-black text-white bg-blue-600 px-4 py-2.5 rounded-2xl shadow-lg border border-white/10 flex items-center gap-2">
                     <Droplets size={16} />
@@ -9305,7 +9591,7 @@ export default function App() {
                 )}
               </div>
 
-               <div className="px-2">
+               <div className="px-2 space-y-4">
                   {toNum(state.age) >= 30 ? (
                     <Card className="bg-red-600 p-6 border-none flex items-start gap-4 shadow-[0_0_20px_rgba(220,38,38,0.3)]">
                       <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white shrink-0">
@@ -9330,6 +9616,18 @@ export default function App() {
                       </div>
                     </Card>
                   )}
+
+                  <Card className="bg-amber-500/5 border border-amber-500/10 p-5 flex gap-4">
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 shrink-0">
+                      <Info size={22} />
+                    </div>
+                    <div>
+                      <h5 className="text-[11px] font-black text-amber-500 uppercase tracking-widest mb-1">تنبيه وإخلاء مسؤولية</h5>
+                      <p className="text-xs text-slate-300 leading-relaxed font-bold">
+                        هذا البرنامج العلاجي الموضح هو دليل استرشادي وتعليمي فقط. نظراً لاختلاف استجابة قطعان الدواجن وحالتها الصحية الفردية بناءً على العوامل البيئية والإدارية ومكان المزرعة، يرجى دائماً استشارة الطبيب البيطري المختص والمشرف على دورتك لتأكيد الجرعات وتفاصيل بروتوكول الرعاية.
+                      </p>
+                    </div>
+                  </Card>
                </div>
              </motion.div>
            </AnimatePresence>
@@ -9653,6 +9951,524 @@ export default function App() {
             </motion.div>
           )}
 
+          {screen === 'heating' && (
+            <motion.div 
+              key="heating"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="space-y-6 text-right pb-24"
+              dir="rtl"
+            >
+              {/* Premium Header */}
+              <header className="px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
+                <div>
+                  <div className="flex items-center gap-2 mb-1 justify-start">
+                    <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse" />
+                    <h2 className="text-2xl font-black text-white tracking-tight">إدارة أنظمة التدفئة والتحضين</h2>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                    حساب متطلبات الطاقة الحرارية، معايرة كفاءة المصابيح، وتنظيم الهيترات والدفايات لتأمين التوازن الفسيولوجي للقطيع.
+                  </p>
+                </div>
+              </header>
+
+              {/* Heating Method Selector Card */}
+              <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl text-right font-sans overflow-hidden relative shadow-2xl">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/5 blur-3xl rounded-full pointer-events-none" />
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4 text-right">طريقة التدفئة والتحضين بالمنشأة</label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
+                  {[
+                    { id: 'bulb', label: 'التدفئة باللمبات فقط 💡', desc: 'توزيع حراري موضعي ومثالي للأعمار الأولى', activeColor: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/40 shadow-xl shadow-yellow-950/20' },
+                    { id: 'heater', label: 'الدفايات والهيترات 💨', desc: 'تحكم مركزي قوي للمساحات المتوسطة والكبيرة', activeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/40 shadow-xl shadow-rose-950/20' },
+                    { id: 'both', label: 'التدفئة المشتركة 🔥', desc: 'الدمج الكامل للحصول على أعلى كفاءة أمان', activeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/40 shadow-xl shadow-amber-950/20' }
+                  ].map((method) => {
+                    const active = (state.heatingMethod || 'both') === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setState(prev => ({ ...prev, heatingMethod: method.id as any }))}
+                        className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all border text-center gap-1.5 cursor-pointer ${
+                          active 
+                            ? `${method.activeColor} border-[1.5px]` 
+                            : 'bg-slate-950/30 border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="text-[13px] font-black">{method.label}</span>
+                        <span className="text-[9px] opacity-70 font-medium leading-normal">{method.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              {/* Quick Info Bento Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Recommended Temperature based on Chick Age */}
+                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
+                  <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 shrink-0 z-10 border border-amber-500/10 shadow-inner">
+                    <Thermometer size={22} />
+                  </div>
+                  <div className="min-w-0 flex-1 z-10">
+                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">الحرارة المطلوبة للمرحلة</h5>
+                    <p className="text-xl font-black text-white leading-tight">
+                      {toNum(state.age) <= 3 ? 33 : toNum(state.age) <= 7 ? 31 : toNum(state.age) <= 14 ? 28 : toNum(state.age) <= 21 ? 25 : toNum(state.age) <= 28 ? 22 : 20}°م
+                    </p>
+                    <span className="text-[10px] text-amber-500 font-bold block mt-1 truncate">
+                      {toNum(state.age) <= 7 ? "مرحلة تحضين حرجة ⚠️" : "مرحلة معتدلة مستقرة ✅"}
+                    </span>
+                  </div>
+                </Card>
+
+                {/* Installed Power capacity */}
+                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-2xl rounded-full pointer-events-none" />
+                  <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-400 shrink-0 z-10 border border-rose-500/10 shadow-inner">
+                    <Flame size={22} />
+                  </div>
+                  <div className="min-w-0 flex-1 z-10">
+                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">القدرة المتوفرة للتسخين</h5>
+                    <p className="text-xl font-black text-white leading-tight">
+                      {(() => {
+                        const m = state.heatingMethod || 'both';
+                        const bulbW = m === 'heater' ? 0 : (toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200));
+                        const heaterW = m === 'bulb' ? 0 : (toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000));
+                        return ((bulbW + heaterW) / 1000).toFixed(1);
+                      })()} كيلووات
+                    </p>
+                    <span className="text-[10px] text-rose-400 font-bold block mt-1 truncate">
+                      {state.heatingMethod === 'bulb' ? "إضاءة حرارية تنجستين" : state.heatingMethod === 'heater' ? "نظام دفايات مركزي" : "نظام تدفئة مزدوج فعال"}
+                    </span>
+                  </div>
+                </Card>
+
+                {/* Barn Area */}
+                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl rounded-full pointer-events-none" />
+                  <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 shrink-0 z-10 border border-indigo-500/10 shadow-inner">
+                    <Layers size={22} />
+                  </div>
+                  <div className="min-w-0 flex-1 z-10">
+                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">مساحة العنبر الإجمالية</h5>
+                    <p className="text-xl font-black text-white leading-tight">
+                      {(toNum(state.barnLength || 100) * toNum(state.barnWidth || 12)).toLocaleString()} م²
+                    </p>
+                    <span className="text-[10px] text-indigo-400 font-bold block mt-1 truncate">الأبعاد: {state.barnLength || 100}م × {state.barnWidth || 12}م</span>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Heating Configurations Cards Grid */}
+              <div className={`grid grid-cols-1 ${(state.heatingMethod || 'both') === 'both' ? 'lg:grid-cols-2' : ''} gap-6`}>
+                {/* 1. Tungsten Bulbs Configuration Card */}
+                {((state.heatingMethod || 'both') === 'bulb' || (state.heatingMethod || 'both') === 'both') && (
+                  <Card className="bg-slate-900 border border-white/10 rounded-3xl p-6 text-right font-sans relative overflow-hidden shadow-xl">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 blur-3xl rounded-full pointer-events-none" />
+                    
+                    <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
+                      <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center text-yellow-500 shrink-0 border border-yellow-500/10 shadow-inner">
+                        <Sun size={18} className={toNum(state.tungstenBulbCount) > 0 ? 'animate-pulse' : ''} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-black text-white">لمبات التنجستين الحرارية (الموضعية)</h4>
+                        <p className="text-[10px] text-slate-400 font-bold leading-normal">توزيع حراري منتظم وعالي الكثافة على الفرشة</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5 relative z-10">
+                      {/* Bulb count with controls (optimized for mobile touch targets) */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">إجمالي عدد اللمبات بالعنبر</label>
+                          <span className="text-[11px] font-mono font-black text-yellow-400 bg-yellow-400/5 px-2.5 py-1 rounded-lg border border-yellow-400/15">{state.tungstenBulbCount ?? 20} لمبة</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <button 
+                            key="dec-bulb"
+                            type="button"
+                            onClick={() => {
+                              const current = toNum(state.tungstenBulbCount ?? 20);
+                              setState(prev => ({ ...prev, tungstenBulbCount: Math.max(0, current - 1) }));
+                            }}
+                            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors font-black text-xl select-none shrink-0 border border-white/5 shadow-md active:scale-90"
+                          >
+                            -
+                          </button>
+                          <input 
+                            key="bulb-count-in"
+                            type="text"
+                            inputMode="numeric"
+                            value={state.tungstenBulbCount ?? ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                setState(prev => ({ ...prev, tungstenBulbCount: val }));
+                              }
+                            }}
+                            className="bg-transparent text-2xl font-black text-center text-white flex-1 outline-none font-mono focus:text-yellow-400 transition-colors w-full"
+                          />
+                          <button 
+                            key="inc-bulb"
+                            type="button"
+                            onClick={() => {
+                              const current = toNum(state.tungstenBulbCount ?? 20);
+                              setState(prev => ({ ...prev, tungstenBulbCount: current + 1 }));
+                            }}
+                            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors font-black text-xl select-none shrink-0 border border-white/5 shadow-md active:scale-90"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Special battery tiers bulb configuration */}
+                      {maxBatteryTiers > 0 && (
+                        <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                          <div className="flex justify-between items-center flex-wrap gap-2">
+                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">عدد اللمبات الموزعة لكل دور (بطارية)</label>
+                            <span className="text-[10px] text-yellow-400 font-bold bg-yellow-400/5 px-2 py-0.5 rounded border border-yellow-400/10">إجمالي أدوار العنبر: {maxBatteryTiers}</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {Array.from({ length: maxBatteryTiers }).map((_, tierIdx) => {
+                              const tierNum = tierIdx + 1;
+                              const val = state.bulbsPerTier?.[tierNum] ?? '';
+                              return (
+                                <div key={tierNum} className="space-y-1 bg-slate-900/60 p-2 text-right rounded-xl border border-white/5 flex flex-col justify-between">
+                                  <span className="text-[10px] font-bold text-slate-400">الدور {tierNum}</span>
+                                  <div className="flex items-center gap-1.5 mt-1 bg-slate-950/60 px-2 py-1.5 rounded-lg border border-white/5">
+                                    <input 
+                                      type="text"
+                                      inputMode="numeric"
+                                      value={val}
+                                      placeholder="0"
+                                      onChange={e => {
+                                        const inputVal = e.target.value;
+                                        if (inputVal === '' || /^\d*$/.test(inputVal)) {
+                                          setState(prev => {
+                                            const prevBulbs = prev.bulbsPerTier || {};
+                                            const nextBulbs = { ...prevBulbs, [tierNum]: inputVal };
+                                            const totalBulbsSum = Object.values(nextBulbs).reduce<number>((s, curr) => s + toNum(curr), 0);
+                                            return {
+                                              ...prev,
+                                              bulbsPerTier: nextBulbs,
+                                              tungstenBulbCount: totalBulbsSum > 0 ? totalBulbsSum : prev.tungstenBulbCount
+                                            };
+                                          });
+                                        }
+                                      }}
+                                      className="bg-transparent text-sm font-bold text-center text-white outline-none font-mono w-full"
+                                    />
+                                    <span className="text-[10px] text-slate-500 font-medium shrink-0">لمبة</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bulb Power selection/custom power inputs */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قدرة المصباح الفردي</label>
+                          <span className="text-xs font-mono font-black text-orange-400 bg-orange-400/5 px-2 py-0.5 rounded border border-orange-400/10 shrink-0">{state.tungstenBulbPower ?? 200} وات</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[100, 150, 200, 250].map((watts) => (
+                            <button
+                              key={watts}
+                              type="button"
+                              onClick={() => setState(prev => ({ ...prev, tungstenBulbPower: watts }))}
+                              className={`py-2 px-1 rounded-xl text-xs font-black transition-all border cursor-pointer ${
+                                toNum(state.tungstenBulbPower) === watts 
+                                  ? 'bg-yellow-500 text-slate-950 font-black border-yellow-400 shadow-md shadow-yellow-500/10' 
+                                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border-transparent'
+                              }`}
+                            >
+                              {watts}W
+                            </button>
+                          ))}
+                        </div>
+                        <div className="pt-2 flex items-center justify-between gap-3 border-t border-white/5">
+                          <span className="text-[10px] text-slate-500 font-black shrink-0">تحديد قدرة مخصصة:</span>
+                          <div className="flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-3 py-1.5 rounded-xl">
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              value={state.tungstenBulbPower ?? ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  setState(prev => ({ ...prev, tungstenBulbPower: val }));
+                                }
+                              }}
+                              placeholder="مثال: 300"
+                              className="bg-transparent py-0 px-1 text-xs font-bold text-center text-white w-20 outline-none font-mono"
+                            />
+                            <span className="text-[10px] text-slate-400 font-bold">W</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bulb Light colors */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block text-right">لون ونوع الإشعاع الحراري</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {['أصفر دافئ وجاذب', 'أحمر أشعة تحت الحمراء', 'أصفر كلاسيكي'].map((colorName) => (
+                            <button
+                              key={colorName}
+                              type="button"
+                              onClick={() => setState(prev => ({ ...prev, tungstenBulbColor: colorName }))}
+                              className={`py-2 px-1 rounded-xl text-[10px] font-bold transition-all leading-tight border cursor-pointer ${
+                                state.tungstenBulbColor === colorName 
+                                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-inner' 
+                                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-transparent'
+                              }`}
+                            >
+                              {colorName}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-medium leading-relaxed mt-1 text-right">
+                          📌 نصيحة الخبراء: استخدام اللمبات ذات الأشعة تحت الحمراء يؤمن كفاءة تدفئة ممتازة وعميقة دون التسبب في إزعاج ونقر غير مرغوب للصوص.
+                        </p>
+                      </div>
+
+                      {/* Output Calculator Box */}
+                      <div className="bg-gradient-to-l from-yellow-500/5 to-amber-500/5 p-4 rounded-2xl border border-yellow-500/10 flex justify-between items-center flex-wrap gap-2 shadow-inner">
+                        <span className="text-xs font-bold text-slate-400">إجمالي قدرة التدفئة من المصابيح:</span>
+                        <span className="text-sm font-mono font-black text-yellow-400">
+                          {((toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200)) / 1000).toFixed(2)} كيلووات
+                        </span>
+                      </div>
+
+                    </div>
+                  </Card>
+                )}
+
+                {/* 2. Gas Heater / Dafaia Configuration Card */}
+                {((state.heatingMethod || 'both') === 'heater' || (state.heatingMethod || 'both') === 'both') && (
+                  <Card className="bg-slate-900 border border-white/10 rounded-3xl p-6 text-right font-sans relative overflow-hidden shadow-xl">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full pointer-events-none" />
+                    
+                    <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
+                      <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500 shrink-0 border border-red-500/10 shadow-inner">
+                        <Flame size={18} className={toNum(state.heaterCount) > 0 ? 'animate-bounce' : ''} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-black text-white">الدفايات، الدفايات النفاثة والأنابيب</h4>
+                        <p className="text-[10px] text-slate-400 font-bold leading-normal">التدفئة المركزية بقوة السولار والغاز لتأمين العنبر بالكامل</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Heater count with controls (touch target sized) */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-2 shadow-inner">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">عدد الدفايات الفعالة بالعنبر</label>
+                          <span className="text-[11px] font-mono font-black text-red-400 bg-red-400/5 px-2.5 py-1 rounded-lg border border-red-400/15">{state.heaterCount ?? 2} هيتر / دفاية</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <button 
+                            key="dec-heater"
+                            type="button"
+                            onClick={() => {
+                              const current = toNum(state.heaterCount ?? 2);
+                              setState(prev => ({ ...prev, heaterCount: Math.max(0, current - 1) }));
+                            }}
+                            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors font-black text-xl select-none shrink-0 border border-white/5 shadow-md active:scale-90"
+                          >
+                            -
+                          </button>
+                          <input 
+                            key="heater-count-in"
+                            type="text"
+                            inputMode="numeric"
+                            value={state.heaterCount ?? ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                setState(prev => ({ ...prev, heaterCount: val }));
+                              }
+                            }}
+                            className="bg-transparent text-2xl font-black text-center text-white flex-1 outline-none font-mono focus:text-red-400 transition-colors w-full"
+                          />
+                          <button 
+                            key="inc-heater"
+                            type="button"
+                            onClick={() => {
+                              const current = toNum(state.heaterCount ?? 2);
+                              setState(prev => ({ ...prev, heaterCount: current + 1 }));
+                            }}
+                            className="w-12 h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center transition-colors font-black text-xl select-none shrink-0 border border-white/5 shadow-md active:scale-90"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Heater Power selection with chips */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قدرة الهيتر الواحد بالوات</label>
+                          <span className="text-xs font-mono font-black text-rose-400 bg-rose-400/5 px-2 py-0.5 rounded border border-rose-400/10 shrink-0">{(toNum(state.heaterPower ?? 15000)).toLocaleString()} وات</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[5000, 10000, 15000, 20000].map((watts) => (
+                            <button
+                              key={watts}
+                              type="button"
+                              onClick={() => setState(prev => ({ ...prev, heaterPower: watts }))}
+                              className={`py-2 px-1 rounded-xl text-xs font-black transition-all border cursor-pointer ${
+                                toNum(state.heaterPower) === watts 
+                                  ? 'bg-red-500 text-white font-black border-red-400 shadow-md shadow-red-500/10' 
+                                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border-transparent'
+                              }`}
+                            >
+                              {(watts / 1000)} kW
+                            </button>
+                          ))}
+                        </div>
+                        <div className="pt-2 flex items-center justify-between gap-3 border-t border-white/5">
+                          <span className="text-[10px] text-slate-500 font-black shrink-0">تحديد قدرة مخصصة:</span>
+                          <div className="flex items-center gap-1.5 bg-slate-950/60 border border-white/10 px-3 py-1.5 rounded-xl">
+                            <input 
+                              type="text"
+                              inputMode="numeric"
+                              value={state.heaterPower ?? ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  setState(prev => ({ ...prev, heaterPower: val }));
+                                }
+                              }}
+                              placeholder="مثال: 25000"
+                              className="bg-transparent py-0 px-1 text-xs font-bold text-center text-white w-24 outline-none font-mono"
+                            />
+                            <span className="text-[10px] text-slate-400 font-bold">W</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Educational panel */}
+                      <p className="text-[9px] text-slate-500 font-medium leading-relaxed text-right p-4 bg-slate-950/20 rounded-2xl border border-white/5">
+                        💡 تلميح: أنظمة التدفئة المركزية النفاثة (الهيترات) ممتازة في تأمين كسر سريع لموجات البرد الصقيعي داخل العنابر الكبيرة، وهي كفاءة يعتمد عليها في العنابر المحكمة بفضل التحكم الإلكتروني الدقيق.
+                      </p>
+
+                      {/* Power sum card */}
+                      <div className="bg-gradient-to-l from-red-500/5 to-rose-500/5 p-4 rounded-2xl border border-red-500/10 flex justify-between items-center flex-wrap gap-2 shadow-inner">
+                        <span className="text-xs font-bold text-slate-400">إجمالي قدرة الدفايات الفعلية:</span>
+                        <span className="text-sm font-mono font-black text-rose-400">
+                          {((toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000)) / 1000).toFixed(2)} كيلووات
+                        </span>
+                      </div>
+
+                    </div>
+                  </Card>
+                )}
+              </div>
+
+              {/* Thermal Load Diagnostic (Intel Engine Card) */}
+              {(() => {
+                const area = toNum(state.barnLength || 100) * toNum(state.barnWidth || 12);
+                const actualArea = area > 0 ? area : 1200;
+                const recommendedW = actualArea * 120;
+                
+                const m = state.heatingMethod || 'both';
+                const bulbW = m === 'heater' ? 0 : (toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200));
+                const heaterW = m === 'bulb' ? 0 : (toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000));
+                const totalInstalledW = bulbW + heaterW;
+                
+                const ratio = recommendedW > 0 ? (totalInstalledW / recommendedW) : 1;
+                const percentage = Math.min(100, Math.round(ratio * 100));
+                
+                let ratingColor = "text-red-400";
+                let ratingBg = "bg-red-500/10 border-red-500/20";
+                let ratingLabel = "تغطية حرارية غير كافية للتحضين 🚨";
+                let ratingAdvice = "سعة التدفئة الحالية في عنبرك منخفضة وتحت التحديد الآمن! قد ينجم عن هذا تفاوت في درجات حرارة الفرشة، تكدس القطعان حول مناطق الدفء وزيادة التعرض للنزلة الهوائية المعوية. ننصح بزيادة لمبات التنجستين الساخنة أو تشغيل دفاية إضافية لإكساب الصوص حيوية ممتازة.";
+                
+                if (ratio >= 0.9) {
+                  ratingColor = "text-emerald-400";
+                  ratingBg = "bg-emerald-500/10 border-emerald-500/20";
+                  ratingLabel = "تغطية تدفئة مثالية ومضمونة ✅";
+                  ratingAdvice = "تهانينا! لديك سعة توازن حرارية ممتازة قادرة على تغطية مساحة العنبر بالكامل في أقسى نوات البرد. هذا يضمن توزيع فرشة دافئة موحدة ومعدل نمو متجانس.";
+                } else if (ratio >= 0.6) {
+                  ratingColor = "text-yellow-400";
+                  ratingBg = "bg-yellow-500/10 border-yellow-500/20";
+                  ratingLabel = "التغطية مقبولة مع التنبيه للحذر ⚠️";
+                  ratingAdvice = "قدرة التدفئة توفر المعدل الاعتيادي بنجاح، لكنها قد تتعرض للقصور النسبي في نوات الصقيع العاتية ليلاً. ننصح برفع العزل الحراري لمنافذ العنبر أو تجهيز بدائل للتدفئة كأمان إضافي.";
+                }
+
+                return (
+                  <Card className="bg-slate-900 border border-white/10 p-6 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/5 blur-3xl pointer-events-none rounded-full" />
+                    
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0" />
+                          <h4 className="text-md font-black text-white">الكفاءة المعايرة وموازنة الاحتباس الحراري</h4>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+                          بناءً على مساحة العنبر المقدرة بـ <span className="text-white underline font-mono">{actualArea} م²</span>، وحساب متطلبات الفرشة والتحضين المعيارية بـ <span className="text-orange-400 font-bold font-sans">120 وات/م²</span>، تكون السعة المستهدفة لعنبرك هي <span className="text-white underline font-mono">{(recommendedW / 1000).toFixed(1)} كيلووات</span>.
+                        </p>
+                        
+                        {/* Rating block */}
+                        <div className={`p-4 rounded-2xl border ${ratingBg} space-y-1`}>
+                          <p className={`text-[13px] font-black ${ratingColor}`}>{ratingLabel}</p>
+                          <p className="text-xs text-slate-300 leading-relaxed font-medium">{ratingAdvice}</p>
+                        </div>
+                      </div>
+
+                      {/* Visual gauge percentage circle */}
+                      <div className="flex flex-col items-center justify-center shrink-0 bg-slate-950/50 p-6 rounded-3xl border border-white/5 w-full md:w-56 shadow-inner">
+                        <div className="relative w-32 h-32 flex items-center justify-center mb-3">
+                          {/* Circle Background & Track with precise viewBox */}
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 112 112">
+                            <circle 
+                              cx="56" 
+                              cy="56" 
+                              r="46" 
+                              className="stroke-slate-800" 
+                              strokeWidth="8" 
+                              fill="transparent" 
+                            />
+                            <circle 
+                              cx="56" 
+                              cy="56" 
+                              r="46" 
+                              className={ratio >= 0.9 ? "stroke-emerald-500" : ratio >= 0.6 ? "stroke-yellow-500" : "stroke-red-500"} 
+                              strokeWidth="8" 
+                              fill="transparent" 
+                              strokeDasharray={`${2 * Math.PI * 46}`}
+                              strokeDashoffset={`${2 * Math.PI * 46 * (1 - percentage / 100)}`}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <div className="absolute flex flex-col items-center justify-center">
+                            <span className="text-2xl font-black text-white font-mono">{percentage}%</span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">كفاءة التغطية</span>
+                          </div>
+                        </div>
+                        
+                        <div className="text-center font-bold text-xs space-y-1 w-full border-t border-white/5 pt-2 mt-1">
+                          <p className="text-[10px] text-slate-400 flex justify-between px-2"><span>القدرة الفعلية:</span> <span className="text-white font-sans">{(totalInstalledW / 1000).toFixed(1)} kW</span></p>
+                          <p className="text-[10px] text-slate-400 flex justify-between px-2"><span>القدرة المستهدفة:</span> <span className="text-orange-400 font-sans">{(recommendedW / 1000).toFixed(1)} kW</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })()}
+
+            </motion.div>
+          )}
+
           {screen === 'climate' && (
              <motion.div 
              key="climate"
@@ -9666,13 +10482,6 @@ export default function App() {
                   <h2 className="text-2xl font-black text-white tracking-tight">إدارة الحرارة والتشخيص الذكي</h2>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">عقل العنبر: ربط الحرارة بالحالة الفسيولوجية</p>
                 </div>
-                <button 
-                  onClick={() => setScreen('charts')}
-                  className="p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
-                  title="عرض الإحصائيات"
-                >
-                  <BarChart2 size={24} />
-                </button>
               </header>
 
               {/* Input Section */}
@@ -10038,13 +10847,6 @@ export default function App() {
                   <h2 className="text-2xl font-black text-white tracking-tight">نظام التهوية الذكي</h2>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">إحصائيات وقدرات الشفاطات وإدارة التوزيع المتقطع</p>
                 </div>
-                <button 
-                  onClick={() => setScreen('charts')}
-                  className="p-3 bg-indigo-600/10 text-indigo-400 rounded-2xl border border-indigo-500/20 hover:bg-indigo-600/20 transition-all shadow-xl active:scale-95 flex-shrink-0"
-                  title="عرض الإحصائيات"
-                >
-                  <BarChart2 size={24} />
-                </button>
               </header>
               
               {/* Engineering Ventilation Load Section */}
@@ -10518,15 +11320,6 @@ export default function App() {
                       <Settings size={10} /> تشخيص الحالة الحرارية الحالية للعنبر
                     </p>
                   </div>
-                </div>
-                <div className="px-4 sm:px-6">
-                  <button 
-                    onClick={() => setScreen('charts')}
-                    className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-cyan-500/10"
-                    title="الإحصائيات"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
                 </div>
               </header>
 
@@ -11211,15 +12004,6 @@ export default function App() {
                     </p>
                   </div>
                 </div>
-                <div className="px-4 sm:px-6">
-                  <button 
-                    onClick={() => setScreen('charts')}
-                    className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 shadow-lg shadow-indigo-500/10"
-                    title="الإحصائيات"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
-                </div>
               </header>
 
               {/* HEAT STRESS ALERT */}
@@ -11456,6 +12240,17 @@ export default function App() {
               <ExpertScreen age={toNum(state.age)} onNavigate={setScreen} />
             </motion.div>
           )}
+
+          {screen === 'workshop' && (
+            <motion.div 
+              key="workshop"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <WorkshopScreen onNavigate={setScreen} />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -11574,15 +12369,6 @@ export default function App() {
           label="الرئيسية" 
         />
         <NavButton 
-          active={screen === 'charts'} 
-          onClick={() => {
-            setScreen('charts');
-            setIsNavVisible(true);
-          }} 
-          icon={BarChart2} 
-          label="الإحصائيات" 
-        />
-        <NavButton 
           active={screen === 'medication'} 
           onClick={() => {
             setScreen('medication');
@@ -11591,14 +12377,25 @@ export default function App() {
           icon={Stethoscope} 
           label="الأدوية" 
         />
+        {state.breedingSystem !== 'Floor' && (
+          <NavButton 
+            active={screen === 'battery'} 
+            onClick={() => {
+              setScreen('battery');
+              setIsNavVisible(true);
+            }} 
+            icon={Layers} 
+            label="البطاريات" 
+          />
+        )}
         <NavButton 
-          active={screen === 'battery'} 
+          active={screen === 'heating'} 
           onClick={() => {
-            setScreen('battery');
+            setScreen('heating');
             setIsNavVisible(true);
           }} 
-          icon={Layers} 
-          label="البطاريات" 
+          icon={Flame} 
+          label="التدفئة" 
         />
         <NavButton 
           active={screen === 'climate'} 
@@ -11671,6 +12468,24 @@ export default function App() {
           }} 
           icon={TrendingUp} 
           label="البورصة" 
+        />
+        <NavButton 
+          active={screen === 'charts'} 
+          onClick={() => {
+            setScreen('charts');
+            setIsNavVisible(true);
+          }} 
+          icon={BarChart2} 
+          label="الإحصائيات" 
+        />
+        <NavButton 
+          active={screen === 'workshop'} 
+          onClick={() => {
+            setScreen('workshop');
+            setIsNavVisible(true);
+          }} 
+          icon={Wrench} 
+          label="خدمة العملاء" 
         />
       </motion.nav>
 
@@ -11819,6 +12634,294 @@ export default function App() {
                   حذف
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showNotificationsModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+            onClick={() => setShowNotificationsModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full shadow-2xl space-y-6 overflow-y-auto max-h-[85vh] no-scrollbar text-right"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-4" dir="rtl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center text-violet-400 border border-violet-500/20">
+                    <Bell size={20} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white leading-tight text-right">مركز التنبيهات الإرشادية</h3>
+                    <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-1 text-right">إشعارات الهاتف المحمول والمشرف</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowNotificationsModal(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/10"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Quick Actions (Test Native Notification) */}
+              <div className="bg-[linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15))] border border-violet-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg" dir="rtl">
+                <div className="text-right flex-1">
+                  <span className="text-xs font-black text-white block">اختبار الإشعارات على موبايلك</span>
+                  <span className="text-[9px] font-bold text-slate-400 block mt-1">اضغط للتجربة وسيصلك إشعار فوري بحالة الحرارة والجرعات حالاً للتحقق من الموبايل</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const notifyTitle = "🔔 تجربة الإشعار المباشر!";
+                    const notifyBody = `فحص المربّي: الرطوبة ${toNum(state.dailyHumidity?.[String(state.age)] ?? state.currentHumidity)}% والحرارة ${toNum(effectiveTemp)}°م ممتازة ومستقرة!`;
+                    
+                    if (Capacitor.isNativePlatform()) {
+                      try {
+                        const check = await LocalNotifications.checkPermissions();
+                        if (check.display !== 'granted') {
+                          await LocalNotifications.requestPermissions();
+                        }
+                        await LocalNotifications.schedule({
+                          notifications: [{
+                            title: notifyTitle,
+                            body: notifyBody,
+                            id: 1110002,
+                            schedule: { at: new Date(Date.now() + 500) },
+                            sound: 'beep.wav'
+                          }]
+                        });
+                        await Toast.show({ text: "تم إرسال إشعار تجريبي بنجاح عبر نظام الهاتف!" });
+                      } catch (err) {
+                        await Toast.show({ text: "حدث خطأ في طلب الصلاحيات بالهاتف" });
+                      }
+                    } else if ('Notification' in window) {
+                      if (Notification.permission === 'granted') {
+                        new Notification(notifyTitle, { body: notifyBody, icon: '/assets/icon.png' });
+                      } else {
+                        const perm = await Notification.requestPermission();
+                        if (perm === 'granted') {
+                          new Notification(notifyTitle, { body: notifyBody, icon: '/assets/icon.png' });
+                        } else {
+                          alert("يرجى منح صلاحية الإشعارات للموقع في المتصفح أولاً من إعدادات القفل في العنوان.");
+                        }
+                      }
+                    } else {
+                      alert("الإشعارات غير مدعومة على هذا المتصفح.");
+                    }
+                  }}
+                  className="py-2.5 px-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black text-[11px] tracking-wide transition-all active:scale-95 shadow-md shadow-violet-600/20 flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+                >
+                  <BellRing size={14} />
+                  تجربة إشعار فوري
+                </button>
+              </div>
+
+              {/* Notification Toggles */}
+              <div className="space-y-3" dir="rtl">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 text-right">إعدادات قنوات الإشعارات</h4>
+                
+                {/* Temp */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                      <Flame size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-white block text-right">الحرارة والبرودة المفرطة</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">الاحترار والإجهاد الحراري وموجات الصقيع والبرد</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    dir="ltr"
+                    onClick={() => setNotificationSettings(p => ({ ...p, tempAlerts: !p.tempAlerts }))}
+                    className={cn(
+                      "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer flex items-center flex-shrink-0 relative",
+                      notificationSettings.tempAlerts ? "bg-emerald-500" : "bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                      notificationSettings.tempAlerts ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* Humidity */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+                      <Droplets size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-white block text-right">مستوى الرطوبة والجفاف</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">تنبيهات الفرشة الرطبة والأتربة في الجو</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    dir="ltr"
+                    onClick={() => setNotificationSettings(p => ({ ...p, humidityAlerts: !p.humidityAlerts }))}
+                    className={cn(
+                      "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer flex items-center flex-shrink-0 relative",
+                      notificationSettings.humidityAlerts ? "bg-emerald-500" : "bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                      notificationSettings.humidityAlerts ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* Medication */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500">
+                      <Stethoscope size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-white block text-right">مواعيد وجرعات الأدوية</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">تذكير بانتهاء الجرعة بـ 30 دقيقة وقبل موعد الجرعة التالية</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    dir="ltr"
+                    onClick={() => setNotificationSettings(p => ({ ...p, medicationAlerts: !p.medicationAlerts }))}
+                    className={cn(
+                      "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer flex items-center flex-shrink-0 relative",
+                      notificationSettings.medicationAlerts ? "bg-emerald-500" : "bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                      notificationSettings.medicationAlerts ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* Feed and Water */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                      <Wheat size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-white block text-right">إرشادات وأعطال المياه والعلف</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">مقارنة معايير الأكل والشرب والتحقق من انسداد الخطوط</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    dir="ltr"
+                    onClick={() => setNotificationSettings(p => ({ ...p, feedWaterAlerts: !p.feedWaterAlerts }))}
+                    className={cn(
+                      "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer flex items-center flex-shrink-0 relative",
+                      notificationSettings.feedWaterAlerts ? "bg-emerald-500" : "bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                      notificationSettings.feedWaterAlerts ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+
+                {/* System states */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center text-slate-400">
+                      <Activity size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-white block text-right">مراقبة استقرار العنبر</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">إشعار فوري وتلقائي كلما طرأت أي تغييرات بالاوزان أو الطقس</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    dir="ltr"
+                    onClick={() => setNotificationSettings(p => ({ ...p, systemChanges: !p.systemChanges }))}
+                    className={cn(
+                      "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 outline-none cursor-pointer flex items-center flex-shrink-0 relative",
+                      notificationSettings.systemChanges ? "bg-emerald-500" : "bg-slate-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                      notificationSettings.systemChanges ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Warnings Section */}
+              <div className="space-y-3 pt-2" dir="rtl">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider text-right">الإنذارات والتشخيصات النشطة حالياً</h4>
+                
+                {inAppNotifications.length === 0 ? (
+                  <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 text-center space-y-2">
+                    <span className="text-2xl block">😊</span>
+                    <span className="text-xs font-black text-emerald-400 block">جميع الأنظمة مستقرة والقطيع بصحة ممتازة</span>
+                    <span className="text-[9px] font-bold text-slate-500 block">درجة الحرارة والرطوبة ومواعيد الأدوية متلائمة تماماً مع أوزان الكتاكيت اليوم</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                    {inAppNotifications.map((alItem, idxIdx) => (
+                      <div 
+                        key={`${alItem.id}-${idxIdx}`} 
+                        className={cn(
+                          "p-3 rounded-2xl border flex items-start gap-3 transition-all",
+                          alItem.type === 'temp' ? "bg-red-500/5 border-red-500/10 text-red-100" :
+                          alItem.type === 'humidity' ? "bg-blue-500/5 border-blue-500/10 text-blue-100" :
+                          alItem.type === 'medication' ? "bg-violet-500/5 border-violet-500/10 text-violet-100" :
+                          alItem.type === 'change' ? "bg-slate-500/5 border-slate-500/10 text-slate-100" :
+                          "bg-amber-500/5 border-amber-500/10 text-amber-100"
+                        )}
+                      >
+                        <div className={cn(
+                          "p-2 rounded-xl flex-shrink-0 mt-0.5",
+                          alItem.type === 'temp' ? "bg-red-500/10 text-red-400" :
+                          alItem.type === 'humidity' ? "bg-blue-500/10 text-blue-400" :
+                          alItem.type === 'medication' ? "bg-violet-500/10 text-violet-400" :
+                          alItem.type === 'change' ? "bg-slate-500/10 text-slate-400" :
+                          "bg-amber-500/10 text-amber-500"
+                        )}>
+                          {alItem.type === 'temp' ? <Flame size={14} /> :
+                           alItem.type === 'humidity' ? <Droplets size={14} /> :
+                           alItem.type === 'medication' ? <Stethoscope size={14} /> :
+                           alItem.type === 'change' ? <Sliders size={14} /> :
+                           <AlertTriangle size={14} />}
+                        </div>
+                        <div className="flex-1 text-right">
+                          <span className="text-xs font-black block">{alItem.title}</span>
+                          <p className="text-[10px] font-medium leading-relaxed mt-1 opacity-80">{alItem.body}</p>
+                          <span className="text-[8px] font-bold text-slate-500 block mt-1.5">{alItem.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Ok Button */}
+              <button 
+                type="button"
+                onClick={() => setShowNotificationsModal(false)}
+                className="w-full py-4 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg cursor-pointer"
+              >
+                تطبيق وحفظ الإعدادات
+              </button>
             </motion.div>
           </motion.div>
         )}
