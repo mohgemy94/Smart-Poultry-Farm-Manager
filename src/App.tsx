@@ -3787,7 +3787,7 @@ export default function App() {
     return `${displayH}:${m} ${period}${suffix}`;
   };
 
-  const getNextTime = (startTimeStr: string, currentMed: any, nextMed: any) => {
+  const getNextTime = (startTimeStr: string, currentMed: any, nextMed: any, isNextDay: boolean = false) => {
     if (!startTimeStr || !currentMed || !nextMed) return null;
 
     const [h, m] = startTimeStr.split(':').map(Number);
@@ -3797,7 +3797,7 @@ export default function App() {
     const duration = toNum(currentMed.recommendedHours || currentMed.duration);
     const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
 
-    let gapHours = 1;
+    let gapHours = isNextDay ? 0 : 1;
     if (currentMed.category === 'راحة' || nextMed.category === 'راحة' || currentMed.isAntibiotic) {
        gapHours = 0;
     }
@@ -4290,7 +4290,6 @@ export default function App() {
     };
 
     let ageMeds = MEDICATIONS.filter(med => med.targetDays.includes(age) && med.climates.includes(state.climate));
-    
     const ageEmergencyMeds = state.emergencyMeds.filter(m => toNum(m.age) === age);
     const schedule = getLightingScheduleForAge(age);
 
@@ -4316,6 +4315,10 @@ export default function App() {
           calculatedWater: water,
           isRest: (currentName || '').includes('ماء') || (currentName || '').includes('مياه') || (currentName || '').includes('راحة'),
           startTime,
+          logKey,
+          originalAge: age,
+          resolvedStartTime: startTime || null,
+          isSuggestedStartTime: false,
           overlapsDarkness: startTime ? isOverlappingDarkness(startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
         };
     });
@@ -4335,6 +4338,10 @@ export default function App() {
         doseValue: toNum(m.doseValue),
         isRest: (m.name || '').includes('ماء') || (m.name || '').includes('مياه') || (m.name || '').includes('راحة'),
         startTime: m.startTime,
+        logKey,
+        originalAge: age,
+        resolvedStartTime: m.startTime || null,
+        isSuggestedStartTime: false,
         overlapsDarkness: m.startTime ? isOverlappingDarkness(m.startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
       };
     });
@@ -4351,20 +4358,41 @@ export default function App() {
       type: 'darkness' as const,
       originalIndex: 9999, 
       isRest: true,
-      category: 'إضاءة'
+      category: 'إضاءة',
+      logKey: darknessKey,
+      originalAge: age,
+      resolvedStartTime: state.medicationLogs[darknessKey] || null,
+      isSuggestedStartTime: false,
+      overlapsDarkness: false
     };
 
-    const allItemsSoFar = [...scheduledData, ...emergencyData];
-    const loggedItems = allItemsSoFar.filter(m => m.startTime);
+    const finalTimeline = [...scheduledData, ...emergencyData, darknessEntry];
+
+    // Determine Anchor Minutes exactly
     let anchorMinutes = 0;
-    if (loggedItems.length > 0) {
-      const first = loggedItems.sort((a,b) => {
-        const [ah, am] = (a.startTime as string).split(':').map(Number);
-        const [bh, bm] = (b.startTime as string).split(':').map(Number);
-        return (ah * 60 + am) - (bh * 60 + bm);
-      })[0];
-      const [h, m] = (first.startTime as string).split(':').map(Number);
-      anchorMinutes = h * 60 + m;
+    if (age === 1) {
+      const orsTime = state.medicationLogs['1-d1-ors'];
+      if (orsTime) {
+        const [h, m] = orsTime.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) {
+          anchorMinutes = h * 60 + m;
+        }
+      } else {
+        anchorMinutes = 8 * 60; // 8:00 AM default fallback
+      }
+    } else {
+      const loggedItems = finalTimeline.filter(m => m.startTime);
+      if (loggedItems.length > 0) {
+        const sorted = [...loggedItems].sort((a, b) => {
+          const [ah, am] = (a.startTime as string).split(':').map(Number);
+          const [bh, bm] = (b.startTime as string).split(':').map(Number);
+          return (ah * 60 + am) - (bh * 60 + bm);
+        });
+        const [h, m] = (sorted[0].startTime as string).split(':').map(Number);
+        anchorMinutes = h * 60 + m;
+      } else {
+        anchorMinutes = 8 * 60; // fallback to 8:00 AM
+      }
     }
 
     const getLinearMinutes = (timeStr: string | undefined | null) => {
@@ -4375,8 +4403,6 @@ export default function App() {
       if (anchorMinutes > 0 && total < anchorMinutes) total += 1440;
       return total;
     };
-
-    const finalTimeline = [...scheduledData, ...emergencyData, darknessEntry];
 
     return finalTimeline.sort((a, b) => {
       const timeA = getLinearMinutes(a.startTime);
@@ -4407,31 +4433,31 @@ export default function App() {
     
     // Helper within scope
     const getFinishMinutes = (item: any) => {
-      if (!item || !item.startTime) return 0;
-      const [h, m] = item.startTime.split(':').map(Number);
+      if (!item || !(item.startTime || item.resolvedStartTime)) return 0;
+      const [h, m] = (item.startTime || item.resolvedStartTime).split(':').map(Number);
       const duration = item.recommendedHours || 0;
       return h * 60 + m + duration * 60;
     };
 
     const lastPrev = [...yesterday]
-      .filter(i => i.startTime)
+      .filter(i => (i.startTime || i.resolvedStartTime))
       .sort((a, b) => getFinishMinutes(b) - getFinishMinutes(a))[0];
     
-    if (!lastPrev || !lastPrev.startTime) return null;
+    if (!lastPrev || !(lastPrev.startTime || lastPrev.resolvedStartTime)) return null;
 
     const firstNext = unifiedTimeline[0];
     const totalMinutes = getFinishMinutes(lastPrev);
     const endH = Math.floor(totalMinutes / 60) % 24;
     const endM = Math.round(totalMinutes % 60);
     const rawEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-    const rawNextStartTime = firstNext?.startTime || rawEndTime;
+    const rawNextStartTime = rawEndTime;
 
     const endTimeStr = formatTime12(rawEndTime);
     const nextStartTimeStr = formatTime12(rawNextStartTime);
 
     const isDarkness = lastPrev.type === 'darkness';
     const label = isDarkness ? 'آخر نشاط أمس' : 'آخر جرعة أمس';
-    const medName = isDarkness ? `${lastPrev.name} (ختام اليوم)` : lastPrev.name;
+    const medName = isDarkness ? (lastPrev.name.includes('ختام اليوم') ? lastPrev.name : `${lastPrev.name} (ختام اليوم)`) : lastPrev.name;
     const nextMedName = firstNext?.name || 'ماء نقي';
 
     return {
@@ -4446,19 +4472,25 @@ export default function App() {
   };
 
   const getSuggestedStartTime = (med: any, prevItem?: any) => {
+    if (toNum(state.age) === 1 && med && med.id !== 'd1-ors') {
+      const orsTime = state.medicationLogs['1-d1-ors'];
+      if (!orsTime) return null;
+    }
+
     let endTimeStr: string | null = null;
     let duration = 0;
 
-    if (prevItem && prevItem.startTime) {
-      endTimeStr = prevItem.startTime;
+    const prevStart = prevItem ? (prevItem.startTime || prevItem.resolvedStartTime) : null;
+    if (prevItem && prevStart) {
+      endTimeStr = prevStart;
       duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
     } else {
       const info = getDayTransitionInfo();
       if (info) return info.rawNextStartTime;
       
-      const last = unifiedTimeline.filter(i => i.startTime).reverse()[0];
+      const last = unifiedTimeline.filter(i => (i.startTime || i.resolvedStartTime)).reverse()[0];
       if (last) {
-        endTimeStr = last.startTime;
+        endTimeStr = last.startTime || last.resolvedStartTime;
         duration = last.recommendedHours || 0;
       }
     }
@@ -8519,6 +8551,60 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
+                    {(() => {
+                      if (toNum(state.age) !== 1) return null;
+                      const orsTime = state.medicationLogs['1-d1-ors'] || '';
+                      const violations: string[] = [];
+                      
+                      unifiedTimeline.forEach((item: any) => {
+                        if (item.id === 'd1-ors' || !item.startTime) return;
+                        if (!orsTime) {
+                          violations.push(item.name || 'جرعة');
+                        } else {
+                          const [ih, im] = item.startTime.split(':').map(Number);
+                          const [oh, om] = orsTime.split(':').map(Number);
+                          if (!isNaN(ih) && !isNaN(im) && !isNaN(oh) && !isNaN(om)) {
+                            const itemMins = ih * 60 + im;
+                            const orsMins = oh * 60 + om;
+                            if (itemMins < orsMins) {
+                              violations.push(item.name || 'جرعة');
+                            }
+                          }
+                        }
+                      });
+
+                      if (violations.length === 0) return null;
+
+                      return (
+                        <div className="bg-gradient-to-br from-red-500/10 to-red-900/15 border border-red-500/20 p-5 rounded-3xl mb-4 text-right" dir="rtl">
+                          <div className="flex items-start gap-3 justify-start">
+                            <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center shrink-0">
+                              <AlertTriangle size={20} />
+                            </div>
+                            <div className="space-y-1.5 flex-1">
+                              <h4 className="text-white font-black text-xs">خطأ في ترتيب برنامج اليوم الأول ⚠️</h4>
+                              <p className="text-red-200/80 text-[10px] font-bold leading-relaxed">
+                                محلول معالجة الجفاف في اليوم الأول هو بداية برنامج العلاج، لذا لا يجب أن يكون أي دواء أو جرعة ما سابقة عليها.
+                              </p>
+                              <p className="text-red-300 font-bold text-[10px]">
+                                {!orsTime 
+                                  ? "⚠️ لم يتم تحديد وقت بدء لمحلول معالجة الجفاف بعد! يجب البدء بمحلول معالجة الجفاف أولاً."
+                                  : `⚠️ الأنشطة التالية تسبق محلول معالجة الجفاف (المقرر في ${orsTime}):`
+                                }
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {violations.map((v, idx) => (
+                                  <span key={idx} className="bg-red-950/80 border border-red-500/20 px-2.5 py-0.5 rounded-lg text-[9px] font-black text-red-200">
+                                    {v}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {unifiedTimeline.length > 0 ? (
                       <>
                         {getDayTransitionInfo() && (
@@ -8643,6 +8729,29 @@ export default function App() {
                                     </div>
                                   </div>
                                 </div>
+
+                                {(() => {
+                                   if (toNum(state.age) !== 1 || !state.medicationLogs[darknessKey]) return null;
+                                   const orsTime = state.medicationLogs['1-d1-ors'] || '';
+                                   const isViolation = !orsTime || (() => {
+                                     const [ih, im] = state.medicationLogs[darknessKey].split(':').map(Number);
+                                     const [oh, om] = orsTime.split(':').map(Number);
+                                     if (isNaN(ih) || isNaN(im) || isNaN(oh) || isNaN(om)) return false;
+                                     return (ih * 60 + im) < (oh * 60 + om);
+                                   })();
+                                   if (!isViolation) return null;
+                                   return (
+                                     <div className="flex items-center gap-2 px-3 py-2 bg-red-400/10 border border-red-500/20 rounded-xl relative z-10 mb-2 justify-end">
+                                       <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                                       <p className="text-[10px] font-bold text-red-200 text-right leading-relaxed">
+                                         {!orsTime 
+                                           ? "تنبيه: لم يتم بدء محلول معالجة الجفاف بعد! يجب البدء بمحلول معالجة الجفاف أولاً."
+                                           : `تنبيه: لا يمكن البدء قبل محلول معالجة الجفاف المقرر في الساعة (${orsTime}).`
+                                         }
+                                       </p>
+                                     </div>
+                                   );
+                                 })()}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                                   <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-4">
@@ -8773,7 +8882,7 @@ export default function App() {
                                   <div className="mt-2 px-5 py-4 bg-indigo-500/10 rounded-2xl flex flex-col gap-3 border border-indigo-500/10 relative z-10" dir="rtl">
                                     {(() => {
                                       const nextAct = nextItem || localNextDayFirstMed;
-                                      const nextInfo = getNextTime(item.startTime, item, nextAct);
+                                      const nextInfo = getNextTime(item.startTime, item, nextAct, nextAct === localNextDayFirstMed);
                                       if (!nextInfo) return null;
                                       
                                       return (
@@ -8845,6 +8954,30 @@ export default function App() {
                                     <p className="text-[10px] font-bold text-amber-200 text-right leading-relaxed">تنبيه: الجرعة تتداخل مع فترة الإظلام.</p>
                                   </div>
                                 )}
+
+                                {(() => {
+                                  const ageVal = toNum(state.age);
+                                  if (ageVal !== 1 || !med.startTime) return null;
+                                  const orsTime = state.medicationLogs['1-d1-ors'] || '';
+                                  const isViolation = !orsTime || (() => {
+                                    const [ih, im] = med.startTime.split(':').map(Number);
+                                    const [oh, om] = orsTime.split(':').map(Number);
+                                    if (isNaN(ih) || isNaN(im) || isNaN(oh) || isNaN(om)) return false;
+                                    return (ih * 60 + im) < (oh * 60 + om);
+                                  })();
+                                  if (!isViolation) return null;
+                                  return (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-red-400/10 border border-red-500/20 rounded-xl mb-4 justify-end scale-95 origin-right relative z-10">
+                                      <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                                      <p className="text-[10px] font-bold text-red-200 text-right leading-relaxed">
+                                        {!orsTime 
+                                          ? "تنبيه خطير: لم يتم بدء محلول معالجة الجفاف بعد! يجب بدء برنامج اليوم الأول بمحلول معالجة الجفاف أولاً."
+                                          : `تنبيه خطير: لا يمكن البدء قبل محلول معالجة الجفاف المقرر في الساعة (${orsTime}).`
+                                        }
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-3">
@@ -8917,7 +9050,10 @@ export default function App() {
                                     </div>
                                     <div className="flex flex-col space-y-3 mb-1 max-w-[280px] mx-auto">
                                       {/* Start Time Field */}
-                                      <div className="flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border border-white/5 shadow-xl">
+                                      <div className={cn(
+                                        "flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border border-white/5 shadow-xl transition-opacity",
+                                        (toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors']) && "opacity-50"
+                                      )}>
                                         <div className="text-left flex flex-col justify-center min-w-[60px]">
                                           <span className="text-[11px] font-black text-slate-400 leading-tight">وقت</span>
                                           <span className="text-[11px] font-black text-slate-400 leading-tight">البدء:</span>
@@ -8926,13 +9062,33 @@ export default function App() {
                                           <input 
                                             type="time"
                                             value={med.startTime ?? ''}
-                                            onChange={(e) => updateEmergencyMed(med.id, { startTime: e.target.value })}
-                                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20 [color-scheme:dark]"
+                                            disabled={toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors']}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (toNum(state.age) === 1) {
+                                                const orsTime = state.medicationLogs['1-d1-ors'];
+                                                if (orsTime) {
+                                                  const [ih, im] = val.split(':').map(Number);
+                                                  const [oh, om] = orsTime.split(':').map(Number);
+                                                  if (!isNaN(ih) && !isNaN(im) && !isNaN(oh) && !isNaN(om)) {
+                                                    if (ih * 60 + im < oh * 60 + om) {
+                                                      alert("⚠️ لا يمكن لجرعة أو علاج أن يسبق محلول معالجة الجفاف في اليوم الأول!");
+                                                      return;
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                              updateEmergencyMed(med.id, { startTime: val });
+                                            }}
+                                            className={cn(
+                                              "absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20 [color-scheme:dark]",
+                                              (toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors']) && "pointer-events-none"
+                                            )}
                                           />
                                           <div className="flex items-center justify-between w-full z-10 pointer-events-none">
                                             <ChevronDown size={14} className="text-slate-500" />
                                             <div className="flex items-center gap-2">
-                                              {med.startTime && (
+                                              {med.startTime ? (
                                                 <span className="text-[14px] font-black text-white leading-none">
                                                   {(() => {
                                                     const [h, m] = med.startTime.split(':').map(Number);
@@ -8950,6 +9106,10 @@ export default function App() {
                                                     
                                                     return formatArabicTime(d, refDate);
                                                   })()}
+                                                </span>
+                                              ) : (
+                                                <span className="text-[11px] font-bold text-slate-500 leading-none">
+                                                  {toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors'] ? "حدد محلول الجفاف أولاً" : "اختر وقتاً"}
                                                 </span>
                                               )}
                                             </div>
@@ -9067,7 +9227,7 @@ export default function App() {
                                           const nextAct = nextItem || localNextDayFirstMed;
                                           if (!nextAct) return null;
 
-                                          const nextInfo = getNextTime(med.startTime, med, nextAct);
+                                          const nextInfo = getNextTime(med.startTime, med, nextAct, nextAct === localNextDayFirstMed);
                                           if (!nextInfo) return null;
 
                                           return (
@@ -9232,6 +9392,30 @@ export default function App() {
                                   )}
                                 </div>
 
+                                {(() => {
+                                   const ageVal = toNum(state.age);
+                                   if (ageVal !== 1 || med.id === 'd1-ors' || !med.startTime) return null;
+                                   const orsTime = state.medicationLogs['1-d1-ors'] || '';
+                                   const isViolation = !orsTime || (() => {
+                                     const [ih, im] = med.startTime.split(':').map(Number);
+                                     const [oh, om] = orsTime.split(':').map(Number);
+                                     if (isNaN(ih) || isNaN(im) || isNaN(oh) || isNaN(om)) return false;
+                                     return (ih * 60 + im) < (oh * 60 + om);
+                                   })();
+                                   if (!isViolation) return null;
+                                   return (
+                                     <div className="flex items-center gap-2 px-3 py-2 bg-red-400/10 border border-red-500/20 rounded-xl mb-4 justify-end text-right relative z-10 mx-5 mt-2">
+                                       <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                                       <p className="text-[10px] font-bold text-red-200 text-right leading-relaxed">
+                                         {!orsTime 
+                                           ? "تنبيه خطير: لم يتم بدء محلول معالجة الجفاف بعد! يجب بدء برنامج اليوم الأول بمحلول معالجة الجفاف أولاً."
+                                           : `تنبيه خطير: لا يمكن البدء قبل محلول معالجة الجفاف المقرر في الساعة (${orsTime}).`
+                                         }
+                                       </p>
+                                     </div>
+                                   );
+                                 })()}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-2xl border border-white/5">
                                   <div className="space-y-2">
                                     {/* Dose Info */}
@@ -9324,8 +9508,63 @@ export default function App() {
                                     <input 
                                       type="time" 
                                       value={state.medicationLogs[logKey] ?? ''}
+                                      disabled={toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']}
                                       onChange={(e) => {
                                         const val = e.target.value;
+                                        
+                                        // If setting ORS on day 1
+                                        if (toNum(state.age) === 1 && med.id === 'd1-ors' && val) {
+                                          const [oh, om] = val.split(':').map(Number);
+                                          if (!isNaN(oh) && !isNaN(om)) {
+                                            const orsMins = oh * 60 + om;
+                                            // Check if any other scheduled med has a start time earlier than this
+                                            let hasViolation = false;
+                                            Object.keys(state.medicationLogs).forEach(k => {
+                                              if (k.startsWith('1-') && k !== '1-d1-ors' && state.medicationLogs[k]) {
+                                                const [ih, im] = state.medicationLogs[k].split(':').map(Number);
+                                                if (!isNaN(ih) && !isNaN(im) && (ih * 60 + im < orsMins)) {
+                                                  hasViolation = true;
+                                                }
+                                              }
+                                            });
+                                            if (hasViolation) {
+                                              if (confirm("⚠️ تعديل وقت محلول معالجة الجفاف إلى هذا الوقت يجعله متأخراً عن جرعات أخرى اليوم. هل ترغب في إعادة ضبط أوقات الجرعات الأخرى لتتبع محلول الجفاف؟")) {
+                                                setState(prev => {
+                                                  const newLogs = { ...prev.medicationLogs };
+                                                  // Clear other day 1 medication logs since they must succeed ORS
+                                                  Object.keys(newLogs).forEach(k => {
+                                                    if (k.startsWith('1-') && k !== '1-d1-ors') {
+                                                      delete newLogs[k];
+                                                    }
+                                                  });
+                                                  newLogs['1-d1-ors'] = val;
+                                                  return { ...prev, medicationLogs: newLogs };
+                                                });
+                                                return;
+                                              } else {
+                                                return;
+                                              }
+                                            }
+                                          }
+                                        }
+
+                                        // If setting non-ORS med on day 1
+                                        if (toNum(state.age) === 1 && med.id !== 'd1-ors') {
+                                          const orsTime = state.medicationLogs['1-d1-ors'];
+                                          if (!orsTime) {
+                                            alert("⚠️ يجب تحديد وقت بدء محلول معالجة الجفاف أولاً لكونه بداية البرنامج العلاجي.");
+                                            return;
+                                          }
+                                          const [ih, im] = val.split(':').map(Number);
+                                          const [oh, om] = orsTime.split(':').map(Number);
+                                          if (!isNaN(ih) && !isNaN(im) && !isNaN(oh) && !isNaN(om)) {
+                                            if (ih * 60 + im < oh * 60 + om) {
+                                              alert("⚠️ لا يمكن لجرعة أو علاج أن يسبق محلول معالجة الجفاف في اليوم الأول!");
+                                              return;
+                                            }
+                                          }
+                                        }
+
                                         setState(prev => ({
                                           ...prev,
                                           medicationLogs: {
@@ -9334,8 +9573,16 @@ export default function App() {
                                           }
                                         }));
                                       }}
-                                      className="bg-slate-950 text-white text-xs font-black border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500/50 transition-colors w-32 shadow-inner"
+                                      className={cn(
+                                        "bg-slate-950 text-white text-xs font-black border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500/50 transition-colors w-32 shadow-inner text-center",
+                                        (toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']) && "opacity-40 cursor-not-allowed border-red-500/30 text-slate-500"
+                                      )}
                                     />
+                                    {toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors'] && (
+                                      <span className="text-[9px] font-bold text-red-400 text-right pr-2">
+                                        ℹ️ حدد محلول الجفاف أولاً
+                                      </span>
+                                    )}
                                     {!state.medicationLogs[logKey] && getSuggestedStartTime(med, prevAct) && !(toNum(state.age) === 1 && i === 0) && (
                                       <div className="flex flex-col gap-1.5 flex-1">
                                         <button 
@@ -9414,7 +9661,7 @@ export default function App() {
                                     <div className="px-4 py-3 bg-white/5 rounded-2xl flex flex-col gap-2.5 border border-white/5">
                                       {(() => {
                                         const nextAct = nextItem || localNextDayFirstMed;
-                                        const nextInfo = getNextTime(state.medicationLogs[logKey], med, nextAct);
+                                        const nextInfo = getNextTime(state.medicationLogs[logKey], med, nextAct, nextAct === localNextDayFirstMed);
                                         if (!nextInfo) return null;
                                         
                                         return (
