@@ -19,7 +19,7 @@
 
 @layer base {
   body {
-    @apply bg-neutral-950 text-slate-50 antialiased selection:bg-indigo-500/30 font-sans;
+    @apply bg-[#061e27] text-slate-50 antialiased selection:bg-indigo-500/30 font-sans;
     background-image: 
       radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
       radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
@@ -27,21 +27,21 @@
   }
 
   h1, h2, h3, .font-prestige {
-    @apply font-serif;
+    @apply font-sans;
   }
 }
 
 @layer components {
   .bento-card {
-    @apply bg-neutral-900/60 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 transition-all duration-500;
+    @apply bg-neutral-900/90 border border-white/5 rounded-[2rem] p-6 transition-all duration-500;
   }
 
   .bento-card:hover {
-    @apply border-white/10 bg-neutral-900/80 shadow-2xl shadow-indigo-500/5;
+    @apply border-white/10 bg-neutral-900/95 shadow-2xl shadow-indigo-500/5;
   }
 
   .glass-button {
-    @apply bg-white/5 hover:bg-white/10 border border-white/5 backdrop-blur-md transition-all active:scale-95;
+    @apply bg-white/5 hover:bg-white/10 border border-white/5 transition-all active:scale-95;
   }
 }
 

@@ -4,6 +4,9 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import whiteChicksImg from './assets/images/white_chicks_1784099849627.jpg';
+import poultryFeedImg from './assets/images/poultry_feed_1784099863375.jpg';
+import whiteChickenRoosterImg from './assets/images/white_chicken_rooster_1784100313256.jpg';
 import { 
   BarChart2, 
   Settings, 
@@ -63,6 +66,7 @@ import {
   Terminal,
   Info,
   Layout,
+  Menu,
   Minus,
   Edit3,
   Check,
@@ -95,7 +99,13 @@ import {
   PhoneCall,
   LifeBuoy,
   Bell,
-  BellRing
+  BellRing,
+  Home,
+  User,
+  ShoppingCart,
+  Mail,
+  Phone,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
@@ -122,7 +132,8 @@ import {
   getTargetHumidity,
   CLIMATE_FACTORS, 
   MEDICATIONS, 
-  DailyData 
+  DailyData,
+  CHICK_TEMP_PROFILES
 } from '@/src/lib/data';
 import { EnvironmentalLoadService, EnvironmentalLoadResult } from '@/src/lib/environmentalLoad';
 import { EXPERT_DATABASE, ExpertTip } from '@/src/lib/expertData';
@@ -155,6 +166,77 @@ const SHEETS_AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57
 
 // --- API Helpers ---
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec';
+const PROFILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCRGhFI0dJM-jXuxxJgP05IUCjbLGJRundpnPymeipLgptskhS34yL6pdHRUTVZPIA/exec';
+
+const formatProfileDate = (dateVal: any): string => {
+  if (!dateVal) return 'غير متوفر';
+  const str = String(dateVal).trim();
+  if (!str || str === 'null' || str === 'undefined' || str === '-') return 'غير متوفر';
+
+  try {
+    // 1. If it has a time component (contains 'T' or a space followed by digits like HH:mm)
+    const hasTime = str.includes('T') || /\s\d{2}:\d{2}/.test(str);
+    
+    if (hasTime) {
+      const ms = Date.parse(str);
+      if (!isNaN(ms)) {
+        const dateObj = new Date(ms);
+        let y = dateObj.getUTCFullYear();
+        let m = dateObj.getUTCMonth();
+        let d = dateObj.getUTCDate();
+        const h = dateObj.getUTCHours();
+
+        // If the hour is 20, 21, 22, or 23, it is a timezone-shifted midnight of the next day
+        if (h >= 20) {
+          const nextDay = new Date(Date.UTC(y, m, d + 1));
+          y = nextDay.getUTCFullYear();
+          m = nextDay.getUTCMonth();
+          d = nextDay.getUTCDate();
+        }
+
+        const dayStr = d.toString().padStart(2, '0');
+        const monthStr = (m + 1).toString().padStart(2, '0');
+        const yearStr = y.toString();
+        return `${dayStr}/${monthStr}/${yearStr}`;
+      }
+    }
+
+    // 2. Simple date format: DD/MM/YYYY or DD-MM-YYYY
+    const dmyPattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/;
+    const dmyMatch = str.match(dmyPattern);
+    if (dmyMatch) {
+      const d = dmyMatch[1].padStart(2, '0');
+      const m = dmyMatch[2].padStart(2, '0');
+      const y = dmyMatch[3];
+      return `${d}/${m}/${y}`;
+    }
+
+    // 3. Simple date format: YYYY-MM-DD or YYYY/MM/DD
+    const ymdPattern = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/;
+    const ymdMatch = str.match(ymdPattern);
+    if (ymdMatch) {
+      const y = ymdMatch[1];
+      const m = ymdMatch[2].padStart(2, '0');
+      const d = ymdMatch[3].padStart(2, '0');
+      return `${d}/${m}/${y}`;
+    }
+
+    // Fallback: Try parsing as Date if nothing else matched
+    const ms = Date.parse(str);
+    if (!isNaN(ms)) {
+      const dateObj = new Date(ms);
+      const d = dateObj.getUTCDate().toString().padStart(2, '0');
+      const m = (dateObj.getUTCMonth() + 1).toString().padStart(2, '0');
+      const y = dateObj.getUTCFullYear().toString();
+      return `${d}/${m}/${y}`;
+    }
+  } catch (err) {
+    console.error("Error formatting profile date:", err);
+  }
+
+  // Fallback to original string
+  return str;
+};
 
 const smartFetch = async (url: string, options: any = {}) => {
   // Ensure we have a full URL
@@ -227,7 +309,7 @@ if (Capacitor.isNativePlatform() && !API_BASE_URL) {
 }
 
 // --- Types ---
-type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'heating' | 'finances' | 'management' | 'weather' | 'expert' | 'market' | 'workshop';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'heating' | 'finances' | 'management' | 'weather' | 'expert' | 'market' | 'workshop' | 'profile';
 
 const STRAIN_NAMES: Record<Strain, string> = {
   Cobb: 'كوب',
@@ -830,7 +912,7 @@ const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }
   const facebookLink = `https://www.facebook.com/profile.php?id=61589961329928`;
 
   return (
-    <div className="space-y-6 text-right pb-24" dir="rtl">
+    <div className="space-y-6 text-right pb-56" dir="rtl">
       {/* Premium Header */}
       <header className="px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
         <div>
@@ -1040,10 +1122,10 @@ const MarketScreen = ({
   const [activeTab, setActiveTab] = useState<'chicken' | 'eggs' | 'chicks' | 'feed' | 'gold' | 'currency'>('chicken');
 
   const tabs = [
-    { id: 'chicken', label: 'الفراخ', icon: Bird, color: 'text-amber-200', bg: 'bg-amber-500/10', img: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=800' },
+    { id: 'chicken', label: 'الفراخ', icon: Bird, color: 'text-amber-200', bg: 'bg-amber-500/10', img: whiteChickenRoosterImg },
     { id: 'eggs', label: 'البيض', icon: Egg, color: 'text-orange-200', bg: 'bg-orange-500/10', img: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&q=80&w=800' },
-    { id: 'chicks', label: 'كتاكيت بيضاء', icon: Bird, color: 'text-yellow-200', bg: 'bg-yellow-500/10', img: 'https://images.unsplash.com/photo-1627916607164-fa951b760731?auto=format&fit=crop&q=80&w=800' },
-    { id: 'feed', label: 'الأعلاف', icon: Wheat, color: 'text-emerald-200', bg: 'bg-emerald-500/10', img: 'https://images.unsplash.com/photo-1543257580-7269da7816ce?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'chicks', label: 'كتاكيت بيضاء', icon: Bird, color: 'text-yellow-200', bg: 'bg-yellow-500/10', img: whiteChicksImg },
+    { id: 'feed', label: 'الأعلاف', icon: Wheat, color: 'text-emerald-200', bg: 'bg-emerald-500/10', img: poultryFeedImg },
     { id: 'gold', label: 'الذهب', icon: Gem, color: 'text-amber-100', bg: 'bg-amber-500/20', img: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&q=80&w=1200' },
     { id: 'currency', label: 'العملات', icon: Banknote, color: 'text-blue-100', bg: 'bg-blue-500/20', img: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&q=80&w=800' },
   ];
@@ -1082,6 +1164,7 @@ const MarketScreen = ({
               src={activeTabData?.img} 
               alt={activeTabData?.label}
               className="w-full h-full object-cover grayscale-[30%] group-hover:scale-110 transition-transform duration-[3s]"
+              referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-transparent to-slate-950/40" />
@@ -1136,8 +1219,19 @@ const MarketScreen = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-white p-10 sm:p-16 rounded-[3rem] shadow-2xl relative overflow-hidden"
+              className="bg-neutral-900 border border-white p-10 sm:p-16 rounded-[3rem] shadow-2xl relative overflow-hidden group/card"
             >
+              {/* Cinematic Background Image for White Chicken and Rooster */}
+              <div className="absolute inset-0 opacity-20 transition-opacity duration-700 group-hover/card:opacity-35">
+                 <img 
+                   src={whiteChickenRoosterImg} 
+                   alt="White Chicken and Rooster" 
+                   className="w-full h-full object-cover transition-transform duration-10000 group-hover/card:scale-110"
+                   referrerPolicy="no-referrer"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/85 to-transparent" />
+              </div>
+
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
               <div className="absolute -bottom-20 -right-20 opacity-[0.03] rotate-12">
                 <Bird size={400} className="text-white" />
@@ -1242,9 +1336,10 @@ const MarketScreen = ({
                {/* Cinematic Background Image for Chicks */}
                <div className="absolute inset-0 opacity-20 transition-opacity duration-700 group-hover/card:opacity-30">
                   <img 
-                    src="https://images.unsplash.com/photo-1627916607164-fa951b760731?auto=format&fit=crop&q=80&w=1200" 
+                    src={whiteChicksImg} 
                     alt="Baby Chicks" 
                     className="w-full h-full object-cover transition-transform duration-10000 group-hover/card:scale-110"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/80 to-transparent" />
                </div>
@@ -1303,9 +1398,10 @@ const MarketScreen = ({
                {/* Cinematic Background Image for Feed */}
                <div className="absolute inset-0 opacity-25 transition-opacity duration-700 group-hover/card:opacity-40">
                   <img 
-                    src="https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=1200" 
+                    src={poultryFeedImg} 
                     alt="Agricultural Grain" 
                     className="w-full h-full object-cover transition-transform duration-10000 group-hover/card:scale-110"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/60 to-transparent" />
                </div>
@@ -1514,28 +1610,31 @@ const MarketScreen = ({
 };
 
 const CUSTOM_MED_LIST = [
-  { name: 'محلول معالجة جفاف', dose: 5, unit: 'جرام/لتر', duration: 8 },
-  { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'أحماض أمينية', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'أحماض عضوية', dose: 0.5, unit: 'سم³/لتر', duration: 8 },
-  { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 4 },
-  { name: 'فيتامين أد3هـ (AD3E)', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'فيتامين هـ + سيلينيوم (E+Se)', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'فيتامين ب.ك كولين (B-K)', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'غسيل كلوي + منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'غسيل كلوي', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8 },
-  { name: 'مضاد حيوي (معوي+تنفسي)', dose: 1, unit: 'جرام/لتر', duration: 12 },
-  { name: 'مضاد كوكسيديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
-  { name: 'مضاد كلوستريديا', dose: 1, unit: 'جرام/لتر', duration: 12 },
-  { name: 'تحصين جمبورو', dose: 1, unit: 'سم³/لتر', duration: 2 },
-  { name: 'تحصين هيتشنر ب1+أي بي (Hitchner B1+IB)', dose: 1, unit: 'سم³/لتر', duration: 2 },
-  { name: 'تحصين لاسوتا', dose: 1, unit: 'سم³/لتر', duration: 4 },
-  { name: 'مضاد سموم فطرية', dose: 1, unit: 'سم³/لتر', duration: 12 },
-  { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8 },
-  { name: 'مثبت لقاح (حليب)', dose: 1, unit: 'جرام/لتر', duration: 2 },
-  { name: 'ماء نقي', dose: 0, unit: 'لتر', duration: 2 },
-  { name: 'تعطيش', dose: 0, unit: 'ساعة', duration: 2 },
+  { name: 'محلول معالجة جفاف', dose: 1, unit: 'جرام/لتر', duration: 8, category: 'أملاح معدنية' },
+  { name: 'أملاح معدنية (اليكتروليت)', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'أملاح معدنية' },
+  { name: 'كالسيوم', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'أملاح معدنية' },
+  { name: 'أحماض أمينية', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'أحماض أمينية' },
+  { name: 'أحماض عضوية', dose: 0.5, unit: 'سم³/لتر', duration: 8, category: 'أحماض عضوية' },
+  { name: 'فيتامين C', dose: 1, unit: 'جرام/لتر', duration: 4, category: 'فيتامينات' },
+  { name: 'فيتامين أد3هـ (AD3E)', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'فيتامينات' },
+  { name: 'فيتامين هـ + سيلينيوم (E+Se)', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'فيتامينات' },
+  { name: 'فيتامين ب.ك كولين (B-K)', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'فيتامينات' },
+  { name: 'غسيل كلوي + منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'كلوي/كبد' },
+  { name: 'غسيل كلوي', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'كلوي/كبد' },
+  { name: 'منشط كبد', dose: 1, unit: 'سم³/لتر', duration: 8, category: 'كلوي/كبد' },
+  { name: 'مضاد حيوي (معوي+تنفسي)', dose: 1, unit: 'جرام/لتر', duration: 12, category: 'مضاد حيوي' },
+  { name: 'مضاد حيوي تنفسي', dose: 1, unit: 'جرام/لتر', duration: 12, category: 'مضاد حيوي' },
+  { name: 'مضاد حيوي معوي', dose: 1, unit: 'جرام/لتر', duration: 12, category: 'مضاد حيوي' },
+  { name: 'مضاد كوكسيديا', dose: 1, unit: 'جرام/لتر', duration: 12, category: 'مضاد حيوي' },
+  { name: 'مضاد كلوستريديا', dose: 1, unit: 'جرام/لتر', duration: 12, category: 'مضاد حيوي' },
+  { name: 'تحصين جمبورو', dose: 1, unit: 'سم³/لتر', duration: 2, category: 'تحصين' },
+  { name: 'تحصين هيتشنر ب1+أي بي (Hitchner B1+IB)', dose: 1, unit: 'سم³/لتر', duration: 2, category: 'تحصين' },
+  { name: 'تحصين لاسوتا', dose: 1, unit: 'سم³/لتر', duration: 4, category: 'تحصين' },
+  { name: 'مضاد سموم فطرية', dose: 1, unit: 'سم³/لتر', duration: 12, category: 'سموم' },
+  { name: 'بروبيوتك (بكتيريا نافعة)', dose: 1, unit: 'جرام/لتر', duration: 8, category: 'بكتيريا نافعة' },
+  { name: 'مثبت لقاح (حليب)', dose: 1, unit: 'جرام/لتر', duration: 2, category: 'أملاح معدنية' },
+  { name: 'ماء نقي', dose: 0, unit: 'لتر', duration: 2, category: 'راحة' },
+  { name: 'تعطيش', dose: 0, unit: 'ساعة', duration: 2, category: 'راحة' },
 ];
 
 interface Bill { id: string; label: string; amount: number | string; startDay: number | string; endDay: number | string; entryDate: string; }
@@ -1577,6 +1676,7 @@ interface AppState {
   id: string;
   name: string;
   strain: Strain;
+  financesPinCode?: string;
   totalChicks: number | string;
   age: number | string;
   climate: keyof typeof CLIMATE_FACTORS;
@@ -1612,6 +1712,7 @@ interface AppState {
     age: number | string;
     doseValue?: number | string;
     unit?: string;
+    isSuggestedStartTime?: boolean;
   }[];
   barnLength: number | string;
   barnWidth: number | string;
@@ -1677,12 +1778,22 @@ interface AppState {
   weightLogs?: Record<string, number | string>;
   createdAt?: string;
   version?: number;
-  medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number }>;
+  medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number, isDeleted?: boolean }>;
   dailyInternalTemp?: Record<string, number | string>;
   dailyHumidity?: Record<string, number | string>;
   environmentalLoadDeltaT?: number | string;
   environmentalLoadDensity?: number | string;
   environmentalLoadInsulation?: boolean;
+  feedType?: string;
+  dailyFeedTypes?: Record<string, string>;
+  customTempSchedule?: {
+    startDay: number;
+    endDay: number;
+    minTemp: number | string;
+    maxTemp: number | string;
+    targetTemp: number | string;
+    notes: string;
+  }[];
 }
 
 // --- Components ---
@@ -1709,10 +1820,16 @@ const Card: React.FC<CardProps> = ({ children, className, id, onClick }) => (
 );
 
 const Stat = ({ label, value, unit, icon: Icon, color, subLabel, subValue, onClick }: { label: string, value: string | number, unit?: React.ReactNode, icon?: any, color?: string, subLabel?: string, subValue?: string | number, onClick?: () => void }) => (
-  <Card className={cn("flex flex-col gap-1", onClick && "cursor-pointer active:scale-95")} onClick={onClick}>
-    <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-wider mb-2">
+  <Card className={cn("flex flex-col gap-1 relative overflow-hidden", onClick && "cursor-pointer active:scale-95 group hover:border-slate-700/50 transition-colors")} onClick={onClick}>
+    <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-wider mb-2 w-full">
       {Icon && <Icon size={14} className={color} />}
-      {label}
+      <span>{label}</span>
+      {onClick && (
+        <span className="mr-auto inline-flex items-center gap-1 text-[9px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded opacity-80 group-hover:opacity-100 transition-all">
+          تعديل
+          <Edit3 size={10} className="text-blue-400" />
+        </span>
+      )}
     </div>
     <div className="flex items-baseline gap-2">
       <span className="text-4xl font-black text-white tabular-nums">{value}</span>
@@ -1735,6 +1852,19 @@ const toNum = (val: any): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const getDefaultFeedType = (age: number): string => {
+  if (age <= 15) return 'بادي 23%';
+  if (age <= 28) return 'نامي 21%';
+  return 'ناهي 19%';
+};
+
+const getFeedTypeForDay = (day: number, appState: AppState): string => {
+  if (appState.dailyFeedTypes && appState.dailyFeedTypes[String(day)]) {
+    return appState.dailyFeedTypes[String(day)];
+  }
+  return getDefaultFeedType(day);
+};
+
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -1748,6 +1878,7 @@ const INITIAL_STATE: AppState = {
   id: '',
   name: 'دورة افتراضية',
   strain: 'Cobb',
+  financesPinCode: '',
   totalChicks: 150,
   age: 1,
   climate: 'معتدل',
@@ -1773,13 +1904,9 @@ const INITIAL_STATE: AppState = {
   ventilationOffset: 0,
   manualTimerSeconds: 0,
   isManualTimerRunning: false,
-  coolingPadsCount: 4,
+  coolingPadsCount: 1,
   coolingPads: [
-    { id: 'cp-1', name: 'خلية يمين 1', area: 5 },
-    { id: 'cp-2', name: 'خلية يمين 2', area: 5 },
-    { id: 'cp-3', name: 'خلية يسار 1', area: 5 },
-    { id: 'cp-4', name: 'خلية يسار 2', area: 5 },
-    { id: 'cp-5', name: 'خلية مقدمة', area: 5 }
+    { id: 'cp-1', name: 'خلية التبريد الرئيسية', area: 5 }
   ],
   emergencyMeds: [],
   barnLength: 100,
@@ -1839,7 +1966,59 @@ const INITIAL_STATE: AppState = {
   weightLogs: {},
   createdAt: '',
   version: 5,
-  medDataOverrides: {}
+  feedType: 'بادي 23%',
+  dailyFeedTypes: {},
+  medDataOverrides: {},
+  customTempSchedule: [
+    {
+      startDay: 1,
+      endDay: 5,
+      minTemp: 33,
+      maxTemp: 34,
+      targetTemp: 33.5,
+      notes: "فترة التحضين الأساسية (توفير الدفء الكامل)"
+    },
+    {
+      startDay: 6,
+      endDay: 7,
+      minTemp: 32.5,
+      maxTemp: 33.5,
+      targetTemp: 33.0,
+      notes: "المرحلة الأولى لتنزيل الحرارة لـ 33 درجة"
+    },
+    {
+      startDay: 8,
+      endDay: 14,
+      minTemp: 30.5,
+      maxTemp: 31.5,
+      targetTemp: 31.0,
+      notes: "النزول التدريجي بمعدل درجتين مع التهوئة"
+    },
+    {
+      startDay: 15,
+      endDay: 21,
+      minTemp: 26.5,
+      maxTemp: 27.5,
+      targetTemp: 27.0,
+      notes: "التنزيل التدريجي لـ 27 درجة وزيادة نشاط الشفاطات"
+    },
+    {
+      startDay: 22,
+      endDay: 25,
+      minTemp: 24.5,
+      maxTemp: 25.5,
+      targetTemp: 25.0,
+      notes: "الوصول تدريجياً إلى 25 درجة لتهيئة الترييش"
+    },
+    {
+      startDay: 26,
+      endDay: 40,
+      minTemp: 24.5,
+      maxTemp: 25.5,
+      targetTemp: 25.0,
+      notes: "تثبيت الحرارة عند 25 درجة لنهاية الدورة"
+    }
+  ]
 };
 
 /**
@@ -1905,12 +2084,80 @@ export default function App() {
     if (saved === 'setup' || !saved) return 'landing';
     return (saved as Screen) || 'landing';
   });
+  const [selectedPlanId, setSelectedPlanId] = useState<'45_days' | '3_months' | '6_months' | '1_year'>('6_months');
+  
+  const getSelectedPlanName = (id: string) => {
+    if (id === '45_days') return 'باقة 45 يوم';
+    if (id === '3_months') return 'باقة 3 شهور';
+    if (id === '6_months') return 'باقة 6 شهور';
+    return 'باقة سنة كاملة';
+  };
+
+  const getSelectedPlanPrice = (id: string) => {
+    if (id === '45_days') return '500';
+    if (id === '3_months') return '800';
+    if (id === '6_months') return '1200';
+    return '2000';
+  };
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [gatewayEmail, setGatewayEmail] = useState('');
   const [gatewayPassword, setGatewayPassword] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('poultry_remember_me') === 'true');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Registration & Auth Mode State
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [registerUsername, setRegisterUsername] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPhone, setRegisterPhone] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+
+  // Validation Helpers
+  const isEmailValid = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const isPhoneValid = (phone: string) => {
+    const cleaned = phone.trim();
+    return (cleaned.startsWith('010') || cleaned.startsWith('011') || cleaned.startsWith('012') || cleaned.startsWith('015')) && cleaned.length === 11;
+  };
+
+  const isUsernameValid = (username: string) => {
+    return username.trim().length >= 3;
+  };
+
+  const isPasswordValid = (password: string) => {
+    return password.length >= 6;
+  };
+
+  const getPhoneOperator = (phone: string) => {
+    if (!phone) return null;
+    const cleaned = phone.trim();
+    if (cleaned.startsWith('010') || cleaned.startsWith('+2010')) return { name: 'فودافون 🔴', color: 'bg-red-500/10 text-red-500 border-red-500/20' };
+    if (cleaned.startsWith('011') || cleaned.startsWith('+2011')) return { name: 'اتصالات 🟢', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+    if (cleaned.startsWith('012') || cleaned.startsWith('+2012')) return { name: 'أورنج 🟠', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' };
+    if (cleaned.startsWith('015') || cleaned.startsWith('+2015')) return { name: 'وي (WE) 🟣', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
+    return null;
+  };
+
+  const getPasswordStrength = (password: string) => {
+    if (!password) return { score: 0, text: 'غير مدخل', color: 'bg-transparent', width: 'w-0' };
+    let score = 0;
+    if (password.length >= 6) score += 1;
+    if (/[A-Z]/.test(password) || /[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password) && password.length >= 8) score += 1;
+    
+    if (score === 1) return { score: 1, text: 'ضعيف جداً ⚠️', color: 'bg-rose-500', width: 'w-1/3' };
+    if (score === 2) return { score: 2, text: 'متوسط الأمان 🛡️', color: 'bg-amber-500', width: 'w-2/3' };
+    if (score === 3) return { score: 3, text: 'قوي ومحمي ممتاز ✅', color: 'bg-emerald-500', width: 'w-full' };
+    return { score: 1, text: 'ضعيف ⚠️', color: 'bg-rose-500', width: 'w-1/4' };
+  };
+
+  const [isEnvPanelOpen, setIsEnvPanelOpen] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem('poultry_remember_me') === 'true') {
@@ -1923,6 +2170,17 @@ export default function App() {
   }, []);
 
   const [user, setUser] = useState<any>(null);
+  const [localCurrentUser, setLocalCurrentUser] = useState<any>(() => {
+    const saved = localStorage.getItem('poultry_current_user');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return null; }
+    }
+    return null;
+  });
+  const [profileData, setProfileData] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileRetry, setProfileRetry] = useState(0);
   const [authLoading, setAuthLoading] = useState(false);
   const [flipDirection, setFlipDirection] = useState(0);
 
@@ -1931,7 +2189,7 @@ export default function App() {
     return saved === null ? true : saved === 'true';
   });
 
-  const [inAppNotifications, setInAppNotifications] = useState<{ id: string, title: string, body: string, time: string, type: 'temp' | 'humidity' | 'medication' | 'change' | 'general' }[]>([]);
+  const [inAppNotifications, setInAppNotifications] = useState<{ id: string, title: string, body: string, time: string, type: 'temp' | 'humidity' | 'medication' | 'change' | 'general', read?: boolean }[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState(() => {
     const saved = localStorage.getItem('poultry_notification_settings');
@@ -1951,6 +2209,89 @@ export default function App() {
     localStorage.setItem('poultry_notification_settings', JSON.stringify(notificationSettings));
   }, [notificationSettings]);
 
+  useEffect(() => {
+    if (screen === 'profile' && localCurrentUser?.email) {
+      const fetchProfileData = async () => {
+        try {
+          setProfileLoading(true);
+          setProfileError('');
+          console.log("الإيميل المرسل للبحث هو:", localCurrentUser.email);
+          // Using standard fetch since this is a GET request to a external web app
+          const response = await fetch(`${PROFILE_SCRIPT_URL}?email=${encodeURIComponent(localCurrentUser.email)}`);
+          const result = await response.json();
+          if (result.status === 'success' && result.data) {
+            setProfileData(result.data);
+            const isActive = result.data.status?.includes('مفعل') || result.data.status?.includes('نشط');
+            // Sync isUnsubscribed status based on subscription state
+            setLocalCurrentUser((prev: any) => {
+              if (!prev) return prev;
+              const updated = {
+                ...prev,
+                isUnsubscribed: !isActive,
+                username: result.data.name || prev.username,
+              };
+              localStorage.setItem('poultry_current_user', JSON.stringify(updated));
+              return updated;
+            });
+          } else {
+            setProfileError(result.message || 'لم يتم العثور على بيانات الحساب المحدثة.');
+          }
+        } catch (error) {
+          setProfileError('فشل الاتصال بالخادم لجلب بيانات الحساب المحدثة.');
+        } finally {
+          setProfileLoading(false);
+        }
+      };
+      fetchProfileData();
+    }
+  }, [screen, localCurrentUser?.email, profileRetry]);
+
+  const renderEnvPanelHeader = () => {
+    return (
+      <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4" id="env-panel-header">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#00dfa2]/10 flex items-center justify-center text-[#00dfa2]">
+            <Cpu size={18} />
+          </div>
+          <div className="text-right">
+            <span className="text-[9px] font-black text-[#00dfa2] uppercase tracking-wider block">لوحة التحكم الفنية</span>
+            <span className="text-xs font-bold text-white">وحدة التحكم البيئي</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setScreen('dashboard');
+          }}
+          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-[10px] font-black text-slate-400 hover:text-white transition-all border border-white/5 flex items-center gap-1.5"
+        >
+          <ChevronRight size={12} />
+          الرجوع للوحة التحكم
+        </button>
+      </div>
+    );
+  };
+
+  const sidebarLinks = [
+    { id: 'dashboard', label: "لوحة التحكم الرئيسية", icon: LayoutDashboard, color: "text-[#00dfa2]", onClick: () => { setScreen('dashboard'); setIsNavVisible(true); } },
+    { id: 'landing', label: "الدورات الحالية والإنتاج", icon: RefreshCw, color: "text-emerald-400", onClick: () => { setScreen('landing'); setIsNavVisible(true); } },
+    { id: 'setup', label: "إدارة العنبر والتجهيز", icon: Home, color: "text-blue-400", onClick: () => { setScreen('setup'); setIsNavVisible(true); } },
+    { id: 'medication', label: "برنامج الأدوية والتحصينات", icon: Stethoscope, color: "text-indigo-400", onClick: () => { setScreen('medication'); setIsNavVisible(true); } },
+    { id: 'battery', label: "إدارة البطاريات والأدوار", icon: Layers, color: "text-purple-400", onClick: () => { setScreen('battery'); setIsNavVisible(true); } },
+    { id: 'ventilation', label: "مراوح التهوية والشفاطات", icon: Wind, color: "text-cyan-400", onClick: () => { setScreen('ventilation'); setIsNavVisible(true); } },
+    { id: 'heating', label: "نظام التدفئة والدفايات", icon: Flame, color: "text-rose-400", onClick: () => { setScreen('heating'); setIsNavVisible(true); } },
+    { id: 'humidity', label: "الرطوبة والتبخير والتبريد", icon: Droplets, color: "text-blue-400", onClick: () => { setScreen('humidity'); setIsNavVisible(true); } },
+    { id: 'climate', label: "تشخيص جودة الهواء والمناخ", icon: Thermometer, color: "text-amber-400", onClick: () => { setScreen('climate'); setIsNavVisible(true); } },
+    { id: 'weather', label: "محطة الطقس ومؤشر THI", icon: Cloud, color: "text-sky-400", onClick: () => { setScreen('weather'); setIsNavVisible(true); } },
+    { id: 'environmental_load', label: "الحمل الحراري والفسيولوجي", icon: Activity, color: "text-teal-400", onClick: () => { setScreen('environmental_load'); setIsNavVisible(true); } },
+    { id: 'finances', label: "الحسابات والأرباح والمصاريف", icon: Wallet, color: "text-emerald-400", onClick: () => { handleRequestScreen('finances', () => { setScreen('finances'); setIsNavVisible(true); }); } },
+    { id: 'market', label: "بورصة الدواجن والأعلاف", icon: TrendingUp, color: "text-amber-500", onClick: () => { setScreen('market'); setIsNavVisible(true); } },
+    { id: 'charts', label: "التقارير والإحصاءات البيانية", icon: BarChart2, color: "text-[#00b0ff]", onClick: () => { setScreen('charts'); setIsNavVisible(true); } },
+    { id: 'expert', label: "الخبير الذكيّ والاستشارة", icon: MessageSquare, color: "text-violet-400", onClick: () => { setScreen('expert'); setIsNavVisible(true); } },
+    { id: 'workshop', label: "خدمة العملاء والدعم الفني", icon: Wrench, color: "text-pink-400", onClick: () => { setScreen('workshop'); setIsNavVisible(true); } },
+    { id: 'profile', label: "بيانات الحساب الشخصي", icon: User, color: "text-[#00b0ff]", onClick: () => { setScreen('profile'); setIsNavVisible(true); } }
+  ];
+
   const [selectedComparisonIds, setSelectedComparisonIds] = useState<string[]>([]);
   const [isComparing, setIsComparing] = useState(false);
   const [isEditingTimer, setIsEditingTimer] = useState(false);
@@ -1958,6 +2299,15 @@ export default function App() {
 
   const [billToDelete, setBillToDelete] = useState<{ id: string, section: string, label: string } | null>(null);
   const [padToDelete, setPadToDelete] = useState<CoolingPad | null>(null);
+  const [suggestedMedModal, setSuggestedMedModal] = useState<{
+    isOpen: boolean;
+    startTime: string;
+    name: string;
+    doseValue: string;
+    unit: string;
+    duration: string;
+    category: string;
+  } | null>(null);
 
   useEffect(() => {
     if (billToDelete) {
@@ -2462,8 +2812,112 @@ export default function App() {
   }, [screen]);
 
   // --- Auto-hide Nav Logic ---
+  const [isFinancesUnlockedThisSession, setIsFinancesUnlockedThisSession] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinPurpose, setPinPurpose] = useState<'set' | 'verify' | 'change_verify' | 'disable_verify' | 'delete_confirm'>('verify');
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [tempNewPin, setTempNewPin] = useState('');
+  const [onPinSuccessCallback, setOnPinSuccessCallback] = useState<(() => void) | null>(null);
+
+  const handleRequestScreen = (targetScreen: Screen, onAllowed: () => void) => {
+    if (targetScreen === 'finances') {
+      if (isFinancesUnlockedThisSession) {
+        onAllowed();
+        return;
+      }
+      if (!state.financesPinCode) {
+        setPinPurpose('set');
+        setPinInput('');
+        setPinError('');
+        setTempNewPin('');
+        setOnPinSuccessCallback(() => onAllowed);
+        setIsPinModalOpen(true);
+      } else {
+        setPinPurpose('verify');
+        setPinInput('');
+        setPinError('');
+        setOnPinSuccessCallback(() => onAllowed);
+        setIsPinModalOpen(true);
+      }
+    } else {
+      onAllowed();
+    }
+  };
+
+  const handlePinSubmit = (val: string) => {
+    if (pinPurpose === 'verify') {
+      if (val === state.financesPinCode) {
+        setIsFinancesUnlockedThisSession(true);
+        setIsPinModalOpen(false);
+        setPinInput('');
+        if (onPinSuccessCallback) {
+          onPinSuccessCallback();
+        }
+      } else {
+        setPinError("❌ رمز PIN غير صحيح! حاول مرة أخرى");
+        setPinInput('');
+      }
+    } else if (pinPurpose === 'set') {
+      if (!tempNewPin) {
+        setTempNewPin(val);
+        setPinInput('');
+        setPinError('');
+      } else {
+        if (val === tempNewPin) {
+          setState(prev => ({ ...prev, financesPinCode: val }));
+          setIsFinancesUnlockedThisSession(true);
+          setIsPinModalOpen(false);
+          setPinInput('');
+          setTempNewPin('');
+          if (onPinSuccessCallback) {
+            onPinSuccessCallback();
+          }
+        } else {
+          setPinError("❌ الرمزان غير متطابقين! ابدأ من جديد");
+          setTempNewPin('');
+          setPinInput('');
+        }
+      }
+    } else if (pinPurpose === 'change_verify') {
+      if (val === state.financesPinCode) {
+        setPinPurpose('set');
+        setTempNewPin('');
+        setPinInput('');
+        setPinError('');
+      } else {
+        setPinError("❌ الرمز الحالي غير صحيح!");
+        setPinInput('');
+      }
+    } else if (pinPurpose === 'disable_verify') {
+      if (val === state.financesPinCode) {
+        setState(prev => ({ ...prev, financesPinCode: '' }));
+        setIsFinancesUnlockedThisSession(false);
+        setIsPinModalOpen(false);
+        setPinInput('');
+        setPinError('');
+      } else {
+        setPinError("❌ الرمز الحالي غير صحيح!");
+        setPinInput('');
+      }
+    } else if (pinPurpose === 'delete_confirm') {
+      if (val === state.financesPinCode) {
+        setIsPinModalOpen(false);
+        setPinInput('');
+        setPinError('');
+        if (onPinSuccessCallback) {
+          onPinSuccessCallback();
+        }
+      } else {
+        setPinError("❌ رمز PIN غير صحيح! لا يمكن إكمال الحذف");
+        setPinInput('');
+      }
+    }
+  };
+
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [humidityTotalBirds, setHumidityTotalBirds] = useState('360');
   const [humidityAvgWeight, setHumidityAvgWeight] = useState('180');
@@ -3203,34 +3657,104 @@ export default function App() {
     }
   };
 
+  const authenticateUserViaSheets = async (email: string, password: string): Promise<boolean> => {
+    // 1. Try local Express API Proxy first (best for Web/Browser to avoid CORS)
+    try {
+      console.log("Attempting auth via local server proxy...");
+      const response = await smartFetch('/api/auth/sheets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.status === 'success') {
+          return true;
+        }
+        if (result.status === 'error') {
+          return false;
+        }
+      }
+    } catch (err) {
+      console.warn("Proxy auth failed or bypassed, trying direct sheet CSV fetch:", err);
+    }
+
+    // 2. Fallback to direct Sheet CSV fetch (works on Capacitor/Native and as robust backup)
+    try {
+      const SHEET_AUTH_CSV_URL = 'https://docs.google.com/spreadsheets/d/1YR75Z4MPxn37PYy2YVimjJXXU1bPflEigEMRU6kgSiE/export?format=csv&gid=1919881010';
+      console.log("Attempting direct CSV sheet fetch...");
+      const response = await smartFetch(SHEET_AUTH_CSV_URL);
+      if (response.ok) {
+        const csvText = await response.text();
+        const rows = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
+        
+        for (const row of rows) {
+          const cols = row.split(',').map(cell => cell.replace(/^["']|["']$/g, '').trim());
+          if (cols.length >= 2) {
+            const sheetEmail = cols[0];
+            const sheetPassword = cols[1];
+            if (sheetEmail.toLowerCase() === email.toLowerCase() && sheetPassword === password) {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Direct CSV auth failed:", err);
+    }
+
+    return false;
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoginLoading(true);
     try {
-      // 🌟 الرابط الجديد المباشر بعد التحديث الأخير لـ Apps Script
-      const response = await smartFetch("https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8', // لتجاوز الـ CORS بنجاح
-        },
-        body: JSON.stringify({
+      // Check local registered users first
+      const localUsers = JSON.parse(localStorage.getItem('poultry_local_users') || '[]');
+      const matchingUser = localUsers.find((u: any) => u.email.toLowerCase() === loginEmail.toLowerCase() && u.password === loginPassword);
+      
+      if (matchingUser) {
+        localStorage.setItem('poultry_current_user', JSON.stringify(matchingUser));
+        setLocalCurrentUser(matchingUser);
+        
+        if (rememberMe) {
+          localStorage.setItem('poultry_remember_me', 'true');
+          localStorage.setItem('poultry_saved_email', loginEmail);
+        } else {
+          localStorage.removeItem('poultry_remember_me');
+          localStorage.removeItem('poultry_saved_email');
+        }
+
+        await Preferences.set({
+          key: 'poultry_sheets_authenticated',
+          value: 'true'
+        });
+
+        localStorage.setItem('poultry_gateway_passed', 'true');
+        setScreen('landing');
+        alert("تم تسجيل الدخول بنجاح!");
+        return;
+      }
+
+      // Check online via Google Sheet
+      const isAuthenticated = await authenticateUserViaSheets(loginEmail, loginPassword);
+
+      if (isAuthenticated) {
+        const authUser = {
+          username: "عضو مشترك نشط",
           email: loginEmail,
-          password: loginPassword
-        })
-      });
+          phone: "",
+          password: loginPassword,
+          isNewUser: false,
+          isUnsubscribed: false
+        };
+        localStorage.setItem('poultry_current_user', JSON.stringify(authUser));
+        setLocalCurrentUser(authUser);
 
-      if (!response.ok) {
-        throw new Error(`خطأ في السيرفر: ${response.status}`);
-      }
-
-      let result;
-      try {
-        result = await response.json();
-      } catch (e: any) {
-        throw new Error(`تعذر قراءة بيانات السيرفر (Error: ${e.message}). تأكد من أن السيرفر يعمل بشكل صحيح وأن الرابط صالح.`);
-      }
-
-      if (result.status === 'success') {
         // حفظ خيارات تذكرني
         if (rememberMe) {
           localStorage.setItem('poultry_remember_me', 'true');
@@ -3250,11 +3774,49 @@ export default function App() {
         setScreen('landing');
         alert("تم تسجيل الدخول بنجاح!");
       } else {
-        alert(result.message || "فشل تسجيل الدخول. تأكد من البيانات.");
+        // بدلاً من الرفض، يتم تسجيل الدخول كحساب تجريبي غير مشترك مع تطبيق القيود والمحاذاة
+        const demoUser = {
+          username: "مستكشف تجريبي (غير مشترك)",
+          email: loginEmail,
+          phone: "",
+          password: loginPassword,
+          isNewUser: true,
+          isUnsubscribed: true
+        };
+        localStorage.setItem('poultry_current_user', JSON.stringify(demoUser));
+        setLocalCurrentUser(demoUser);
+
+        await Preferences.set({
+          key: 'poultry_sheets_authenticated',
+          value: 'true'
+        });
+
+        localStorage.setItem('poultry_gateway_passed', 'true');
+        setScreen('landing');
+        alert("الحساب غير مسجل كعضو مشترك نشط. تم تسجيل الدخول كحساب تجريبي بميزات محدودة (يرجى الاشتراك لتفعيل كافة الشاشات).");
       }
     } catch (error: any) {
       console.error("Sheets Login Error:", error);
-      alert(`حدث خطأ أثناء الاتصال بنظام الأمان: ${error.message}`);
+      // Fallback to restricted user session on connection or script errors
+      const demoUser = {
+        username: "مستكشف تجريبي (غير مشترك)",
+        email: loginEmail,
+        phone: "",
+        password: loginPassword,
+        isNewUser: true,
+        isUnsubscribed: true
+      };
+      localStorage.setItem('poultry_current_user', JSON.stringify(demoUser));
+      setLocalCurrentUser(demoUser);
+
+      await Preferences.set({
+        key: 'poultry_sheets_authenticated',
+        value: 'true'
+      });
+
+      localStorage.setItem('poultry_gateway_passed', 'true');
+      setScreen('landing');
+      alert("تعذر التحقق من الاشتراك عبر الإنترنت. تم الدخول بوضع الحساب التجريبي المحدود (يرجى الاشتراك لتفعيل الشاشات المغلقة).");
     } finally {
       setIsLoginLoading(false);
     }
@@ -3265,30 +3827,48 @@ export default function App() {
     
     setIsLoginLoading(true);
     try {
-      // 🌟 الرابط الجديد المباشر بعد التحديث الأخير لـ Apps Script
-      const response = await smartFetch("https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8', // لتجاوز الـ CORS بنجاح
-        },
-        body: JSON.stringify({
+      // Check local registered users first
+      const localUsers = JSON.parse(localStorage.getItem('poultry_local_users') || '[]');
+      const matchingUser = localUsers.find((u: any) => u.email.toLowerCase() === gatewayEmail.toLowerCase() && u.password === gatewayPassword);
+      
+      if (matchingUser) {
+        localStorage.setItem('poultry_current_user', JSON.stringify(matchingUser));
+        setLocalCurrentUser(matchingUser);
+        
+        if (rememberMe) {
+          localStorage.setItem('poultry_remember_me', 'true');
+          localStorage.setItem('poultry_saved_email', gatewayEmail);
+        } else {
+          localStorage.removeItem('poultry_remember_me');
+          localStorage.removeItem('poultry_saved_email');
+        }
+
+        await Preferences.set({
+          key: 'poultry_sheets_authenticated',
+          value: 'true'
+        });
+
+        localStorage.setItem('poultry_gateway_passed', 'true');
+        setScreen('landing');
+        alert("تم تسجيل الدخول بنجاح!");
+        return;
+      }
+
+      // Check online via Google Sheet
+      const isAuthenticated = await authenticateUserViaSheets(gatewayEmail, gatewayPassword);
+
+      if (isAuthenticated) {
+        const authUser = {
+          username: "عضو مشترك نشط",
           email: gatewayEmail,
-          password: gatewayPassword
-        })
-      });
+          phone: "",
+          password: gatewayPassword,
+          isNewUser: false,
+          isUnsubscribed: false
+        };
+        localStorage.setItem('poultry_current_user', JSON.stringify(authUser));
+        setLocalCurrentUser(authUser);
 
-      if (!response.ok) {
-        throw new Error(`خطأ في السيرفر: ${response.status}`);
-      }
-
-      let result;
-      try {
-        result = await response.json();
-      } catch (e: any) {
-        throw new Error(`تعذر قراءة بيانات السيرفر (Error: ${e.message}). تأكد من أن السيرفر يعمل بشكل صحيح وأن الرابط صالح.`);
-      }
-
-      if (result.status === 'success') {
         // حفظ خيارات تذكرني للمدخلين
         if (rememberMe) {
           localStorage.setItem('poultry_remember_me', 'true');
@@ -3308,11 +3888,49 @@ export default function App() {
         setScreen('landing');
         alert("تم التصريح بالدخول بنجاح!");
       } else {
-        alert(result.message || "فشل التصريح. تأكد من البيانات.");
+        // بدلاً من الرفض، يتم تسجيل الدخول كحساب تجريبي غير مشترك مع تطبيق القيود والمحاذاة
+        const demoUser = {
+          username: "مستكشف تجريبي (غير مشترك)",
+          email: gatewayEmail,
+          phone: "",
+          password: gatewayPassword,
+          isNewUser: true,
+          isUnsubscribed: true
+        };
+        localStorage.setItem('poultry_current_user', JSON.stringify(demoUser));
+        setLocalCurrentUser(demoUser);
+
+        await Preferences.set({
+          key: 'poultry_sheets_authenticated',
+          value: 'true'
+        });
+
+        localStorage.setItem('poultry_gateway_passed', 'true');
+        setScreen('landing');
+        alert("بيانات الدخول غير مسجلة كعضو مشترك نشط. تم السماح بالدخول كحساب تجريبي بميزات محدودة (يرجى الاشتراك لتفعيل كافة الشاشات).");
       }
     } catch (error: any) {
       console.error("Sheets Gateway Error:", error);
-      alert(`حدث خطأ أثناء الاتصال بنظام الأمان: ${error.message}`);
+      // Fallback to restricted user session on connection or script errors
+      const demoUser = {
+        username: "مستكشف تجريبي (غير مشترك)",
+        email: gatewayEmail,
+        phone: "",
+        password: gatewayPassword,
+        isNewUser: true,
+        isUnsubscribed: true
+      };
+      localStorage.setItem('poultry_current_user', JSON.stringify(demoUser));
+      setLocalCurrentUser(demoUser);
+
+      await Preferences.set({
+        key: 'poultry_sheets_authenticated',
+        value: 'true'
+      });
+
+      localStorage.setItem('poultry_gateway_passed', 'true');
+      setScreen('landing');
+      alert("تعذر التحقق من الاشتراك عبر الإنترنت. تم الدخول بوضع الحساب التجريبي المحدود (يرجى الاشتراك لتفعيل الشاشات المغلقة).");
     } finally {
       setIsLoginLoading(false);
     }
@@ -3325,6 +3943,8 @@ export default function App() {
   const confirmLogout = () => {
     localStorage.removeItem('poultry_gateway_passed');
     localStorage.removeItem('poultry_app_screen');
+    localStorage.removeItem('poultry_current_user');
+    setLocalCurrentUser(null);
     Preferences.remove({ key: 'poultry_sheets_authenticated' });
     signOut(auth).catch(() => {});
     
@@ -3332,6 +3952,10 @@ export default function App() {
     setGatewayPassword('');
     setLoginEmail('');
     setLoginPassword('');
+    setRegisterUsername('');
+    setRegisterEmail('');
+    setRegisterPhone('');
+    setRegisterPassword('');
 
     setScreen('gateway');
     setIsLogoutConfirming(false);
@@ -3339,13 +3963,58 @@ export default function App() {
 
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const email = (e.target as any).email.value;
-    const password = (e.target as any).password.value;
+    if (!registerEmail || !registerPassword || !registerUsername || !registerPhone) {
+      alert("الرجاء ملء جميع الحقول المطلوبة.");
+      return;
+    }
+    setIsLoginLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // 1. Try Firebase Auth
+      try {
+        if (auth && auth.app && !auth.app.options.apiKey?.includes("placeholder")) {
+          await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
+        }
+      } catch (fbError: any) {
+        console.warn("Firebase registration skipped or failed:", fbError);
+      }
+
+      // 2. Save user details locally for a guaranteed login success and customized profile
+      const newUser = {
+        username: registerUsername,
+        email: registerEmail,
+        phone: registerPhone,
+        password: registerPassword,
+        isNewUser: true
+      };
+      
+      // Save to local registered users list
+      const existingUsers = JSON.parse(localStorage.getItem('poultry_local_users') || '[]');
+      existingUsers.push(newUser);
+      localStorage.setItem('poultry_local_users', JSON.stringify(existingUsers));
+      
+      // Save current authenticated user session
+      localStorage.setItem('poultry_current_user', JSON.stringify(newUser));
+      setLocalCurrentUser(newUser);
+      localStorage.setItem('poultry_gateway_passed', 'true');
+      
+      // Save preferences
+      await Preferences.set({
+        key: 'poultry_sheets_authenticated',
+        value: 'true'
+      });
+
+      alert("تم إنشاء الحساب بنجاح ومرحباً بك في مدير مزارع الدواجن!");
       setScreen('landing');
+      
+      // Reset registration form
+      setRegisterUsername('');
+      setRegisterEmail('');
+      setRegisterPhone('');
+      setRegisterPassword('');
     } catch (error: any) {
       alert(`حدث خطأ أثناء إنشاء الحساب: ${error.message}`);
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -3778,6 +4447,49 @@ export default function App() {
   }, [state.mortalityBills, state.totalChicks, state.strain, dailyStats.cumFeed, dailyStats.weight, state.feedPrice, state.chickPrice, state.sellingPrice, state.salesRecords, allBills, calculateMortalityOverhead]);
 
   const currentAgeStr = String(state.age);
+
+  const getTargetTemperature = useCallback((age: number) => {
+    const profile = state.customTempSchedule || [
+      { startDay: 1, endDay: 5, targetTemp: 33.5 },
+      { startDay: 6, endDay: 7, targetTemp: 33.0 },
+      { startDay: 8, endDay: 14, targetTemp: 31.0 },
+      { startDay: 15, endDay: 21, targetTemp: 27.0 },
+      { startDay: 22, endDay: 25, targetTemp: 25.0 },
+      { startDay: 26, endDay: 40, targetTemp: 25.0 }
+    ];
+
+    const getVal = (idx: number) => {
+      const val = profile[idx]?.targetTemp;
+      return val !== undefined ? toNum(val) : 25;
+    };
+
+    if (age <= 5) {
+      return getVal(0);
+    }
+    if (age <= 7) {
+      return getVal(1);
+    }
+    if (age <= 14) {
+      const startTemp = getVal(1);
+      const endTemp = getVal(2);
+      const factor = (age - 7) / (14 - 7);
+      return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+    }
+    if (age <= 21) {
+      const startTemp = getVal(2);
+      const endTemp = getVal(3);
+      const factor = (age - 14) / (21 - 14);
+      return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+    }
+    if (age <= 25) {
+      const startTemp = getVal(3);
+      const endTemp = getVal(4);
+      const factor = (age - 21) / (25 - 21);
+      return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+    }
+    return getVal(5);
+  }, [state.customTempSchedule]);
+
   const targetTemp = getTargetTemperature(toNum(state.age));
 
   const environmentalLoad = useMemo(() => {
@@ -3798,7 +4510,8 @@ export default function App() {
   const herdBiomass = (toNum(state.totalChicks) * dailyStats.weight) / 1000; // in kg
   const dailyFeedTotal = Math.ceil((toNum(state.totalChicks) * dailyStats.dailyFeed) / 1000); // in kg
   const dailyWaterTotal = (dailyFeedTotal * (climateInfo?.waterFactor || 1.8)); // Standard water/feed ratio
-  const dailyWaterTotalLiters = Math.ceil((toNum(state.totalChicks) * dailyStats.dailyWater * ((climateInfo?.waterFactor || 1.8) / 1.8)) / 1000); // Adjusted for climate
+  const singleBirdWaterMl = Math.round(dailyStats.dailyWater * (climateInfo?.waterFactor / 1.8 || 1));
+  const dailyWaterTotalLiters = Math.ceil((singleBirdWaterMl * finances.birdsAlive) / 1000); // استهلاك مياه القطيع بعد خصم النافق مقرباً للأكبر
   
   const totalBatteries = state.batteryGroups.reduce((acc, g) => acc + toNum(g.count), 0);
   const waterPerBattery = totalBatteries > 0 ? (dailyWaterTotalLiters / totalBatteries).toFixed(1) : dailyWaterTotalLiters;
@@ -3926,7 +4639,7 @@ export default function App() {
     const duration = toNum(currentMed.recommendedHours || currentMed.duration);
     const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
 
-    let gapHours = isNextDay ? 0 : 1;
+    let gapHours = (isNextDay || currentMed.isNextDay) ? 0 : 1;
     if (currentMed.category === 'راحة' || nextMed.category === 'راحة' || currentMed.isAntibiotic) {
        gapHours = 0;
     }
@@ -3936,7 +4649,9 @@ export default function App() {
     return {
       endTimeStr: formatArabicTime(endDate, startDate),
       nextStartTimeStr: formatArabicTime(nextStartDate, startDate),
-      label: gapHours === 0 ? "تليها مباشرة" : "الموعد القادم"
+      label: gapHours === 0 ? "تليها مباشرة" : "الموعد القادم",
+      rawNextStartTime: `${String(nextStartDate.getHours()).padStart(2, '0')}:${String(nextStartDate.getMinutes()).padStart(2, '0')}`,
+      rawEndTime: `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
     };
   };
 
@@ -4186,9 +4901,11 @@ export default function App() {
         duration, 
         recommendedHours: duration, 
         doseValue,
-        unit
+        unit,
+        isDeleted: override?.isDeleted || false,
+        logKey
       };
-    });
+    }).filter(m => !m.isDeleted);
 
     // Inject Pure Water gaps (Rule like Day 1)
     const meds: any[] = [];
@@ -4261,11 +4978,20 @@ export default function App() {
     return meds.length > 0 ? meds[0] : null;
   }, [state.age, state.climate]);
 
-  const addEmergencyMed = (startTime?: string) => {
+  const addEmergencyMed = (
+    startTime?: string,
+    isSuggested = false,
+    customFields?: {
+      name: string;
+      doseValue: string | number;
+      unit: string;
+      duration: string | number;
+    }
+  ) => {
     const id = Math.random().toString(36).substr(2, 9);
     const waterId = Math.random().toString(36).substr(2, 9);
     
-    const defaultStartTime = startTime || '';
+    const defaultStartTime: string = startTime || '';
     let waterStartTime = '';
 
     if (defaultStartTime && defaultStartTime.includes(':')) {
@@ -4280,13 +5006,14 @@ export default function App() {
         ...prev.emergencyMeds,
         {
           id,
-          name: 'مضاد حيوي / فيتامينات', 
+          name: customFields?.name ?? '', 
           startTime: defaultStartTime,
-          duration: 8,
+          isSuggestedStartTime: isSuggested,
+          duration: customFields?.duration ?? '',
           endTime: '',
           age: prev.age,
-          doseValue: 1,
-          unit: 'سم³/لتر'
+          doseValue: customFields?.doseValue ?? 0,
+          unit: customFields?.unit ?? 'سم³/لتر'
         }
       ]
     }));
@@ -4317,6 +5044,14 @@ export default function App() {
       ...prev,
       emergencyMeds: prev.emergencyMeds.filter(m => m.id !== id)
     }));
+  };
+
+  const deleteDose = (logKey: string, type?: string, id?: string) => {
+    if (type === 'emergency' && id) {
+      removeEmergencyMed(id);
+    } else {
+      updateMedOverride(logKey, { isDeleted: true });
+    }
   };
 
   const getLightingScheduleForAge = useCallback((age: number) => {
@@ -4437,6 +5172,20 @@ export default function App() {
     const ageEmergencyMeds = state.emergencyMeds.filter(m => toNum(m.age) === age);
     const schedule = getLightingScheduleForAge(age);
 
+    const resolveCategoryByName = (name: string, defaultCat: string = 'عام') => {
+      if (!name) return defaultCat;
+      const nm = name.trim();
+      if (nm.includes('جفاف') || nm.includes('معالجة')) return 'تأسيس';
+      if (nm.includes('أملاح') || nm.includes('اليكتروليت') || nm.includes('أحماض أمينية') || nm.includes('أحماض عضوية') || nm.includes('مثبت لقاح')) return 'أملاح معدنية';
+      if (nm.includes('فيتامين') || nm.includes('غسيل') || nm.includes('كبد')) return 'فيتامينات';
+      if (nm.includes('مضاد حيوي') || nm.includes('كوكسيديا') || nm.includes('كلوستريديا')) return 'مضاد حيوي';
+      if (nm.includes('تحصين') || nm.includes('لقاح') || nm.includes('جمبورو') || nm.includes('لاسوتا') || nm.includes('هيتشنر') || nm.includes('فلتر')) return 'تحصينات';
+      if (nm.includes('سموم')) return 'مضاد سموم';
+      if (nm.includes('بروبيوتك') || nm.includes('نافعة')) return 'بكتيريا نافعة';
+      if (nm.includes('ماء') || nm.includes('مياه') || nm.includes('راحة')) return 'راحة';
+      return defaultCat;
+    };
+
     const scheduledData = ageMeds.map((m, i) => {
         const logKey = `${age}-${m.id || m.name}`;
         const override = state.medDataOverrides?.[logKey];
@@ -4447,6 +5196,12 @@ export default function App() {
         const water = Math.round((dailyWaterTotalLiters / 24) * currentDuration);
         const startTime = state.medicationLogs[logKey];
         
+        const isRestVal = (currentName || '').includes('ماء') || (currentName || '').includes('مياه') || (currentName || '').includes('راحة');
+        const isAntibioticVal = (currentName || '').includes('مضاد حيوي') || (currentName || '').includes('كوكسيديا') || (currentName || '').includes('كلوستريديا');
+        const currentCategory = isRestVal ? 'راحة' : (isAntibioticVal ? 'مضاد حيوي' : (m.category === 'راحة' ? 'فيتامينات' : m.category));
+
+        const order = override?.order !== undefined ? toNum(override.order) : i;
+
         return {
           ...m,
           name: currentName,
@@ -4456,8 +5211,11 @@ export default function App() {
           unit: currentUnit,
           type: 'scheduled' as const,
           originalIndex: i, 
+          order,
           calculatedWater: water,
-          isRest: (currentName || '').includes('ماء') || (currentName || '').includes('مياه') || (currentName || '').includes('راحة'),
+          isRest: isRestVal,
+          isAntibiotic: isAntibioticVal,
+          category: currentCategory,
           startTime,
           logKey,
           originalAge: age,
@@ -4465,30 +5223,42 @@ export default function App() {
           isSuggestedStartTime: false,
           overlapsDarkness: startTime ? isOverlappingDarkness(startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
         };
-    });
+    }).filter(item => !state.medDataOverrides?.[item.logKey]?.isDeleted);
 
     const emergencyData = ageEmergencyMeds.map((m, i) => {
       const logKey = `${age}-${m.id || m.name}`;
       const override = state.medDataOverrides?.[logKey];
       const currentDuration = override?.duration !== undefined ? toNum(override.duration) : (toNum(m.duration) || 0);
       const water = Math.round((dailyWaterTotalLiters / 24) * currentDuration);
+      const currentName = override?.name || m.name;
       
+      const isRestVal = (currentName || '').includes('ماء') || (currentName || '').includes('مياه') || (currentName || '').includes('راحة');
+      const isAntibioticVal = (currentName || '').includes('مضاد حيوي') || (currentName || '').includes('كوكسيديا') || (currentName || '').includes('كلوستريديا');
+      const mCategory = (m as any).category || 'طوارئ';
+      const currentCategory = isRestVal ? 'راحة' : (isAntibioticVal ? 'مضاد حيوي' : (mCategory === 'راحة' ? 'طوارئ' : mCategory));
+
+      const order = override?.order !== undefined ? toNum(override.order) : (100 + i);
+
       return {
         ...m,
+        name: currentName,
         type: 'emergency' as const,
         recommendedHours: currentDuration,
         originalIndex: 100 + i, 
+        order,
         calculatedWater: water,
         doseValue: toNum(m.doseValue),
-        isRest: (m.name || '').includes('ماء') || (m.name || '').includes('مياه') || (m.name || '').includes('راحة'),
+        isRest: isRestVal,
+        isAntibiotic: isAntibioticVal,
+        category: currentCategory,
         startTime: m.startTime,
         logKey,
         originalAge: age,
-        resolvedStartTime: m.startTime || null,
-        isSuggestedStartTime: false,
-        overlapsDarkness: m.startTime ? isOverlappingDarkness(m.startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
+        resolvedStartTime: m.isSuggestedStartTime ? null : (m.startTime || null),
+        isSuggestedStartTime: !!m.isSuggestedStartTime,
+        overlapsDarkness: m.startTime && !m.isSuggestedStartTime ? isOverlappingDarkness(m.startTime, currentDuration, schedule.darknessStart, schedule.darknessHours) : false
       };
-    });
+    }).filter(item => !state.medDataOverrides?.[item.logKey]?.isDeleted);
 
     const darknessKey = `${age}-darkness`;
     const durationOverride = state.medDataOverrides?.[darknessKey]?.duration;
@@ -4501,6 +5271,7 @@ export default function App() {
       recommendedHours: durationOverride !== undefined ? toNum(durationOverride) : schedule.darknessHours,
       type: 'darkness' as const,
       originalIndex: 9999, 
+      order: state.medDataOverrides?.[darknessKey]?.order !== undefined ? toNum(state.medDataOverrides[darknessKey].order) : 9999,
       isRest: true,
       category: 'إضاءة',
       logKey: darknessKey,
@@ -4510,54 +5281,367 @@ export default function App() {
       overlapsDarkness: false
     };
 
-    const finalTimeline = [...scheduledData, ...emergencyData, darknessEntry];
-
-    // Determine Anchor Minutes exactly
-    let anchorMinutes = 0;
-    if (age === 1) {
-      const orsTime = state.medicationLogs['1-d1-ors'];
-      if (orsTime) {
-        const [h, m] = orsTime.split(':').map(Number);
-        if (!isNaN(h) && !isNaN(m)) {
-          anchorMinutes = h * 60 + m;
+    const getShiftedKeysForAge = (targetAge: number, list: any[]) => {
+      const sorted = [...list].sort((a, b) => a.originalIndex - b.originalIndex);
+      let crossedMidnightIndex = -1;
+      
+      for (let i = 0; i < sorted.length; i++) {
+        const item = sorted[i];
+        if (item.startTime) {
+          const [h, m] = item.startTime.split(':').map(Number);
+          if (!isNaN(h) && !isNaN(m)) {
+            const dur = toNum(item.duration || item.recommendedHours || 0);
+            const totalEndMins = h * 60 + m + dur * 60;
+            if (totalEndMins >= 1440) {
+              const endHour = Math.floor((totalEndMins % 1440) / 60);
+              if (endHour >= 0 && endHour < 8) {
+                crossedMidnightIndex = item.originalIndex;
+                break;
+              }
+            }
+          }
         }
-      } else {
-        anchorMinutes = 8 * 60; // 8:00 AM default fallback
       }
-    } else {
-      const loggedItems = finalTimeline.filter(m => m.startTime);
-      if (loggedItems.length > 0) {
-        const sorted = [...loggedItems].sort((a, b) => {
-          const [ah, am] = (a.startTime as string).split(':').map(Number);
-          const [bh, bm] = (b.startTime as string).split(':').map(Number);
-          return (ah * 60 + am) - (bh * 60 + bm);
-        });
-        const [h, m] = (sorted[0].startTime as string).split(':').map(Number);
-        anchorMinutes = h * 60 + m;
-      } else {
-        anchorMinutes = 8 * 60; // fallback to 8:00 AM
-      }
-    }
 
-    const getLinearMinutes = (timeStr: string | undefined | null) => {
-      if (!timeStr) return 99999;
-      const [h, m] = timeStr.split(':').map(Number);
-      if (isNaN(h) || isNaN(m)) return 99999;
-      let total = h * 60 + m;
-      if (anchorMinutes > 0 && total < anchorMinutes) total += 1440;
-      return total;
+      const keys = new Set<string>();
+      if (crossedMidnightIndex !== -1) {
+        for (let i = 0; i < sorted.length; i++) {
+          const item = sorted[i];
+          if (item.originalIndex > crossedMidnightIndex) {
+            if (!item.startTime) {
+              keys.add(item.logKey || `${targetAge}-${item.id || item.name}`);
+            } else {
+              const [h, m] = item.startTime.split(':').map(Number);
+              if (!isNaN(h) && h >= 0 && h < 8) {
+                keys.add(item.logKey || `${targetAge}-${item.id || item.name}`);
+              }
+            }
+          }
+        }
+      }
+      return keys;
     };
 
-    return finalTimeline.sort((a, b) => {
-      const timeA = getLinearMinutes(a.startTime);
-      const timeB = getLinearMinutes(b.startTime);
-      if (timeA !== timeB) return timeA - timeB;
-      return a.originalIndex - b.originalIndex;
+    const shouldShiftToNextDay = (medName: string, startTime: string | null | undefined, type: string) => {
+      if (type === 'darkness') return false;
+      if (!startTime) return false;
+      
+      const isWater = medName.includes('ماء') || medName.includes('مياه') || medName.includes('راحة');
+      if (isWater) return false;
+
+      const [h, m] = startTime.split(':').map(Number);
+      if (isNaN(h)) return false;
+      return h >= 0 && h < 8; // Past midnight and before 8 AM
+    };
+
+    const currentShiftedKeys = getShiftedKeysForAge(age, scheduledData);
+
+    const isCurrentShifted = (item: any) => {
+      return false;
+    };
+
+    const currentAgeItems = [...scheduledData, ...emergencyData].filter(
+      item => !isCurrentShifted(item)
+    );
+
+    const normalizeArabicText = (text: string): string => {
+      if (!text) return '';
+      return text
+        .trim()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/[\u064B-\u065F]/g, '')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    };
+
+    let yesterdayShifted: any[] = [];
+    if (age > 1) {
+      const yesterdayAge = age - 1;
+      const yesterdayTimeline = getUnifiedTimelineForAge(yesterdayAge);
+      
+      const deferredShifted = yesterdayTimeline
+        .filter(item => item.type !== 'darkness' && !item.isCarriedOver && !(item.startTime || state.medicationLogs[item.logKey]) && item.absoluteStartMins >= 1440)
+        .map((item, idx) => {
+          const logKey = `${age}-carried-${yesterdayAge}-${item.id || item.name}`;
+          const savedStartTime = state.medicationLogs[logKey] || null;
+          
+          const override = state.medDataOverrides?.[logKey] as any;
+          const currentDuration = override?.duration !== undefined ? toNum(override.duration) : (item.duration || item.recommendedHours);
+          const currentDoseValue = override?.doseValue !== undefined ? toNum(override.doseValue) : item.doseValue;
+          const currentUnit = override?.unit !== undefined ? override.unit : item.unit;
+          const currentName = override?.name || item.name;
+          const currentCategory = override?.category || item.category;
+          const water = Math.round((dailyWaterTotalLiters / 24) * currentDuration);
+
+          return {
+            ...item,
+            name: currentName,
+            duration: currentDuration,
+            recommendedHours: currentDuration,
+            doseValue: currentDoseValue,
+            unit: currentUnit,
+            category: currentCategory,
+            calculatedWater: water,
+            isCarriedOverDeferred: true,
+            isCarriedOver: false,
+            isNextDay: false,
+            startTime: savedStartTime,
+            resolvedStartTime: savedStartTime,
+            logKey,
+            originalAge: yesterdayAge,
+            order: -50 + idx
+          };
+        })
+        .filter(item => !state.medDataOverrides?.[item.logKey]?.isDeleted);
+
+      yesterdayShifted = deferredShifted;
+    }
+
+    const finalTimeline = [...currentAgeItems, ...yesterdayShifted, ...(darknessEntry.duration > 0 ? [darknessEntry] : [])];
+
+    const orderedShifted = [...yesterdayShifted].sort((a, b) => a.order - b.order);
+    const orderedRegular = currentAgeItems.filter(item => (item.type as string) !== 'darkness').sort((a, b) => a.order - b.order);
+    const baseOrdered = [...orderedShifted, ...orderedRegular, ...(darknessEntry.duration > 0 ? [darknessEntry] : [])];
+
+    const minutesToTimeStr = (mins: number) => {
+      const wrapped = (Math.round(mins) % 1440 + 1440) % 1440;
+      const h = Math.floor(wrapped / 60);
+      const m = Math.round(wrapped % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    const getAbsoluteMins = (timeStr: string, isShiftedItem?: boolean) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      let mins = h * 60 + m;
+      if (isShiftedItem && h >= 12) {
+        mins -= 1440;
+      }
+      return mins;
+    };
+
+    const getDayTransitionInfoInternal = (targetAge: number) => {
+      if (targetAge <= 1) return null;
+      const yesterday = getUnifiedTimelineForAge(targetAge - 1);
+      
+      const getFinishMinutesRelToToday = (item: any) => {
+        if (item.absoluteEndMins !== undefined) {
+          return item.absoluteEndMins - 1440;
+        }
+        const sTime = item.startTime || item.resolvedStartTime;
+        if (!sTime) return -1440;
+        const [h, m] = sTime.split(':').map(Number);
+        const duration = item.recommendedHours || 0;
+        return (h * 60 + m + duration * 60) - 1440;
+      };
+
+      let filteredYesterday = [...yesterday].filter(i => i.startTime);
+      if (filteredYesterday.length === 0) {
+        filteredYesterday = [...yesterday].filter(i => i.resolvedStartTime);
+      }
+      const sortedYesterday = filteredYesterday
+        .sort((a, b) => getFinishMinutesRelToToday(b) - getFinishMinutesRelToToday(a));
+        
+      const lastPrev = sortedYesterday[0];
+      if (!lastPrev || !lastPrev.resolvedStartTime) return null;
+
+      const totalMinutes = getFinishMinutesRelToToday(lastPrev) + 1440;
+      const endH = Math.floor(totalMinutes / 60) % 24;
+      const endM = Math.round(totalMinutes % 60);
+      const rawEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+      return {
+        rawEndTime,
+        rawNextStartTime: rawEndTime,
+        item: lastPrev
+      };
+    };
+
+    // Pass 1: Resolve initially using default baseOrdered list order to calculate initial estimates
+    const firstPassResolved: any[] = [];
+    baseOrdered.forEach((item, index) => {
+      const resolvedItem = { ...item };
+
+      if (resolvedItem.isCarriedOver) {
+        resolvedItem.resolvedEndTimeMins = resolvedItem.absoluteEndMins;
+        firstPassResolved.push({
+          ...resolvedItem,
+          resolvedStartTime: resolvedItem.startTime,
+          suggestedStartTime: resolvedItem.startTime,
+          resolvedEndTime: minutesToTimeStr(resolvedItem.absoluteEndMins),
+          isSuggestedStartTime: false,
+          isSpanningMidnight: false,
+          overlapsDarkness: false,
+          absoluteStartMins: resolvedItem.absoluteStartMins,
+          absoluteEndMins: resolvedItem.absoluteEndMins,
+          isNextDay: false
+        });
+        return;
+      }
+
+      let startTime = resolvedItem.startTime;
+      let isSuggested = false;
+      let absoluteStartMins = 0;
+
+      if (startTime) {
+        isSuggested = false;
+        absoluteStartMins = getAbsoluteMins(startTime, resolvedItem.isNextDay);
+      } else {
+        isSuggested = true;
+        if (index === 0) {
+          const dayTransition = getDayTransitionInfoInternal(age);
+          if (dayTransition) {
+            absoluteStartMins = getAbsoluteMins(dayTransition.rawEndTime, true);
+          } else {
+            if (age === 1) {
+              const orsTime = state.medicationLogs['1-d1-ors'];
+              if (orsTime) {
+                absoluteStartMins = getAbsoluteMins(orsTime, false);
+              } else {
+                absoluteStartMins = 8 * 60;
+              }
+            } else {
+              absoluteStartMins = 8 * 60;
+            }
+          }
+        } else {
+          const predecessor = firstPassResolved[index - 1];
+          const predEndMins = predecessor ? (predecessor as any).resolvedEndTimeMins : 0;
+          
+          let gapHours = 1;
+          const isPastMidnight = predecessor ? (predEndMins >= 1440 || (predecessor.isCarriedOver && predEndMins > 0)) : false;
+          if (predecessor && (predecessor.category === 'راحة' || resolvedItem.category === 'راحة' || predecessor.isAntibiotic || resolvedItem.isNextDay || isPastMidnight)) {
+            gapHours = 0;
+          }
+          absoluteStartMins = predEndMins + gapHours * 60;
+        }
+        startTime = minutesToTimeStr(absoluteStartMins);
+      }
+
+      const duration = toNum(resolvedItem.duration || resolvedItem.recommendedHours || 0);
+      const absoluteEndMins = absoluteStartMins + duration * 60;
+      const endTime = minutesToTimeStr(absoluteEndMins);
+
+      resolvedItem.resolvedEndTimeMins = absoluteEndMins;
+
+      const isSpanningMidnight = (absoluteStartMins < 0 && absoluteEndMins >= 0) || (absoluteStartMins < 1440 && absoluteEndMins >= 1440);
+      const overlapsDarkness = resolvedItem.type === 'darkness' ? false : isOverlappingDarkness(startTime, duration, schedule.darknessStart, schedule.darknessHours);
+
+      firstPassResolved.push({
+        ...resolvedItem,
+        resolvedStartTime: startTime,
+        suggestedStartTime: startTime,
+        resolvedEndTime: endTime,
+        isSuggestedStartTime: isSuggested,
+        isSpanningMidnight,
+        overlapsDarkness,
+        absoluteStartMins,
+        absoluteEndMins,
+        isNextDay: absoluteStartMins >= 1440 || !!resolvedItem.isNextDay
+      });
     });
+
+    // Pass 2: Sort based on start times, with confirmed times and then unconfirmed/suggested ones
+    const sortedTimeline = [...firstPassResolved].sort((a, b) => {
+      if (a.type === 'darkness' && b.type !== 'darkness') return 1;
+      if (b.type === 'darkness' && a.type !== 'darkness') return -1;
+      if (a.type === 'darkness' && b.type === 'darkness') return 0;
+
+      const aTime = a.absoluteStartMins ?? 0;
+      const bTime = b.absoluteStartMins ?? 0;
+      
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+      
+      // Tie-breaker: confirmed start times (isSuggestedStartTime = false) come BEFORE suggested/unconfirmed ones
+      if (!a.isSuggestedStartTime && b.isSuggestedStartTime) return -1;
+      if (a.isSuggestedStartTime && !b.isSuggestedStartTime) return 1;
+      
+      // Secondary tie-breaker: order by default scheduled order
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
+
+    // Pass 3: Final Recalculation/Resolution of sequential suggested/unconfirmed times based on sorted order
+    const finalResolvedItems: any[] = [];
+    sortedTimeline.forEach((item, index) => {
+      const resolvedItem = { ...item };
+
+      if (resolvedItem.isCarriedOver) {
+        resolvedItem.resolvedEndTimeMins = resolvedItem.absoluteEndMins;
+        finalResolvedItems.push(resolvedItem);
+        return;
+      }
+
+      let absoluteStartMins = resolvedItem.absoluteStartMins;
+      let startTime = resolvedItem.startTime;
+
+      // If the start time is suggested (not confirmed), recalculate it based on its predecessor in the SORTED timeline!
+      if (resolvedItem.isSuggestedStartTime) {
+        if (index === 0) {
+          const dayTransition = getDayTransitionInfoInternal(age);
+          if (dayTransition) {
+            absoluteStartMins = getAbsoluteMins(dayTransition.rawEndTime, true);
+          } else {
+            if (age === 1) {
+              const orsTime = state.medicationLogs['1-d1-ors'];
+              if (orsTime) {
+                absoluteStartMins = getAbsoluteMins(orsTime, false);
+              } else {
+                absoluteStartMins = 8 * 60;
+              }
+            } else {
+              absoluteStartMins = 8 * 60;
+            }
+          }
+        } else {
+          const predecessor = finalResolvedItems[index - 1];
+          const predEndMins = predecessor ? (predecessor as any).resolvedEndTimeMins : 0;
+          
+          let gapHours = 1;
+          const isPastMidnight = predecessor ? (predEndMins >= 1440 || (predecessor.isCarriedOver && predEndMins > 0)) : false;
+          if (predecessor && (predecessor.category === 'راحة' || resolvedItem.category === 'راحة' || predecessor.isAntibiotic || resolvedItem.isNextDay || isPastMidnight)) {
+            gapHours = 0;
+          }
+          absoluteStartMins = predEndMins + gapHours * 60;
+        }
+        startTime = minutesToTimeStr(absoluteStartMins);
+      }
+
+      const duration = toNum(resolvedItem.duration || resolvedItem.recommendedHours || 0);
+      const absoluteEndMins = absoluteStartMins + duration * 60;
+      const endTime = minutesToTimeStr(absoluteEndMins);
+
+      resolvedItem.resolvedEndTimeMins = absoluteEndMins;
+
+      const isSpanningMidnight = (absoluteStartMins < 0 && absoluteEndMins >= 0) || (absoluteStartMins < 1440 && absoluteEndMins >= 1440);
+      const overlapsDarkness = resolvedItem.type === 'darkness' ? false : isOverlappingDarkness(startTime, duration, schedule.darknessStart, schedule.darknessHours);
+
+      finalResolvedItems.push({
+        ...resolvedItem,
+        resolvedStartTime: startTime,
+        suggestedStartTime: startTime,
+        resolvedEndTime: endTime,
+        isSpanningMidnight,
+        overlapsDarkness,
+        absoluteStartMins,
+        absoluteEndMins,
+        isNextDay: absoluteStartMins >= 1440 || !!resolvedItem.isNextDay
+      });
+    });
+
+    return finalResolvedItems;
   }, [state.medDataOverrides, state.medicationLogs, state.emergencyMeds, state.climate, getLightingScheduleForAge, dailyWaterTotalLiters]);
 
   const unifiedTimeline = useMemo(() => {
     return getUnifiedTimelineForAge(toNum(state.age));
+  }, [getUnifiedTimelineForAge, state.age]);
+
+  const tomorrowFirstMed = useMemo(() => {
+    const timeline = getUnifiedTimelineForAge(toNum(state.age) + 1);
+    const medsOnly = timeline.filter((item: any) => item.type !== 'darkness');
+    return medsOnly.length > 0 ? medsOnly[0] : null;
   }, [getUnifiedTimelineForAge, state.age]);
 
   const formatTime12 = (timeStr: string) => {
@@ -4583,8 +5667,11 @@ export default function App() {
       return h * 60 + m + duration * 60;
     };
 
-    const lastPrev = [...yesterday]
-      .filter(i => (i.startTime || i.resolvedStartTime))
+    let filteredYesterday = [...yesterday].filter(i => i.startTime);
+    if (filteredYesterday.length === 0) {
+      filteredYesterday = [...yesterday].filter(i => i.resolvedStartTime);
+    }
+    const lastPrev = filteredYesterday
       .sort((a, b) => getFinishMinutes(b) - getFinishMinutes(a))[0];
     
     if (!lastPrev || !(lastPrev.startTime || lastPrev.resolvedStartTime)) return null;
@@ -4615,7 +5702,77 @@ export default function App() {
     };
   };
 
-  const getSuggestedStartTime = (med: any, prevItem?: any) => {
+  const getSuggestedStartTime = (med: any, prevItem?: any): string | null => {
+    if (med && med.isCarriedOverDeferred) {
+      // 1. If a specific predecessor (prevItem) is provided, depend on its end time
+      if (prevItem) {
+        const prevStart = prevItem.startTime || prevItem.resolvedStartTime;
+        if (prevStart) {
+          const [h, m] = prevStart.split(':').map(Number);
+          const duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
+          let gapHours = 1;
+          if (prevItem.category === 'راحة' || med.category === 'راحة' || prevItem.isAntibiotic) {
+            gapHours = 0;
+          }
+          const endMins = h * 60 + m + (duration + gapHours) * 60;
+          const wrapped = (Math.round(endMins) % 1440 + 1440) % 1440;
+          const endH = Math.floor(wrapped / 60);
+          const endM = Math.round(wrapped % 60);
+          return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+        }
+      }
+
+      // 2. Otherwise, find the last actually used dose today (excluding this deferred med)
+      const activeMedsToday = unifiedTimeline.filter(i => i.logKey !== med.logKey && i.startTime);
+      if (activeMedsToday.length > 0) {
+        const sortedToday = [...activeMedsToday].map(item => {
+          const [h, m] = item.startTime.split(':').map(Number);
+          const duration = item.recommendedHours || toNum(item.duration) || 0;
+          const endMins = h * 60 + m + duration * 60;
+          return { item, endMins };
+        }).sort((a, b) => b.endMins - a.endMins);
+        
+        const lastMins = sortedToday[0].endMins;
+        const wrapped = (Math.round(lastMins) % 1440 + 1440) % 1440;
+        const endH = Math.floor(wrapped / 60);
+        const endM = Math.round(wrapped % 60);
+        return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      } else {
+        // 3. No active medications today, check yesterday
+        const age = toNum(state.age);
+        if (age > 1) {
+          const yesterdayTimeline = getUnifiedTimelineForAge(age - 1);
+          let activeMedsYesterday = yesterdayTimeline.filter(i => i.startTime || state.medicationLogs[i.logKey]);
+          if (activeMedsYesterday.length === 0) {
+            activeMedsYesterday = yesterdayTimeline.filter(i => i.resolvedStartTime);
+          }
+          if (activeMedsYesterday.length > 0) {
+            const sortedYesterday = [...activeMedsYesterday].map(item => {
+              const sTime = item.startTime || state.medicationLogs[item.logKey] || item.resolvedStartTime;
+              const [h, m] = sTime.split(':').map(Number);
+              const duration = item.recommendedHours || toNum(item.duration) || 0;
+              const endMins = h * 60 + m + duration * 60;
+              return { item, endMins };
+            }).sort((a, b) => b.endMins - a.endMins);
+            
+            const lastMins = sortedYesterday[0].endMins;
+            const wrapped = (Math.round(lastMins) % 1440 + 1440) % 1440;
+            const endH = Math.floor(wrapped / 60);
+            const endM = Math.round(wrapped % 60);
+            return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+          }
+        }
+      }
+      if (med.suggestedStartTime) {
+        return med.suggestedStartTime;
+      }
+      return "08:00";
+    }
+
+    if (med && med.suggestedStartTime) {
+      return med.suggestedStartTime;
+    }
+
     if (toNum(state.age) === 1 && med && med.id !== 'd1-ors') {
       const orsTime = state.medicationLogs['1-d1-ors'];
       if (!orsTime) return null;
@@ -4623,11 +5780,24 @@ export default function App() {
 
     let endTimeStr: string | null = null;
     let duration = 0;
+    let currentMedForGap: any = null;
 
-    const prevStart = prevItem ? (prevItem.startTime || prevItem.resolvedStartTime) : null;
-    if (prevItem && prevStart) {
-      endTimeStr = prevStart;
-      duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
+    if (prevItem) {
+      const prevStart = prevItem.startTime || prevItem.resolvedStartTime;
+      if (prevStart) {
+        endTimeStr = prevStart;
+        duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
+        currentMedForGap = prevItem;
+      } else {
+        const grandPrevIdx = unifiedTimeline.findIndex(x => x.logKey === prevItem.logKey);
+        const grandPrev = grandPrevIdx > 0 ? unifiedTimeline[grandPrevIdx - 1] : undefined;
+        const suggestedPrevStart = getSuggestedStartTime(prevItem, grandPrev);
+        if (suggestedPrevStart) {
+          endTimeStr = suggestedPrevStart;
+          duration = prevItem.recommendedHours || toNum(prevItem.duration) || 0;
+          currentMedForGap = prevItem;
+        }
+      }
     } else {
       const info = getDayTransitionInfo();
       if (info) return info.rawNextStartTime;
@@ -4636,6 +5806,7 @@ export default function App() {
       if (last) {
         endTimeStr = last.startTime || last.resolvedStartTime;
         duration = last.recommendedHours || 0;
+        currentMedForGap = last;
       }
     }
 
@@ -4647,7 +5818,15 @@ export default function App() {
     const [h, m] = parts.map(Number);
     if (isNaN(h) || isNaN(m)) return null;
 
-    const totalMinutes = h * 60 + m + duration * 60;
+    // Determine gap hours using the exact same logic as getNextTime
+    let gapHours = (med && med.isNextDay) ? 0 : 1;
+    if (currentMedForGap && med) {
+      if (currentMedForGap.category === 'راحة' || med.category === 'راحة' || currentMedForGap.isAntibiotic) {
+        gapHours = 0;
+      }
+    }
+
+    const totalMinutes = h * 60 + m + (duration * 60) + (gapHours * 60);
     const endH = Math.floor(totalMinutes / 60) % 24;
     const endM = Math.round(totalMinutes % 60);
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
@@ -4660,6 +5839,73 @@ export default function App() {
     const d = new Date();
     d.setHours(h + (last.recommendedHours || 0), m, 0, 0);
     return { latestEndTime: d, latestMed: last };
+  };
+
+  const getActiveOrLastEndedDoseEndTime = () => {
+    const confirmedItems = unifiedTimeline.filter(item => 
+      item.startTime && 
+      !item.isSuggestedStartTime && 
+      item.type !== 'darkness'
+    );
+
+    if (confirmedItems.length === 0) {
+      return getSuggestedStartTime({ isRest: false, category: 'عام' }) || '';
+    }
+
+    const now = new Date();
+    const nowTime = now.getTime();
+
+    let activeDose: any = null;
+    let lastEndedDose: any = null;
+    let lastEndedTimeDiff = Infinity;
+
+    const sortedConfirmed = [...confirmedItems].sort((a, b) => {
+      const aMins = a.absoluteStartMins ?? 0;
+      const bMins = b.absoluteStartMins ?? 0;
+      return aMins - bMins;
+    });
+
+    sortedConfirmed.forEach(item => {
+      const [startH, startM] = item.startTime.split(':').map(Number);
+      const duration = toNum(item.duration || item.recommendedHours || 0);
+
+      const startDate = new Date();
+      startDate.setHours(startH, startM, 0, 0);
+
+      const endDate = new Date(startDate.getTime() + duration * 60 * 60 * 1000);
+
+      if (item.isNextDay) {
+        startDate.setDate(startDate.getDate() + 1);
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      const startMs = startDate.getTime();
+      const endMs = endDate.getTime();
+
+      if (nowTime >= startMs && nowTime <= endMs) {
+        activeDose = item;
+      } else if (nowTime > endMs) {
+        const diff = nowTime - endMs;
+        if (diff < lastEndedTimeDiff) {
+          lastEndedTimeDiff = diff;
+          lastEndedDose = item;
+        }
+      }
+    });
+
+    if (activeDose) {
+      return (activeDose as any).resolvedEndTime || '';
+    }
+    if (lastEndedDose) {
+      return (lastEndedDose as any).resolvedEndTime || '';
+    }
+
+    const latestConfirmed = sortedConfirmed[sortedConfirmed.length - 1];
+    if (latestConfirmed) {
+      return (latestConfirmed as any).resolvedEndTime || '';
+    }
+
+    return getSuggestedStartTime({ isRest: false, category: 'عام' }) || '';
   };
 
 
@@ -4695,7 +5941,7 @@ export default function App() {
   // Comfort THI based on target temperature and 50% relative humidity
   const targetThi = Math.round((targetTemp - (0.31 - 0.31 * 0.5) * (targetTemp - 14.4)) * 10) / 10;
   
-  const padsCount = state.coolingPadsCount || 4;
+  const padsCount = state.coolingPadsCount !== undefined ? state.coolingPadsCount : 1;
   
   // Cold Stress Logic (Wind Chill Factor)
   const coldStress = targetTemp - realFeelTemp;
@@ -4711,6 +5957,16 @@ export default function App() {
           if (check.display !== 'granted') {
             await LocalNotifications.requestPermissions();
           }
+          // Create the custom notification channel for Android with high importance
+          await LocalNotifications.createChannel({
+            id: 'poultry-alerts',
+            name: 'تنبيهات المزرعة الذكية',
+            description: 'قناة لتنبيهات الحرارة والرطوبة والتهوية ومواعيد الأدوية العاجلة',
+            importance: 5, // IMPORTANCE_HIGH (sound and banner)
+            visibility: 1, // VISIBILITY_PUBLIC
+            sound: 'beep.wav',
+            vibration: true,
+          });
         } else if ('Notification' in window) {
           if (Notification.permission === 'default') {
             await Notification.requestPermission();
@@ -4788,11 +6044,11 @@ export default function App() {
       // Feed & Water calculations (smart check)
       if (notificationSettings.feedWaterAlerts) {
         const stdFeedKg = (getDailyStats(state.strain, toNum(state.age)).dailyFeed * toNum(state.totalChicks)) / 1000;
-        const stdWaterLiters = (getDailyStats(state.strain, toNum(state.age)).dailyWater * toNum(state.totalChicks)) / 1000;
+        const stdWaterLiters = dailyWaterTotalLiters;
         dynamicAlerts.push({
           id: 'feed-water-guide',
           title: "🌾 إرشاد التغذية ومياه الشرب لليوم",
-          body: `اليوم (${state.age}) يحتاج القطيع (${state.totalChicks} طائر) إلى حوالي ${stdFeedKg.toFixed(1)} كجم علف جاهز و ${stdWaterLiters.toFixed(1)} لتر من مياه الشرب النقية. يرجى متابعة ومطابقة القراءات الفعلية لضمان النمو.`,
+          body: `اليوم (${state.age}) يحتاج القطيع بعد خصم النافق (${finances.birdsAlive} طائر) إلى حوالي ${stdFeedKg.toFixed(1)} كجم علف جاهز و ${stdWaterLiters} لتر من مياه الشرب النقية (بناءً على قانون استهلاك المياه المعتمد). يرجى متابعة ومطابقة القراءات الفعلية لضمان النمو.`,
           time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           type: 'general'
         });
@@ -4875,18 +6131,32 @@ export default function App() {
               body: `درجة الحرارة الحالية ${currentTemp}°م (المستهدفة ${targetTemp}°م). الفارق ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م! يرجى فحص التهوية والتبريد فوراً.`,
               id: 9991201,
               schedule: { at: new Date(Date.now() + 1000) },
-              sound: 'beep.wav'
+              sound: 'beep.wav',
+              channelId: 'poultry-alerts'
             });
           }
 
-          // High Heat Stress (THI)
+          // High Heat Stress / Ventilation Alert (THI)
           if (thi > targetThi + 3 && notificationSettings.tempAlerts) {
             notificationsToSchedule.push({
-              title: "🚨 إجهاد حراري مرتفع جداً!",
-              body: `درجة الإجهاد الفعلي هي ${thi.toFixed(1)} تفوق الحد المريح (${targetThi.toFixed(1)}). شغل خلايا التبريد والشفاطات الآن!`,
+              title: "🚨 إجهاد حراري وتهوئة غير كافية!",
+              body: `درجة الإجهاد الفعلي هي ${thi.toFixed(1)} تفوق الحد المريح (${targetThi.toFixed(1)}). شغل خلايا التبريد والشفاطات لزيادة سرعة الهواء!`,
               id: 9991202,
               schedule: { at: new Date(Date.now() + 1000) },
-              sound: 'beep.wav'
+              sound: 'beep.wav',
+              channelId: 'poultry-alerts'
+            });
+          }
+
+          // Cold Draft / Ventilation Warning
+          if (isColdAlert && notificationSettings.tempAlerts) {
+            notificationsToSchedule.push({
+              title: "💨 تيار هواء بارد بالعنبر!",
+              body: `درجة الحرارة المحسوسة ${realFeelTemp.toFixed(1)}°م أبرد من المستهدفة بـ ${coldStress.toFixed(1)}°م! يرجى موازنة الشفاطات لتقليل سرعة الهواء وسلامة الطيور.`,
+              id: 9991204,
+              schedule: { at: new Date(Date.now() + 1000) },
+              sound: 'beep.wav',
+              channelId: 'poultry-alerts'
             });
           }
 
@@ -4897,7 +6167,8 @@ export default function App() {
               body: `نسبة الرطوبة الحالية ${currentHum}% (المستهدفة مريحة). تحقق من التهوئة والرشاشات فوراً.`,
               id: 9991203,
               schedule: { at: new Date(Date.now() + 1000) },
-              sound: 'beep.wav'
+              sound: 'beep.wav',
+              channelId: 'poultry-alerts'
             });
           }
 
@@ -4922,7 +6193,8 @@ export default function App() {
                     body: `متبقي نصف ساعة على نهاية تأثير جرعة "${med.name}". استعد لتحضير الجرعة التالية لضمان سلامة القطيع.`,
                     id: 30000 + idx * 3,
                     schedule: { at: preEndDate },
-                    sound: 'beep.wav'
+                    sound: 'beep.wav',
+                    channelId: 'poultry-alerts'
                   });
                 }
 
@@ -4933,7 +6205,8 @@ export default function App() {
                     body: `انتهت الآن فترة جرعة الدواء "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
                     id: 30000 + idx * 3 + 1,
                     schedule: { at: endDate },
-                    sound: 'beep.wav'
+                    sound: 'beep.wav',
+                    channelId: 'poultry-alerts'
                   });
                 }
 
@@ -4949,7 +6222,8 @@ export default function App() {
                       body: `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته.`,
                       id: 30000 + idx * 3 + 2,
                       schedule: { at: nextStartDate },
-                      sound: 'beep.wav'
+                      sound: 'beep.wav',
+                      channelId: 'poultry-alerts'
                     });
                   }
                 }
@@ -4970,13 +6244,41 @@ export default function App() {
             const now = Date.now();
             const w = window as any;
 
+            // Helper to show notification (either standard or via active Service Worker for background persistence)
+            const showWebNotification = (title: string, body: string, tag: string) => {
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ 
+                  type: 'SHOW_NOTIFICATION', 
+                  title, 
+                  body, 
+                  tag 
+                });
+              } else {
+                new Notification(title, { body, icon: '/assets/icon.png', tag });
+              }
+            };
+
+            // Register schedules in Service Worker so they trigger when closed
+            const scheduleWebNotification = (title: string, body: string, timeStamp: number, tag: string) => {
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'SCHEDULE_NOTIFICATION',
+                  title,
+                  body,
+                  time: timeStamp,
+                  tag
+                });
+              }
+            };
+
             // Debounced Temperature Alert
             if (Math.abs(diff) > 2 && notificationSettings.tempAlerts) {
               if (!w._lastTempNotifTime || now - w._lastTempNotifTime > 60000) {
-                new Notification(diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض في الحرارة!", {
-                  body: `الحرارة الحالية: ${currentTemp}°م، المستهدفة: ${targetTemp}°م. الفارق: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م!`,
-                  icon: '/assets/icon.png'
-                });
+                showWebNotification(
+                  diff > 0 ? "⚠️ ارتفاع حرارة المزرعة!" : "⚠️ انخفاض في الحرارة!",
+                  `الحرارة الحالية: ${currentTemp}°م، المستهدفة: ${targetTemp}°م. الفارق: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}°م!`,
+                  'temp'
+                );
                 w._lastTempNotifTime = now;
               }
             }
@@ -4984,10 +6286,11 @@ export default function App() {
             // Debounced THI Alert
             if (thi > targetThi + 3 && notificationSettings.tempAlerts) {
               if (!w._lastThiNotifTime || now - w._lastThiNotifTime > 60000) {
-                new Notification("🚨 إجهاد حراري مرتفع جداً!", {
-                  body: `مؤشر الإجهاد الحالي ${thi.toFixed(1)} يتجاوز الحد المريح والمستهدف لكتاكيتك (${targetThi.toFixed(1)}).`,
-                  icon: '/assets/icon.png'
-                });
+                showWebNotification(
+                  "🚨 إجهاد حراري مرتفع جداً!",
+                  `مؤشر الإجهاد الحالي ${thi.toFixed(1)} يتجاوز الحد المريح والمستهدف لكتاكيتك (${targetThi.toFixed(1)}).`,
+                  'thi'
+                );
                 w._lastThiNotifTime = now;
               }
             }
@@ -4995,19 +6298,24 @@ export default function App() {
             // Debounced Humidity Alert
             if ((currentHum > 75 || currentHum < 40) && notificationSettings.humidityAlerts) {
               if (!w._lastHumNotifTime || now - w._lastHumNotifTime > 60000) {
-                new Notification(currentHum > 75 ? "💧 رطوبة مرتفعة جداً!" : "🍂 رطوبة منخفضة وجفاف!", {
-                  body: `نسبة الرطوبة الحالية ${currentHum}%، يرجى فحص المراوح والتهوية في المزرعة.`,
-                  icon: '/assets/icon.png'
-                });
+                showWebNotification(
+                  currentHum > 75 ? "💧 رطوبة مرتفعة جداً!" : "🍂 رطوبة منخفضة وجفاف!",
+                  `نسبة الرطوبة الحالية ${currentHum}%، يرجى فحص المراوح والتهوية في المزرعة.`,
+                  'humidity'
+                );
                 w._lastHumNotifTime = now;
               }
             }
 
-            // Web Medication timeout triggers
+            // Web Medication timeout triggers and Service Worker background scheduling
             if (w._medicationTimers) {
               w._medicationTimers.forEach(clearTimeout);
             }
             w._medicationTimers = [];
+
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_SCHEDULED_NOTIFICATIONS' });
+            }
 
             if (notificationSettings.medicationAlerts) {
               unifiedTimeline.forEach((med: any, idx: number) => {
@@ -5025,25 +6333,45 @@ export default function App() {
                   const preEndDate = new Date(endDate.getTime() - 30 * 60 * 1000);
                   const delayPreEnd = preEndDate.getTime() - Date.now();
                   if (delayPreEnd > 0 && delayPreEnd < 86400000) {
+                    // 1. Interactive App timeout
                     const tId = setTimeout(() => {
-                      new Notification(`⏱️ اقترب انتهاء دواء (${med.name})`, {
-                        body: `متبقي نصف ساعة على انتهاء تأثير جرعة "${med.name}". يرجى الاستعداد بتجهيز الجرعة التالية.`,
-                        icon: '/assets/icon.png'
-                      });
+                      showWebNotification(
+                        `⏱️ اقترب انتهاء دواء (${med.name})`,
+                        `متبقي نصف ساعة على انتهاء تأثير جرعة "${med.name}". يرجى الاستعداد بتجهيز الجرعة التالية.`,
+                        `pre-${med.name}`
+                      );
                     }, delayPreEnd);
                     w._medicationTimers.push(tId);
+
+                    // 2. Service worker persistent scheduler for background/closed app
+                    scheduleWebNotification(
+                      `⏱️ اقترب انتهاء دواء (${med.name})`,
+                      `متبقي نصف ساعة على انتهاء تأثير جرعة "${med.name}". يرجى الاستعداد بتجهيز الجرعة التالية.`,
+                      preEndDate.getTime(),
+                      `pre-${med.name}`
+                    );
                   }
 
                   // Dose End alert
                   const delayEnd = endDate.getTime() - Date.now();
                   if (delayEnd > 0 && delayEnd < 86400000) {
+                    // 1. Interactive App timeout
                     const tId = setTimeout(() => {
-                      new Notification(`⏰ انتهاء جرعة الدواء (${med.name})`, {
-                        body: `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
-                        icon: '/assets/icon.png'
-                      });
+                      showWebNotification(
+                        `⏰ انتهاء جرعة الدواء (${med.name})`,
+                        `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                        `end-${med.name}`
+                      );
                     }, delayEnd);
                     w._medicationTimers.push(tId);
+
+                    // 2. Service worker persistent scheduler for background/closed app
+                    scheduleWebNotification(
+                      `⏰ انتهاء جرعة الدواء (${med.name})`,
+                      `انتهت فترة جرعة الدواء الحالية "${med.name}". يرجى تفريغ خطوط المياه وتقديم مياه نقية أو جرعة جديدة.`,
+                      endDate.getTime(),
+                      `end-${med.name}`
+                    );
                   }
 
                   // Next scheduled medicine dose start
@@ -5053,13 +6381,23 @@ export default function App() {
                     const nextStartDate = new Date(endDate.getTime() + gapHours * 60 * 60 * 1000);
                     const delayNext = nextStartDate.getTime() - Date.now();
                     if (delayNext > 0 && delayNext < 86400000) {
+                      // 1. Interactive App timeout
                       const tId = setTimeout(() => {
-                        new Notification(`💊 موعد الجرعة التالية (${nextAct.name})`, {
-                          body: `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته لعلاج الدواجن.`,
-                          icon: '/assets/icon.png'
-                        });
+                        showWebNotification(
+                          `💊 موعد الجرعة التالية (${nextAct.name})`,
+                          `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته لعلاج الدواجن.`,
+                          `next-${nextAct.name}`
+                        );
                       }, delayNext);
                       w._medicationTimers.push(tId);
+
+                      // 2. Service worker persistent scheduler for background/closed app
+                      scheduleWebNotification(
+                        `💊 موعد الجرعة التالية (${nextAct.name})`,
+                        `حان الآن موعد تقديم جرعة الدواء التالية للقطيع: "${nextAct.name}". يرجى تجهيز الخزان وإضافته لعلاج الدواجن.`,
+                        nextStartDate.getTime(),
+                        `next-${nextAct.name}`
+                      );
                     }
                   }
                 }
@@ -5091,7 +6429,8 @@ export default function App() {
     effectiveTemp,
     state.totalChicks,
     state.strain,
-    notificationSettings
+    notificationSettings,
+    dailyWaterTotalLiters
   ]);
 
   const chartData = useMemo(() => {
@@ -5231,7 +6570,7 @@ export default function App() {
   // Show Loading Screen if Auth is still checking
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-8 p-6" dir="rtl">
+      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center gap-8 p-6" dir="rtl">
         <div className="flex flex-col items-center gap-4">
           <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
           <p className="text-slate-400 font-black tracking-[0.2em] animate-pulse text-center uppercase text-sm">جاري التحميل والتحقق...</p>
@@ -5273,7 +6612,7 @@ export default function App() {
 
   if (screen === 'gateway') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative overflow-hidden" dir="rtl">
+      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative overflow-hidden" dir="rtl">
         {/* Decorative background elements */}
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
@@ -5283,81 +6622,355 @@ export default function App() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md bento-card p-10 border-white/10 relative z-10 backdrop-blur-xl bg-slate-900/80 shadow-2xl"
+          className="w-full max-w-md bento-card p-10 border-white/10 relative z-10 backdrop-blur-xl bg-slate-900/80 shadow-2xl animate-fade-in"
         >
-          <div className="flex flex-col items-center gap-6 mb-12">
+          <div className="flex flex-col items-center gap-6 mb-8">
             <Logo size={96} iconSize={48} className="rounded-[2.5rem]" />
             <div className="text-center">
               <h1 className="text-2xl font-black text-white mb-1 uppercase tracking-tight">مدير مزارع الدواجن</h1>
-              <p className="text-slate-400 font-bold text-sm">برجاء تسجيل الدخول للمتابعة</p>
+              <p className="text-slate-400 font-bold text-sm">
+                {authMode === 'login' ? 'برجاء تسجيل الدخول للمتابعة' : 'إنشاء حساب جديد للمتابعة'}
+              </p>
             </div>
           </div>
 
-          <form onSubmit={handleGatewayLogin} className="space-y-5">
-            <div className="space-y-2 text-right">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">البريد الإلكتروني</label>
-              <input 
-                type="email"
-                value={gatewayEmail}
-                onChange={(e) => setGatewayEmail(e.target.value)}
-                placeholder="اسم المستخدم"
-                required
-                autoCapitalize="none"
-                className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700"
-              />
-            </div>
-            
-            <div className="space-y-2 text-right relative">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">كلمة المرور</label>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  value={gatewayPassword}
-                  onChange={(e) => setGatewayPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-6 pl-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between px-2 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
-                  <input 
-                    type="checkbox" 
-                    className="peer hidden" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)} 
-                  />
-                  <div className={cn(
-                    "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
-                    rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                  )}>
-                    <Check size={16} className="text-white" strokeWidth={4} />
-                  </div>
-                </div>
-                <span className="text-slate-400 font-bold text-sm select-none">تذكرني</span>
-              </label>
-            </div>
-
-            <motion.button 
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
+          {/* Toggle Tab */}
+          <div className="flex flex-row bg-slate-950/60 p-1.5 rounded-2xl gap-2 mb-8 border border-white/5">
+            <button
+              onClick={() => setAuthMode('login')}
+              className={cn(
+                "flex-1 py-3 px-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2",
+                authMode === 'login'
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                  : "text-slate-400 hover:text-white"
+              )}
             >
-              <Zap size={24} fill="currentColor" />
-              دخول
-            </motion.button>
-          </form>
+              <ShieldCheck size={18} />
+              تسجيل الدخول
+            </button>
+            <button
+              onClick={() => setAuthMode('register')}
+              className={cn(
+                "flex-1 py-3 px-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2",
+                authMode === 'register'
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              <Sparkles size={18} />
+              إنشاء حساب
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={authMode}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {authMode === 'login' ? (
+                <form onSubmit={handleGatewayLogin} className="space-y-5">
+                  <div className="space-y-2 text-right">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">البريد الإلكتروني</label>
+                    <div className="relative">
+                      <input 
+                        type="email"
+                        value={gatewayEmail}
+                        onChange={(e) => setGatewayEmail(e.target.value)}
+                        placeholder="example@email.com"
+                        required
+                        autoCapitalize="none"
+                        className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
+                      />
+                      <Mail size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 text-right relative">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">كلمة المرور</label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"}
+                        value={gatewayPassword}
+                        onChange={(e) => setGatewayPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 pl-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
+                      />
+                      <Lock size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-2 pt-2">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
+                        <input 
+                          type="checkbox" 
+                          className="peer hidden" 
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)} 
+                        />
+                        <div className={cn(
+                          "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
+                          rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                        )}>
+                          <Check size={16} className="text-white" strokeWidth={4} />
+                        </div>
+                      </div>
+                      <span className="text-slate-400 font-bold text-sm select-none">تذكرني</span>
+                    </label>
+                  </div>
+
+                  <motion.button 
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={isLoginLoading}
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
+                  >
+                    {isLoginLoading ? (
+                      <RefreshCw size={24} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Zap size={24} fill="currentColor" />
+                        دخول آمن
+                      </>
+                    )}
+                  </motion.button>
+
+                  {/* توضيح نوع الدخول (تجريبي vs بريميوم) */}
+                  <div className="mt-6 p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-3 text-right">
+                    <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
+                      <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
+                      <span>نظام تصنيف الحسابات عند الدخول:</span>
+                    </div>
+                    <ul className="text-[11px] text-slate-400 font-bold space-y-2 list-disc list-inside leading-relaxed">
+                      <li>
+                        <span className="text-amber-400 font-extrabold">الحساب التجريبي المحدود 🔒:</span> دخول فوري بأي بريد إلكتروني وكلمة مرور لتصفح الدورات وتجربة لوحة التحكم الرئيسية بميزات محدودة.
+                      </li>
+                      <li>
+                        <span className="text-emerald-400 font-extrabold">عضوية بريميوم نشطة ⭐:</span> اشترك الآن للوصول إلى جميع خدمات ومميزات التطبيق دون أي قيود، لإدارة مزرعتك باحترافية وكفاءة عالية.
+                      </li>
+                    </ul>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleEmailRegister} className="space-y-5 text-right" dir="rtl">
+                  {/* Username Field */}
+                  <div className="space-y-1.5 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">اسم المستخدم</label>
+                      {registerUsername && (
+                        <span className={cn(
+                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
+                          isUsernameValid(registerUsername) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                        )}>
+                          {isUsernameValid(registerUsername) ? "مقبول" : "قصير جداً"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={registerUsername}
+                        onChange={(e) => setRegisterUsername(e.target.value)}
+                        placeholder="أدخل اسمك بالكامل (ثنائي أو ثلاثي)"
+                        required
+                        className={cn(
+                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
+                          registerUsername 
+                            ? (isUsernameValid(registerUsername) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-amber-500/30 focus:border-amber-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
+                        )}
+                      />
+                      <User size={20} className={cn(
+                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
+                        registerUsername && isUsernameValid(registerUsername) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerUsername && isUsernameValid(registerUsername) && (
+                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Email Field */}
+                  <div className="space-y-1.5 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">البريد الإلكتروني</label>
+                      {registerEmail && (
+                        <span className={cn(
+                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
+                          isEmailValid(registerEmail) ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
+                        )}>
+                          {isEmailValid(registerEmail) ? "بريد صالح" : "صيغة غير صالحة"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="email"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        placeholder="example@email.com"
+                        required
+                        autoCapitalize="none"
+                        className={cn(
+                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
+                          registerEmail 
+                            ? (isEmailValid(registerEmail) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-rose-500/30 focus:border-rose-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
+                        )}
+                      />
+                      <Mail size={20} className={cn(
+                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
+                        registerEmail && isEmailValid(registerEmail) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerEmail && isEmailValid(registerEmail) && (
+                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone Field */}
+                  <div className="space-y-1.5 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">رقم الهاتف</label>
+                      <div className="flex items-center gap-1.5">
+                        {registerPhone && getPhoneOperator(registerPhone) && (
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                            getPhoneOperator(registerPhone)?.color
+                          )}>
+                            {getPhoneOperator(registerPhone)?.name}
+                          </span>
+                        )}
+                        {registerPhone && (
+                          <span className={cn(
+                            "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
+                            isPhoneValid(registerPhone) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                          )}>
+                            {isPhoneValid(registerPhone) ? "مكتمل" : `${registerPhone.length}/11 رقم`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="tel"
+                        value={registerPhone}
+                        onChange={(e) => setRegisterPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="01xxxxxxxxx"
+                        maxLength={11}
+                        required
+                        className={cn(
+                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
+                          registerPhone 
+                            ? (isPhoneValid(registerPhone) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-amber-500/30 focus:border-amber-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
+                        )}
+                      />
+                      <Phone size={20} className={cn(
+                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
+                        registerPhone && isPhoneValid(registerPhone) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerPhone && isPhoneValid(registerPhone) && (
+                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1.5 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">كلمة المرور</label>
+                      {registerPassword && (
+                        <span className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded-full transition-all text-slate-300"
+                        )}>
+                          {getPasswordStrength(registerPassword).text}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"}
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        placeholder="أدخل كلمة مرور قوية (6 أحرف أو أكثر)"
+                        required
+                        className={cn(
+                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 pl-14 focus:outline-none font-bold text-white transition-all text-right",
+                          registerPassword 
+                            ? (isPasswordValid(registerPassword) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-rose-500/30 focus:border-rose-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
+                        )}
+                      />
+                      <Lock size={20} className={cn(
+                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
+                        registerPassword && isPasswordValid(registerPassword) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+
+                    {/* Dynamic Password Strength Bar */}
+                    {registerPassword && (
+                      <div className="mt-2 px-1 space-y-1">
+                        <div className="flex gap-1 h-1 w-full rounded-full bg-slate-950 overflow-hidden">
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 1 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 1 ? "w-1/3" : "w-0"
+                          )}></div>
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 2 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 2 ? "w-1/3" : "w-0"
+                          )}></div>
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 3 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 3 ? "w-1/3" : "w-0"
+                          )}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <motion.button 
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={isLoginLoading}
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
+                  >
+                    {isLoginLoading ? (
+                      <RefreshCw size={24} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles size={24} />
+                        إنشاء حساب جديد
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           <p className="text-center text-slate-600 font-bold text-[10px] mt-10 uppercase tracking-[0.2em] select-none">
             POULTRY MANAGER v5.0 • PROTECTED ACCESS
@@ -5369,7 +6982,7 @@ export default function App() {
 
   if (screen === 'login') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
+      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -5394,76 +7007,343 @@ export default function App() {
             </div>
           </div>
 
-          <div className="space-y-6">
-            <h2 className="text-2xl font-black text-white text-center mb-8">تسجيل الدخول</h2>
-            
-            <form onSubmit={handleEmailLogin} className="space-y-4">
-              <input 
-                name="email"
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="البريد الإلكتروني"
-                required
-                className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
-              />
-              
-              <div className="relative group">
-                <input 
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="كلمة المرور"
-                  required
-                  className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-4 pl-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+          {/* Toggle Tab */}
+          <div className="flex flex-row bg-slate-900/60 p-1 rounded-xl gap-1 mb-6 border border-white/5">
+            <button
+              onClick={() => setAuthMode('login')}
+              className={cn(
+                "flex-1 py-2 rounded-lg font-black text-xs transition-all duration-300 flex items-center justify-center gap-2",
+                authMode === 'login'
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              <ShieldCheck size={16} />
+              تسجيل الدخول
+            </button>
+            <button
+              onClick={() => setAuthMode('register')}
+              className={cn(
+                "flex-1 py-2 rounded-lg font-black text-xs transition-all duration-300 flex items-center justify-center gap-2",
+                authMode === 'register'
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              <Sparkles size={16} />
+              إنشاء حساب
+            </button>
+          </div>
 
-              <div className="flex items-center justify-between px-2">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative w-5 h-5 rounded-md border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
-                    <input 
-                      type="checkbox" 
-                      className="peer hidden" 
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)} 
-                    />
-                    <div className={cn(
-                      "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
-                      rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                    )}>
-                      <Check size={14} className="text-white" strokeWidth={4} />
+          <div className="space-y-6">
+            <h2 className="text-2xl font-black text-white text-center mb-4">
+              {authMode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+            </h2>
+            
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={authMode}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {authMode === 'login' ? (
+                  <form onSubmit={handleEmailLogin} className="space-y-4">
+                    <div className="relative">
+                      <input 
+                        name="email"
+                        type="email"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="البريد الإلكتروني"
+                        required
+                        className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
+                      />
+                      <Mail size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                    </div>
+                    
+                    <div className="relative group">
+                      <input 
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="كلمة المرور"
+                        required
+                        className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 pl-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
+                      />
+                      <Lock size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between px-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative w-5 h-5 rounded-md border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
+                          <input 
+                            type="checkbox" 
+                            className="peer hidden" 
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)} 
+                          />
+                          <div className={cn(
+                            "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
+                            rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                          )}>
+                            <Check size={14} className="text-white" strokeWidth={4} />
+                          </div>
+                        </div>
+                        <span className="text-slate-400 font-bold text-xs select-none">تذكرني</span>
+                      </label>
+                    </div>
+
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={isLoginLoading}
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
+                    >
+                      {isLoginLoading ? (
+                        <RefreshCw size={20} className="animate-spin" />
+                      ) : (
+                        <>
+                          <ShieldCheck size={20} />
+                          دخول آمن
+                        </>
+                      )}
+                    </motion.button>
+
+                    {/* توضيح نوع الدخول (تجريبي vs بريميوم) */}
+                    <div className="mt-6 p-4 rounded-2xl bg-slate-900/80 border border-white/5 space-y-3 text-right">
+                      <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
+                        <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
+                        <span>نظام تصنيف الحسابات عند الدخول:</span>
+                      </div>
+                      <ul className="text-[11px] text-slate-400 font-bold space-y-2 list-disc list-inside leading-relaxed">
+                        <li>
+                          <span className="text-amber-400 font-extrabold">الحساب التجريبي المحدود 🔒:</span> دخول فوري بأي بريد إلكتروني وكلمة مرور لتصفح الدورات وتجربة لوحة التحكم الرئيسية بميزات محدودة.
+                        </li>
+                        <li>
+                          <span className="text-emerald-400 font-extrabold">عضوية بريميوم نشطة ⭐:</span> اشترك الآن للوصول إلى جميع خدمات ومميزات التطبيق دون أي قيود، لإدارة مزرعتك باحترافية وكفاءة عالية.
+                        </li>
+                      </ul>
+                    </div>
+                  </form>
+                ) : (
+                <form onSubmit={handleEmailRegister} className="space-y-4 text-right" dir="rtl">
+                  {/* Username Field */}
+                  <div className="space-y-1 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">اسم المستخدم</label>
+                      {registerUsername && (
+                        <span className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
+                          isUsernameValid(registerUsername) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                        )}>
+                          {isUsernameValid(registerUsername) ? "مقبول" : "قصير جداً"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={registerUsername}
+                        onChange={(e) => setRegisterUsername(e.target.value)}
+                        placeholder="أدخل اسمك بالكامل (ثنائي أو ثلاثي)"
+                        required
+                        className={cn(
+                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
+                          registerUsername 
+                            ? (isUsernameValid(registerUsername) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-amber-500/30 focus:border-amber-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
+                        )}
+                      />
+                      <User size={18} className={cn(
+                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
+                        registerUsername && isUsernameValid(registerUsername) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerUsername && isUsernameValid(registerUsername) && (
+                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
                     </div>
                   </div>
-                  <span className="text-slate-400 font-bold text-xs select-none">تذكرني</span>
-                </label>
-              </div>
 
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={isLoginLoading}
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3"
-              >
-                {isLoginLoading ? (
-                  <RefreshCw size={20} className="animate-spin" />
-                ) : (
-                  <>
-                    <ShieldCheck size={20} />
-                    دخول آمن
-                  </>
+                  {/* Email Field */}
+                  <div className="space-y-1 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">البريد الإلكتروني</label>
+                      {registerEmail && (
+                        <span className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
+                          isEmailValid(registerEmail) ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
+                        )}>
+                          {isEmailValid(registerEmail) ? "بريد صالح" : "صيغة غير صالحة"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="email"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        placeholder="example@email.com"
+                        required
+                        autoCapitalize="none"
+                        className={cn(
+                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
+                          registerEmail 
+                            ? (isEmailValid(registerEmail) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-rose-500/30 focus:border-rose-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
+                        )}
+                      />
+                      <Mail size={18} className={cn(
+                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
+                        registerEmail && isEmailValid(registerEmail) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerEmail && isEmailValid(registerEmail) && (
+                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone Field */}
+                  <div className="space-y-1 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">رقم الهاتف</label>
+                      <div className="flex items-center gap-1.5">
+                        {registerPhone && getPhoneOperator(registerPhone) && (
+                          <span className={cn(
+                            "text-[9px] font-bold px-1.5 py-0.5 rounded border",
+                            getPhoneOperator(registerPhone)?.color
+                          )}>
+                            {getPhoneOperator(registerPhone)?.name}
+                          </span>
+                        )}
+                        {registerPhone && (
+                          <span className={cn(
+                            "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
+                            isPhoneValid(registerPhone) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
+                          )}>
+                            {isPhoneValid(registerPhone) ? "مكتمل" : `${registerPhone.length}/11 رقم`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="tel"
+                        value={registerPhone}
+                        onChange={(e) => setRegisterPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="01xxxxxxxxx"
+                        maxLength={11}
+                        required
+                        className={cn(
+                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
+                          registerPhone 
+                            ? (isPhoneValid(registerPhone) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-amber-500/30 focus:border-amber-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
+                        )}
+                      />
+                      <Phone size={18} className={cn(
+                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
+                        registerPhone && isPhoneValid(registerPhone) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      {registerPhone && isPhoneValid(registerPhone) && (
+                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1 text-right">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">كلمة المرور</label>
+                      {registerPassword && (
+                        <span className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all text-slate-300"
+                        )}>
+                          {getPasswordStrength(registerPassword).text}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"}
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        placeholder="أدخل كلمة مرور قوية (6 أحرف أو أكثر)"
+                        required
+                        className={cn(
+                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 pl-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
+                          registerPassword 
+                            ? (isPasswordValid(registerPassword) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-rose-500/30 focus:border-rose-500")
+                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
+                        )}
+                      />
+                      <Lock size={18} className={cn(
+                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
+                        registerPassword && isPasswordValid(registerPassword) ? "text-emerald-400" : "text-slate-500"
+                      )} />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+
+                    {/* Dynamic Password Strength Bar */}
+                    {registerPassword && (
+                      <div className="mt-1.5 px-1 space-y-1">
+                        <div className="flex gap-1 h-1 w-full rounded-full bg-slate-950 overflow-hidden">
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 1 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 1 ? "w-1/3" : "w-0"
+                          )}></div>
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 2 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 2 ? "w-1/3" : "w-0"
+                          )}></div>
+                          <div className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getPasswordStrength(registerPassword).score >= 3 ? getPasswordStrength(registerPassword).color : "bg-transparent",
+                            getPasswordStrength(registerPassword).score >= 3 ? "w-1/3" : "w-0"
+                          )}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={isLoginLoading}
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
+                  >
+                    {isLoginLoading ? (
+                      <RefreshCw size={20} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles size={20} />
+                        إنشاء حساب جديد
+                      </>
+                    )}
+                  </motion.button>
+                </form>
                 )}
-              </motion.button>
-            </form>
+              </motion.div>
+            </AnimatePresence>
 
             <div className="relative flex items-center gap-4 py-2">
               <div className="h-px bg-white/10 flex-1"></div>
@@ -5500,7 +7380,7 @@ export default function App() {
 
   if (screen === 'landing') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right overflow-x-hidden relative" dir="rtl">
+      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right overflow-x-hidden relative" dir="rtl">
         <AnimatePresence>
           {deleteStep > 0 && (
             <motion.div 
@@ -5860,7 +7740,7 @@ export default function App() {
 
   if (screen === 'setup') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
+      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
         <AnimatePresence>
           {deleteStep > 0 && (
             <motion.div 
@@ -6427,7 +8307,10 @@ export default function App() {
                         {/* Tiers */}
                         <div className="col-span-2 space-y-2">
                           <div className="flex items-center justify-between px-1">
-                            <span className="text-[9px] font-black text-slate-600 uppercase">عدد الأدوار: {group.tiers}</span>
+                            <span className="text-[11px] font-black text-slate-400 uppercase flex items-center gap-1.5">
+                              <span>عدد الأدوار:</span>
+                              <span className="text-lg font-black text-sky-400 font-mono">{group.tiers}</span>
+                            </span>
                             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest text-right">طوابق البطارية</span>
                           </div>
                           <div className="flex items-center gap-4 bg-slate-950/50 p-2 rounded-2xl border border-white/5">
@@ -6444,7 +8327,7 @@ export default function App() {
                                 }));
                               }}
                               style={{
-                                background: `linear-gradient(to left, #9333ea 0%, #9333ea ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b ${( ( (Number(group.tiers)) - 1) / (6 - 1) ) * 100}%, #1e293b 100%)`
+                                background: `linear-gradient(to left, #9333ea 0%, #9333ea ${(((Number(group.tiers)) - 1) / (6 - 1)) * 100}%, #1e293b ${(((Number(group.tiers)) - 1) / (6 - 1)) * 100}%, #1e293b 100%)`
                               }}
                               className="flex-1 appearance-none h-1.5 rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500"
                             />
@@ -6456,37 +8339,13 @@ export default function App() {
                 </div>
               )}
 
-              <button 
-                type="submit"
-                onClick={() => {
-                  // Sync legacy fields with the primary group for compatibility
-                  const primary = state.batteryGroups[0];
-                  if (primary) {
-                    const tiers = Number(primary.tiers);
-                    const newTierCounts = [...(state.batteryTierCounts || [])];
-                    if (newTierCounts.length < tiers) {
-                      for (let i = newTierCounts.length; i < tiers; i++) {
-                        newTierCounts.push(Math.floor(toNum(state.totalChicks) / tiers));
-                      }
-                    } else if (newTierCounts.length > tiers) {
-                      newTierCounts.splice(tiers);
-                    }
-                    
-                    setState(prev => ({
-                      ...prev,
-                      batteryLength: primary.length,
-                      batteryWidth: primary.width,
-                      batteryTiers: tiers,
-                      batteriesCount: primary.count,
-                      batteryTierCounts: newTierCounts
-                    }));
-                  }
-                }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-widest"
-              >
-                بدء الدورة
-                <ChevronRight size={18} className="rotate-180" />
-              </button>
+            <button
+              type="submit"
+              className="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 hover:from-blue-500 hover:via-indigo-500 hover:to-sky-400 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center gap-2 text-sm"
+            >
+              <Check size={18} />
+              حفظ الإعدادات وبدء الدورة
+            </button>
           </form>
         </motion.div>
       </div>
@@ -6494,27 +8353,56 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-32 font-sans antialiased text-white overflow-x-clip" dir="rtl">
-      {/* Top Header */}
-      <header className="bg-slate-900/50 backdrop-blur-xl px-4 sm:px-6 py-4 border-b border-white/5 sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto flex flex-col gap-4">
+    <div className="min-h-screen bg-[#061e27] text-slate-200 font-sans antialiased pb-28 md:pb-8 selection:bg-blue-600 selection:text-white" dir="rtl">
+      {/* Dynamic Background Patterns */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
+      </div>
+
+      {/* Main Header */}
+      <header className="relative z-50 border-b border-white/5 bg-slate-950/40 backdrop-blur-md px-4 sm:px-6 py-4 md:py-5 select-none">
+        <div className="max-w-6xl mx-auto flex flex-col gap-4">
           
-          {/* Top Row: Symmetrical 3-Column Layout */}
-          <div className="flex items-center justify-between gap-3 w-full">
+          {/* Header row containing left, center, right columns */}
+          <div className="flex items-center justify-between w-full relative z-10 gap-3 md:gap-4">
             
-            {/* Right Column (Logo) - Constrained to balance the layout */}
-            <div className="w-24 flex justify-start flex-shrink-0">
-              <Logo size={46} iconSize={23} className="rounded-xl shadow-[0_0_15px_rgba(30,111,253,0.25)]" />
+            {/* Right Column (Hamburger/Menu on mobile, Notifications on desktop, or similar) */}
+            <div className="w-24 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden w-10 h-10 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center transition-all active:scale-95"
+              >
+                <Menu size={18} className="text-slate-300" />
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setShowNotificationsModal(true)}
+                className="relative w-10 h-10 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center transition-all active:scale-95"
+              >
+                {inAppNotifications.some(n => !n.read) ? (
+                  <BellRing size={16} className="text-violet-400 animate-bounce" />
+                ) : (
+                  <Bell size={16} className="text-slate-400" />
+                )}
+                {inAppNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black flex items-center justify-center text-white ring-1 ring-slate-950 animate-pulse">
+                    {inAppNotifications.length}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Center Column: Title & Slogan perfectly centered mathematically */}
             <div className="flex-1 flex flex-col items-center justify-center text-center select-none min-w-0">
               <div className="w-[140px] flex flex-col items-center justify-center">
                 <h1 className="text-[12px] font-black tracking-[0.14em] text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase text-center w-full">
-                  مدير مزارع
+                   مدير مزارع
                 </h1>
                 <h2 className="text-[22px] font-black text-white tracking-[0.05em] leading-tight mt-1 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] text-center w-full">
-                  الدواجن
+                   الدواجن
                 </h2>
               </div>
               <div className="mt-1.5 pb-0.5 border-t border-white/10 pt-1 w-[140px] flex justify-center">
@@ -6526,44 +8414,15 @@ export default function App() {
               </div>
             </div>
 
-            {/* Left Column (Actions) - Constrained to matching w-24 for absolute symmetry */}
-            <div className="w-24 flex justify-end items-center gap-2 flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowNotificationsModal(true)}
-                className="w-10 h-10 rounded-xl bg-slate-800/80 border border-white/10 hover:border-violet-500/50 flex items-center justify-center text-white transition-all active:scale-95 relative outline-none"
-                title="مركز التنبيهات والإشعارات"
-              >
-                {inAppNotifications.length > 0 ? (
-                  <BellRing size={16} className="text-violet-400 animate-bounce" />
-                ) : (
-                  <Bell size={16} className="text-slate-400" />
-                )}
-                {inAppNotifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black flex items-center justify-center text-white ring-1 ring-slate-950 animate-pulse">
-                    {inAppNotifications.length}
-                  </span>
-                )}
-              </button>
-              <button 
-                type="button"
-                onClick={() => setScreen('setup')}
-                className={cn(
-                  "w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-95 outline-none",
-                  (screen as string) === 'setup'
-                    ? "bg-blue-500 text-white border-blue-400 shadow-lg"
-                    : "bg-slate-800/80 text-slate-400 border-white/10 hover:border-blue-500/50 hover:text-white"
-                )}
-                title="الإعدادات"
-              >
-                <Settings size={18} />
-              </button>
+            {/* Left Column (Logo) - Constrained to balance the layout, aligned to end/left */}
+            <div className="w-24 flex justify-end flex-shrink-0">
+              <Logo size={46} iconSize={23} className="rounded-xl shadow-[0_0_15px_rgba(30,111,253,0.25)]" />
             </div>
 
           </div>
 
           {/* Bottom Row / Status Bar - Centered precisely on all screen sizes */}
-          <div className="flex justify-center w-full">
+          <div className="flex flex-col items-center justify-center gap-2 w-full">
             <div className="flex items-center justify-center gap-2 bg-slate-950/40 border border-white/5 py-1.5 px-3.5 rounded-xl sm:rounded-2xl transition-all w-full sm:w-auto max-w-sm">
               <span className="status-dot w-1.5 h-1.5 bg-green-500 animate-pulse glow-green flex-shrink-0"></span>
               <div className="text-slate-400 text-[10px] sm:text-xs font-black uppercase text-center">
@@ -6577,13 +8436,273 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* User Subscription Status Badge */}
+            <div className="flex justify-center w-full mt-0.5">
+              {localCurrentUser?.isUnsubscribed ? (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] sm:text-[10px] font-black uppercase shadow-lg shadow-amber-500/5">
+                  <Lock size={10} className="animate-pulse" />
+                  <span>وضع الحساب التجريبي المحدود</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] sm:text-[10px] font-black uppercase shadow-lg shadow-emerald-500/5">
+                  <Sparkles size={10} />
+                  <span>عضوية بريميوم نشطة</span>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="px-4 sm:px-6 py-8 max-w-3xl mx-auto">
+      {/* Overall responsive layout container holding sidebar and main screen content */}
+      <div className={cn(
+        "mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-6 transition-all duration-300 relative",
+        isEnvPanelOpen ? "max-w-7xl" : "max-w-6xl"
+      )}>
+        
+        {/* PERSISTENT SIDEBAR - Desktop Only */}
+        <aside className="hidden lg:flex flex-col w-64 xl:w-72 bg-[#0e1322] border border-white/5 rounded-[2rem] p-5 sticky top-24 self-start space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar shadow-xl border-white/10 select-none">
+          <div className="flex items-center gap-3 px-1 pb-3 border-b border-white/5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 p-2 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">
+              <Bird size={18} />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-white leading-tight">شاشات العنبر</h3>
+              <p className="text-[9px] text-[#00b0ff] font-bold">لوحة أجهزة ذكية</p>
+            </div>
+          </div>
+          
+          <nav className="flex flex-col gap-1 flex-1">
+            {sidebarLinks.map(link => (
+              <SidebarLink 
+                key={link.id} 
+                {...link} 
+                activeId={screen as string} 
+                isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(link.id)}
+              />
+            ))}
+          </nav>
+        </aside>
+
+        {/* MOBILE SIDEBAR DRAWER - Swipeable Menu */}
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <div className="fixed inset-0 z-[160] lg:hidden flex justify-end">
+              {/* Backdrop */}
+              <motion.div
+                key="sidebar-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSidebarOpen(false)}
+                className="absolute inset-0 bg-slate-950/90"
+              />
+              {/* Drawer Layout */}
+              <motion.aside
+                key="mobile-sidebar-drawer"
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                className="relative w-80 max-w-[85%] h-full bg-[#0a0f1d] border-l border-white/10 p-6 pb-44 flex flex-col gap-5 shadow-2xl overflow-y-auto no-scrollbar"
+                dir="rtl"
+              >
+                <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 p-2 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20">
+                      <Bird size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black text-white leading-tight">شاشات العنبر</h3>
+                      <p className="text-[9px] text-[#00b0ff] font-bold">لوحة الخيار</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-white/5 outline-none"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <nav className="flex flex-col gap-1 flex-1">
+                  {sidebarLinks.map(link => (
+                    <SidebarLink 
+                      key={link.id} 
+                      {...link} 
+                      activeId={screen as string} 
+                      isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(link.id)}
+                      onClick={() => {
+                        link.onClick();
+                        setIsSidebarOpen(false);
+                      }}
+                    />
+                  ))}
+                </nav>
+              </motion.aside>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 w-full relative">
+          {/* Backdrop overlay on mobile when environmental panel is open */}
+          {isEnvPanelOpen && (
+            <div 
+              onClick={() => setIsEnvPanelOpen(false)}
+              className="fixed inset-0 bg-slate-950/85 z-[45] lg:hidden animate-fade-in"
+            />
+          )}
+
+          <div className={cn(
+            "grid grid-cols-1 gap-6 relative items-start transition-all duration-300",
+            isEnvPanelOpen ? "lg:grid-cols-12" : "grid-cols-1"
+          )}>
+            {/* Left Column (Wraps everything inside, including normal screen selectors) */}
+            <div className={cn(
+              "transition-all duration-300 min-w-0 w-full",
+              isEnvPanelOpen ? "lg:col-span-8 space-y-6" : "w-full"
+            )}>
+      {/* PIN Security Modal */}
+      <AnimatePresence>
+        {isPinModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPinModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6 text-center"
+              dir="rtl"
+            >
+              {/* Header inside modal */}
+              <div className="flex flex-col items-center space-y-2">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
+                  <Lock size={22} className="animate-pulse" />
+                </div>
+                <h3 className="text-lg font-black text-white">
+                  {pinPurpose === 'set' && !tempNewPin && "إنشاء رمز PIN جديد"}
+                  {pinPurpose === 'set' && tempNewPin && "تأكيد رمز PIN الجديد"}
+                  {pinPurpose === 'verify' && "تأمين الحسابات والأرباح"}
+                  {pinPurpose === 'change_verify' && "التحقق من الرمز الحالي"}
+                  {pinPurpose === 'disable_verify' && "إلغاء قفل الـ PIN"}
+                  {pinPurpose === 'delete_confirm' && "تأكيد الهوية للحذف الأمني 🔐"}
+                </h3>
+                <p className="text-xs text-slate-400 font-bold max-w-[280px] leading-relaxed mx-auto">
+                  {pinPurpose === 'set' && !tempNewPin && "أدخل 4 أرقام لتأمين شاشة الحسابات والمصاريف عن العمال"}
+                  {pinPurpose === 'set' && tempNewPin && "أعد إدخال نفس الرمز للتأكيد والحفظ"}
+                  {pinPurpose === 'verify' && "أدخل رمز PIN الخاص بصاحب المزرعة للاطلاع على الأرباح"}
+                  {pinPurpose === 'change_verify' && "يرجى كتابة رمز PIN الحالي أولاً لتتمكن من تغييره"}
+                  {pinPurpose === 'disable_verify' && "يرجى كتابة رمز PIN الحالي أولاً لإلغاء القفل تماماً"}
+                  {pinPurpose === 'delete_confirm' && "أدخل رمز PIN لتأكيد عملية الحذف للتأكد من أنك صاحب المزرعة ولست عاملاً"}
+                </p>
+              </div>
+
+              {/* Dots indicator */}
+              <div className="flex justify-center items-center gap-4 py-2">
+                {[0, 1, 2, 3].map((i) => {
+                  const isFilled = pinInput.length > i;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={false}
+                      animate={{
+                        scale: isFilled ? 1.25 : 1,
+                        backgroundColor: isFilled ? "#f59e0b" : "rgba(255, 255, 255, 0.1)"
+                      }}
+                      className={cn(
+                        "w-3.5 h-3.5 rounded-full border border-white/5 shadow-inner transition-colors"
+                      )}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Error Display */}
+              {pinError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-rose-400 font-black leading-tight bg-rose-500/10 py-2 px-3 rounded-xl border border-rose-500/20"
+                >
+                  {pinError}
+                </motion.p>
+              )}
+
+              {/* Grid of keys */}
+              <div className="grid grid-cols-3 gap-3 max-w-[260px] mx-auto pt-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      if (pinInput.length < 4) {
+                        const newVal = pinInput + num;
+                        setPinInput(newVal);
+                        setPinError('');
+                        if (newVal.length === 4) {
+                          handlePinSubmit(newVal);
+                        }
+                      }
+                    }}
+                    className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto"
+                  >
+                    {num}
+                  </button>
+                ))}
+                
+                {/* Cancel button */}
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="w-16 h-16 rounded-full bg-transparent text-slate-400 hover:text-white font-black text-sm flex items-center justify-center transition-all active:scale-90 cursor-pointer select-none mx-auto"
+                >
+                  إلغاء
+                </button>
+
+                {/* Number 0 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pinInput.length < 4) {
+                      const newVal = pinInput + '0';
+                      setPinInput(newVal);
+                      setPinError('');
+                      if (newVal.length === 4) {
+                        handlePinSubmit(newVal);
+                      }
+                    }
+                  }}
+                  className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto"
+                >
+                  0
+                </button>
+
+                {/* Backspace button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPinInput(prev => prev.slice(0, -1));
+                    setPinError('');
+                  }}
+                  className="w-16 h-16 rounded-full bg-slate-800/40 hover:bg-slate-800 text-slate-300 font-bold text-lg flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-white/5 select-none mx-auto"
+                >
+                  مسح
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
         {/* Weight Entry Modal */}
       <AnimatePresence>
         {isWeightModalOpen && (
@@ -6657,16 +8776,418 @@ export default function App() {
             </motion.div>
           </div>
         )}
+
+        {isSubscriptionModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 pb-16 sm:pb-20">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSubscriptionModalOpen(false)}
+              className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              className="relative w-full max-w-5xl bg-slate-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl max-h-[82vh] flex flex-col z-[110] mb-6"
+              dir="rtl"
+            >
+              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
+              
+              {/* Header */}
+              <div className="p-6 sm:p-8 border-b border-white/5 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Sparkles size={24} className="animate-pulse" />
+                  </div>
+                  <div className="text-right">
+                    <h3 className="text-xl font-black text-white">باقات الاشتراك المعتمدة 👑</h3>
+                    <p className="text-slate-400 text-xs font-bold mt-1">
+                      اختر الباقة المناسبة لتفعيل كافة الخصائص، والأنظمة المتقدمة، وإدارة عنبرك بالكامل
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsSubscriptionModalOpen(false)}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center active:scale-95"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-8 flex-grow no-scrollbar">
+                {/* Pricing Packages Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    {
+                      id: '45_days',
+                      name: 'باقة 45 يوم',
+                      price: '500',
+                      badge: null,
+                      desc: 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.'
+                    },
+                    {
+                      id: '3_months',
+                      name: 'باقة 3 شهور',
+                      price: '800',
+                      badge: null,
+                      desc: 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.'
+                    },
+                    {
+                      id: '6_months',
+                      name: 'باقة 6 شهور',
+                      price: '1200',
+                      badge: 'أكثر طلباً 🔥',
+                      badgeColor: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                      desc: 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.'
+                    },
+                    {
+                      id: '1_year',
+                      name: 'باقة سنة كاملة',
+                      price: '2000',
+                      badge: 'أعلى قيمة 👑',
+                      badgeColor: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+                      desc: 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.'
+                    }
+                  ].map((plan) => {
+                    const isSelected = selectedPlanId === plan.id;
+                    return (
+                      <div
+                        key={plan.id}
+                        onClick={() => setSelectedPlanId(plan.id as any)}
+                        className={cn(
+                          "relative rounded-2xl p-5 border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none",
+                          isSelected
+                            ? "bg-emerald-950/20 border-emerald-500 ring-1 ring-emerald-500/20 shadow-xl shadow-emerald-500/10 translate-y-[-2px]"
+                            : "bg-slate-950/40 border-yellow-500/30 hover:border-yellow-500/60 hover:bg-slate-950/60"
+                        )}
+                      >
+                        {isSelected ? (
+                          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
+                        ) : (
+                          <div className="absolute inset-0 bg-yellow-500/[0.02] rounded-2xl pointer-events-none" />
+                        )}
+
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-4 mt-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h4 className={cn(
+                                "text-xs sm:text-sm font-black transition-colors",
+                                isSelected ? "text-emerald-400" : "text-white"
+                              )}>{plan.name}</h4>
+                              {plan.badge && (
+                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm border", plan.badgeColor)}>
+                                  {plan.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className={cn(
+                              "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
+                              isSelected ? "border-emerald-500 bg-emerald-500" : "border-yellow-500/40 bg-transparent"
+                            )}>
+                              {isSelected && <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />}
+                            </div>
+                          </div>
+
+                          <p className="text-[11px] text-slate-400 font-bold leading-relaxed mb-6 min-h-[44px]">
+                            {plan.desc}
+                          </p>
+                        </div>
+
+                        <div className="border-t border-white/5 pt-4 mt-2 flex items-baseline justify-end">
+                          <div className="flex items-baseline gap-1">
+                            <span className={cn(
+                              "text-base sm:text-lg font-black transition-colors",
+                              isSelected ? "text-emerald-400" : "text-yellow-500/80"
+                            )}>
+                              {plan.price}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-black">ج.م</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Steps and Action CTA */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-slate-950/50 border border-white/5 p-6 rounded-3xl text-right">
+                  <div className="md:col-span-2 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-400 font-black text-sm">
+                      <Wallet size={16} className="animate-pulse text-amber-400" />
+                      <span>خطوات إتمام الدفع والتفعيل الفوري:</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed">
+                      ١. حدد الباقة المفضلة من الأعلى.<br />
+                      ٢. قم بالتحويل لخدمة فودافون كاش على رقم المبيعات المعتمد.<br />
+                      ٣. اضغط على الزر الأخضر بالأسفل للتواصل عبر واتساب وإرسال البريد الخاص بك وصورة التحويل ليتم التفعيل مباشرة.
+                    </p>
+                    <div className="flex flex-col gap-1 mt-3">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-black">
+                        <span className="text-amber-400">●</span>
+                        <span>البريد المعتمد للتفعيل التلقائي:</span>
+                      </div>
+                      <div className="mr-4 mt-1">
+                        <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-xs inline-block">
+                          {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="w-full flex justify-end">
+                    <a
+                      href={`https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
+أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
+📋 تفاصيل الطلب:
+الباقة المطلوبة: ${getSelectedPlanName(selectedPlanId)} (${getSelectedPlanPrice(selectedPlanId)} جنيه مصري)
+بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
+💳 تفاصيل الدفع:
+سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
+سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
+أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`}
+                      target="_blank"
+                      referrerPolicy="no-referrer"
+                      className="w-full py-4 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles size={16} className="animate-pulse" />
+                      تفعيل الباقة المحددة الآن عبر واتساب 💬
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-          {screen === 'management' && (
+      <div className="relative w-full">
+        {/* Lock screen overlay for new restricted accounts */}
+        {localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(screen) && (
+          <div className="absolute inset-0 z-40 bg-slate-950/70 backdrop-blur-[8px] rounded-[2rem] flex flex-col items-center justify-start p-4 sm:p-6 text-center border-2 border-white/5 overflow-y-auto shadow-2xl min-h-[550px] animate-fade-in">
+            {/* Elegant warning dialog box sitting at the top, below the header */}
+            <div className="w-full max-w-4xl bg-slate-900/95 border border-white/10 rounded-3xl p-5 sm:p-7 mt-2 sm:mt-4 shadow-2xl relative overflow-hidden text-right" dir="rtl">
+              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
+              
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-white/5 pb-5">
+                <div className="flex items-center gap-3.5 text-right w-full md:w-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+                    <Lock size={22} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                      هذه الشاشة مغلقة - قم بالاشتراك لتفعيلها 🔒
+                    </h3>
+                    <p className="text-slate-400 font-bold text-xs leading-relaxed mt-1 max-w-xl">
+                      عذراً، هذه الشاشة تتطلب اشتراكاً نشطاً في ميزات مدير مزارع الدواجن الكاملة. يرجى اختيار الباقة الأنسب لك لتتمكن من فتح وإدارة كافة أنظمة العنبر والتجهيز الفني والمالي والتقارير.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Top quick navigation actions */}
+                <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+                  <button
+                    onClick={() => setScreen('landing')}
+                    className="py-2 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-[11px]"
+                  >
+                    <RefreshCw size={12} />
+                    العودة للرئيسية
+                  </button>
+                  <button
+                    onClick={confirmLogout}
+                    className="py-2 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-[11px] border border-red-500/10"
+                  >
+                    <LogOut size={12} />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+
+              {/* Pricing Packages Grid */}
+              <div className="mt-6">
+                <div className="text-slate-300 font-black text-xs mb-3 text-right">
+                  اختر باقة الاشتراك الأنسب لك من الخيارات التالية:
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    {
+                      id: '45_days',
+                      name: 'باقة 45 يوم',
+                      price: '500',
+                      badge: null,
+                      desc: 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.'
+                    },
+                    {
+                      id: '3_months',
+                      name: 'باقة 3 شهور',
+                      price: '800',
+                      badge: null,
+                      desc: 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.'
+                    },
+                    {
+                      id: '6_months',
+                      name: 'باقة 6 شهور',
+                      price: '1200',
+                      badge: 'أكثر طلباً 🔥',
+                      badgeColor: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                      desc: 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.'
+                    },
+                    {
+                      id: '1_year',
+                      name: 'باقة سنة كاملة',
+                      price: '2000',
+                      badge: 'أعلى قيمة 👑',
+                      badgeColor: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+                      desc: 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.'
+                    }
+                  ].map((plan) => {
+                    const isSelected = selectedPlanId === plan.id;
+                    return (
+                      <div
+                        key={plan.id}
+                        onClick={() => setSelectedPlanId(plan.id as any)}
+                        className={cn(
+                          "relative rounded-2xl p-4 border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none",
+                          isSelected
+                            ? "bg-emerald-950/20 border-emerald-500 ring-1 ring-emerald-500/20 shadow-xl shadow-emerald-500/10 translate-y-[-2px]"
+                            : "bg-slate-950/40 border-yellow-500/30 hover:border-yellow-500/60 hover:bg-slate-950/60"
+                        )}
+                      >
+                        {/* Selected Indicator Light Glow */}
+                        {isSelected ? (
+                          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
+                        ) : (
+                          <div className="absolute inset-0 bg-yellow-500/[0.02] rounded-2xl pointer-events-none" />
+                        )}
+
+                        <div>
+                          {/* Radio Button & Name / Badge */}
+                          <div className="flex items-center justify-between gap-2 mb-3 mt-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <h4 className={cn(
+                                "text-xs sm:text-sm font-black transition-colors",
+                                isSelected ? "text-emerald-400" : "text-white"
+                              )}>{plan.name}</h4>
+                              {plan.badge && (
+                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm border", plan.badgeColor)}>
+                                  {plan.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className={cn(
+                              "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
+                              isSelected ? "border-emerald-500 bg-emerald-500" : "border-yellow-500/40 bg-transparent"
+                            )}>
+                              {isSelected && <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-4 min-h-[44px]">
+                            {plan.desc}
+                          </p>
+                        </div>
+
+                        {/* Price Details */}
+                        <div className="border-t border-white/5 pt-3 mt-2 flex items-baseline justify-end">
+                          <div className="flex items-baseline gap-1">
+                            <span className={cn(
+                              "text-base sm:text-lg font-black transition-colors",
+                              isSelected ? "text-emerald-400" : "text-yellow-500/80"
+                            )}>
+                              {plan.price}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-black">ج.م</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Payment Details Callout & Action */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-slate-950/60 border border-white/5 p-4 rounded-2xl text-right">
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center gap-2 text-amber-400 font-black text-xs">
+                    <Wallet size={14} className="animate-pulse text-amber-400" />
+                    <span>خطوات إتمام الدفع والتفعيل الفوري:</span>
+                  </div>
+                  <div className="flex flex-col gap-1 mt-2 text-right">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-black">
+                      <span className="text-amber-400">●</span>
+                      <span>البريد المعتمد للتفعيل التلقائي:</span>
+                    </div>
+                    <div className="mr-4 mt-1">
+                      <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-2 py-1 rounded-lg border border-white/5 text-xs inline-block">
+                        {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full flex justify-end">
+                  <a
+                    href={`https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
+أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
+📋 تفاصيل الطلب:
+الباقة المطلوبة: ${getSelectedPlanName(selectedPlanId)} (${getSelectedPlanPrice(selectedPlanId)} جنيه مصري)
+بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
+💳 تفاصيل الدفع:
+سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
+سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
+أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`}
+                    target="_blank"
+                    referrerPolicy="no-referrer"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95 cursor-pointer"
+                  >
+                    <Sparkles size={14} className="animate-pulse" />
+                    تفعيل الباقة المحددة الآن عبر واتساب 💬
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className={cn(
+          (localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(screen))
+            ? "filter blur-[8px] opacity-35 pointer-events-none select-none transition-all duration-300"
+            : "transition-all duration-300"
+        )}>
+          {/* Trial Notice Banner right at the beginning/top of screens */}
+          {localCurrentUser?.isUnsubscribed && (
+            <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-2 border-amber-500/20 p-4 rounded-3xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in text-right">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+                  <Lock size={20} className="animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white">وضع الحساب التجريبي المحدود نشط 🔒</h4>
+                  <p className="text-[11px] text-slate-400 font-bold leading-relaxed mt-0.5">
+                    أنت تتصفح حالياً بوضع تجريبي محدود. يرجى الاشتراك لتفعيل وفتح كافة الشاشات والأنظمة والتقارير المغلقة.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-lg shadow-amber-500/10 whitespace-nowrap cursor-pointer"
+              >
+                <Sparkles size={12} />
+                اشترك الآن لتفعيل كافة الميزات
+              </button>
+            </div>
+          )}
+          <AnimatePresence mode="wait">
+            {screen === 'management' && (
             <motion.div 
               key="management"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-6 pb-20"
+              className="space-y-6 pb-32"
             >
               <header className="flex items-center justify-between px-2 mb-2">
                 <div className="flex items-center gap-3">
@@ -6940,14 +9461,64 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-6 pb-20"
+              className="space-y-6 pb-32"
             >
-              <header className="flex items-center justify-between px-2 mb-2">
+              <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 mb-2">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-400/10 rounded-xl flex items-center justify-center text-emerald-500 shadow-inner">
                     <Wallet size={24} />
                   </div>
                   <h2 className="text-2xl font-black text-white tracking-tight">الإدارة المالية</h2>
+                </div>
+                
+                {/* PIN Lock Management */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {state.financesPinCode ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPinPurpose('change_verify');
+                          setPinInput('');
+                          setPinError('');
+                          setTempNewPin('');
+                          setIsPinModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[10px] font-black text-slate-300 hover:text-white transition-all border border-white/5 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Lock size={12} className="text-amber-400" />
+                        تغيير رمز PIN
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPinPurpose('disable_verify');
+                          setPinInput('');
+                          setPinError('');
+                          setIsPinModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/40 text-[10px] font-black text-rose-400 hover:text-rose-300 transition-all border border-rose-900/20 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <X size={12} />
+                        إلغاء قفل الـ PIN
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPinPurpose('set');
+                        setPinInput('');
+                        setPinError('');
+                        setTempNewPin('');
+                        setIsPinModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[10px] font-black text-amber-500 hover:text-amber-400 transition-all border border-amber-500/20 flex items-center gap-1.5 cursor-pointer animate-pulse"
+                    >
+                      <Lock size={12} />
+                      تأمين الحسابات برمز PIN
+                    </button>
+                  )}
                 </div>
               </header>
 
@@ -7553,14 +10124,172 @@ export default function App() {
           </motion.div>
         )}
 
-          {screen === 'dashboard' && (
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              className="space-y-6 pb-24"
-            >
+        {screen === 'profile' && (
+          <motion.div 
+            key="profile"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="space-y-6 pb-32 text-right"
+            dir="rtl"
+          >
+            <header className="flex items-center justify-between px-2 mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-[#00b0ff] shadow-inner">
+                  <User size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">بيانات الحساب والاشتراك</h2>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">تفاصيل تسجيل الدخول وباقة الاشتراك الحالية من السيرفر</p>
+                </div>
+              </div>
+            </header>
+
+            {profileLoading ? (
+              <div className="flex flex-col items-center justify-center p-16 text-center bg-slate-900 border border-white/5 rounded-[2rem] space-y-4">
+                <Loader2 size={40} className="text-[#00b0ff] animate-spin" />
+                <p className="text-sm font-bold text-slate-400">جاري تحميل بيانات حسابك الشخصي...</p>
+              </div>
+            ) : profileError ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-red-500/5 border border-red-500/10 rounded-[2rem] space-y-4">
+                <p className="text-sm font-bold text-red-400">{profileError}</p>
+                <button 
+                  onClick={() => {
+                    setProfileRetry(prev => prev + 1);
+                  }}
+                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl border border-red-500/10 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw size={12} />
+                  إعادة المحاولة
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Profile Card */}
+                <Card className="bg-slate-900 border-white/5 p-6 flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center text-center w-full space-y-4">
+                    <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-[#00b0ff] to-[#00dfa2] p-[3px] shadow-lg shadow-[#00b0ff]/10">
+                      <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-3xl font-black text-white">
+                        {((profileData?.name || localCurrentUser?.username)?.[0] || 'T').toUpperCase()}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white">
+                        {profileData?.name || localCurrentUser?.username || 'مستخدم تجريبي'}
+                      </h3>
+                      <p className="text-xs text-slate-400 font-bold mt-1">
+                        {profileData?.email || localCurrentUser?.email || 'demo@poultry.com'}
+                      </p>
+                    </div>
+                    <div className="pt-4 border-t border-white/5 w-full">
+                      <button
+                        onClick={confirmLogout}
+                        className="w-full py-3 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-xs border border-red-500/10 cursor-pointer"
+                      >
+                        <LogOut size={14} />
+                        تسجيل الخروج من الحساب
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Account Details Card */}
+                <Card className="bg-slate-900 border-white/5 p-6 md:col-span-2 space-y-6 text-right">
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 justify-end pb-3 border-b border-white/5">
+                    <ShieldCheck size={16} className="text-[#00b0ff]" />
+                    البيانات الشخصية وتفاصيل الباقة
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">الاسم الكامل</span>
+                      <p className="text-sm font-black text-white bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                        {profileData?.name || localCurrentUser?.username || 'مستخدم تجريبي'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">البريد الإلكتروني</span>
+                      <p className="text-sm font-bold font-mono text-blue-400 bg-slate-950/60 p-3 rounded-xl border border-white/5 select-all text-left" dir="ltr">
+                        {profileData?.email || localCurrentUser?.email || 'demo@poultry.com'}
+                      </p>
+                    </div>
+
+                    {localCurrentUser?.phone && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-slate-500 uppercase">رقم الهاتف المحمول</span>
+                        <p className="text-sm font-bold font-mono text-white bg-slate-950/60 p-3 rounded-xl border border-white/5 select-all text-left" dir="ltr">
+                          {localCurrentUser?.phone}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">حالة الحساب</span>
+                      <p className={cn(
+                        "text-sm font-black p-3 rounded-xl border flex items-center gap-2 justify-end",
+                        (profileData?.status?.includes('غير مفعل') || profileData?.status?.includes('معطل'))
+                          ? "bg-red-500/5 border-red-500/10 text-red-400"
+                          : (profileData?.status?.includes('مفعل') || profileData?.status?.includes('نشط') || !localCurrentUser?.isUnsubscribed) 
+                            ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-400" 
+                            : "bg-amber-500/5 border-amber-500/10 text-amber-400"
+                      )}>
+                        <span className="w-2 h-2 rounded-full animate-pulse bg-current" />
+                        {profileData?.status || (localCurrentUser?.isUnsubscribed ? 'باقة تجريبية محدودة 🔒' : 'نشط بالكامل وعامل بنجاح 🟢')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* subscription section */}
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 justify-end pt-4 pb-3 border-b border-white/5">
+                    <Sparkles size={16} className="text-amber-400" />
+                    تفاصيل باقة الاشتراك الحالية
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">الباقة الحالية / مدة الباقة</span>
+                      <p className="text-sm font-black text-amber-400 bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                        {profileData?.packageDuration || getSelectedPlanName(selectedPlanId)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">سعر الاشتراك</span>
+                      <p className="text-sm font-black text-emerald-400 bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                        {profileData?.packagePrice ? `${profileData.packagePrice} جنيه` : `${getSelectedPlanPrice(selectedPlanId)} جنيه مصري`}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">تاريخ بداية الاشتراك</span>
+                      <p className="text-sm font-bold text-white bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                        {formatProfileDate(profileData?.startDate)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">تاريخ نهاية الاشتراك</span>
+                      <p className="text-sm font-bold text-red-400 bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                        {formatProfileDate(profileData?.endDate)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+          {(() => {
+            const renderDashboard = () => (
+              <motion.div 
+                key="dashboard"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                className="space-y-6 pb-32"
+              >
               <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
                 <div className="flex items-center gap-4 px-4 sm:px-6">
                   <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
@@ -7576,6 +10305,107 @@ export default function App() {
                 <div className="px-4 sm:px-6 flex items-center gap-2">
                 </div>
               </header>
+
+              {/* بطاقة نوع العلف المستخدم */}
+              <Card className="p-5 bg-slate-900 border border-white/5 mb-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl pointer-events-none" />
+                <div className="flex flex-col relative z-10 gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)] flex-shrink-0">
+                        <Wheat size={24} />
+                      </div>
+                      <div className="text-right">
+                        <h3 className="font-black text-base text-white">نوع العلف المستخدم</h3>
+                        <p className="text-[10px] text-slate-400 font-bold mt-1">تحديد مرحلة ونوع التغذية الحالية للقطيع</p>
+                      </div>
+                    </div>
+                    
+                    <div className="relative w-full sm:w-64">
+                      <select
+                        value={getFeedTypeForDay(toNum(state.age), state)}
+                        onChange={(e) => {
+                          const newVal = e.target.value;
+                          const ageNum = toNum(state.age);
+                          setState(prev => {
+                            const currentDailyFeedTypes = { ...(prev.dailyFeedTypes || {}) };
+                            
+                            // 1. Freeze prior days if not set
+                            for (let d = 1; d < ageNum; d++) {
+                              if (!currentDailyFeedTypes[String(d)]) {
+                                currentDailyFeedTypes[String(d)] = getFeedTypeForDay(d, prev);
+                              }
+                            }
+                            
+                            // 2. Set current & future days to the new value
+                            for (let d = ageNum; d <= 50; d++) {
+                              currentDailyFeedTypes[String(d)] = newVal;
+                            }
+                            
+                            // 3. See if today is different from yesterday
+                            let updatedMeds = [...prev.emergencyMeds];
+                            if (ageNum > 1) {
+                              const prevDayFeed = currentDailyFeedTypes[String(ageNum - 1)] || getFeedTypeForDay(ageNum - 1, prev);
+                              if (newVal !== prevDayFeed) {
+                                const alreadyAdded = updatedMeds.some(m => toNum(m.age) === ageNum && m.name === 'مضاد سموم بيولوجي');
+                                if (!alreadyAdded) {
+                                  updatedMeds.push({
+                                    id: Math.random().toString(36).substr(2, 9),
+                                    name: 'مضاد سموم بيولوجي',
+                                    startTime: '08:00',
+                                    duration: 12,
+                                    endTime: '',
+                                    age: ageNum,
+                                    doseValue: 1,
+                                    unit: 'سم³/لتر'
+                                  });
+                                }
+                              }
+                            }
+                            
+                            return {
+                              ...prev,
+                              dailyFeedTypes: currentDailyFeedTypes,
+                              feedType: newVal,
+                              emergencyMeds: updatedMeds
+                            };
+                          });
+                        }}
+                        className="w-full bg-slate-950 text-white rounded-xl border border-white/10 px-4 py-3 pl-10 text-right text-sm font-black shadow-inner appearance-none focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all cursor-pointer"
+                      >
+                        <option value="بادي 23%">بادي 23%</option>
+                        <option value="نامي 21%">نامي 21%</option>
+                        <option value="ناهي 19%">ناهي 19%</option>
+                      </select>
+                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+                        <ChevronDown size={18} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* تنبيه اليوم في حال كان يوم تغيير العلف */}
+                  {toNum(state.age) > 1 && getFeedTypeForDay(toNum(state.age), state) !== getFeedTypeForDay(toNum(state.age) - 1, state) && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+                      <div className="flex items-start gap-2.5">
+                        <AlertTriangle className="text-amber-500 mt-0.5 shrink-0 animate-pulse" size={18} />
+                        <div>
+                          <p className="text-xs font-black text-amber-200">تنبيه تغيير نوع العلف اليوم (اليوم {state.age})</p>
+                          <p className="text-[10px] text-slate-300 font-bold mt-1 leading-relaxed">
+                            تم كشف انتقال في نوع العلف من <span className="text-white underline">{getFeedTypeForDay(toNum(state.age) - 1, state)}</span> إلى <span className="text-white underline">{getFeedTypeForDay(toNum(state.age), state)}</span>. 
+                            تم إدراج <span className="text-amber-400 font-black">مضاد سموم بيولوجي</span> تلقائياً ببرنامج أدوية اليوم لحماية أمعاء الطيور!
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => { setScreen('medication'); setIsNavVisible(true); }}
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-md shrink-0 self-end sm:self-center"
+                      >
+                        عرض الأدوية المحدثة
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Card>
 
               <div className="grid grid-cols-2 gap-4">
                 <Stat 
@@ -7896,47 +10726,7 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Broiler Lighting Program Alert Block */}
-                    <div className="bg-indigo-950/40 p-4 rounded-xl border border-indigo-500/20 text-right space-y-2.5 w-full mt-3" dir="rtl">
-                      <div className="flex items-center gap-2 justify-start text-indigo-400">
-                        <Info size={14} className="text-indigo-400 flex-shrink-0" />
-                        <span className="text-[11px] font-black tracking-wide uppercase">دليل برنامج الإظلام المعتمد</span>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1 text-[10px] text-slate-300 leading-relaxed font-bold">
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) >= 1 && toNum(state.age) <= 3 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>من اليوم الأول حتى اليوم الثالث:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 24 ساعة (إظلام 0 ساعة)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) >= 4 && toNum(state.age) <= 6 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>من اليوم الرابع حتى اليوم السابع:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 23 ساعة (إظلام ساعة واحدة)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) >= 7 && toNum(state.age) <= 15 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>من اليوم السابع حتى اليوم 15:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 20 ساعة (إظلام 4 ساعات)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) >= 16 && toNum(state.age) <= 28 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>من اليوم 16 حتى اليوم 28:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 18 ساعة (إظلام 6 ساعات)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) === 29 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>اليوم 29:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 20 ساعة (إظلام 4 ساعات)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) === 30 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>اليوم 30:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 21 ساعة (إظلام 3 ساعات)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) === 31 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>اليوم 31:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 22 ساعة (إظلام ساعتان)</span>
-                        </div>
-                        <div className={cn("flex justify-between items-center px-2 py-1 rounded transition-colors", toNum(state.age) >= 32 && toNum(state.age) <= 34 ? "bg-indigo-500/20 text-white font-extrabold border border-indigo-500/30" : "opacity-75")}>
-                          <span>من اليوم 32 حتى اليوم 34:</span>
-                          <span className="bg-slate-950/60 px-2 py-0.5 rounded text-indigo-300">إضاءة 23 ساعة (إظلام ساعة واحدة)</span>
-                        </div>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
 
@@ -8005,7 +10795,13 @@ export default function App() {
                 </div>
               </Card>
             </motion.div>
-          )}
+            );
+            
+            if (screen === 'dashboard' || (isEnvPanelOpen && ['ventilation', 'humidity', 'climate', 'heating', 'environmental_load', 'weather'].includes(screen))) {
+              return renderDashboard();
+            }
+            return null;
+          })()}
 
           {screen === 'battery' && (
             <motion.div 
@@ -8013,7 +10809,7 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
+              className="space-y-6 pb-32"
             >
               <div className="flex items-center justify-between px-2">
                 <div className="flex flex-col text-right">
@@ -8650,7 +11446,15 @@ export default function App() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                className={cn(
+                  "space-y-6 text-right font-sans transition-all duration-300",
+                  isEnvPanelOpen 
+                    ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                    : "w-full pb-32"
+                )}
+                dir="rtl"
               >
+                {renderEnvPanelHeader()}
                 <WeatherScreen 
                   age={toNum(state.age)} 
                   thi={thi} 
@@ -8673,6 +11477,7 @@ export default function App() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                className="pb-32"
               >
               <MarketScreen 
                 sellingPrice={state.sellingPrice} 
@@ -8703,7 +11508,7 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="relative group/meds perspective-[2000px]"
+              className="relative group/meds perspective-[2000px] pb-32"
             >
               <AnimatePresence mode="wait" initial={false} custom={flipDirection}>
                 <motion.div 
@@ -8751,6 +11556,57 @@ export default function App() {
             </header>
 
               <div className="px-0 mb-4 space-y-4">
+                {/* بطاقة تنبيه تغيير العلف لصفحة الأدوية */}
+                {toNum(state.age) > 1 && getFeedTypeForDay(toNum(state.age), state) !== getFeedTypeForDay(toNum(state.age) - 1, state) && (
+                  <div className="bg-gradient-to-r from-amber-600/30 to-amber-900/20 border-2 border-amber-500/30 p-5 rounded-3xl shrink-0 text-right space-y-3 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden mb-4">
+                    <div className="absolute top-0 left-0 w-48 h-48 bg-amber-500/5 -ml-24 -mt-24 rounded-full blur-3xl pointer-events-none" />
+                    <div className="flex items-start gap-3 relative z-10">
+                      <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400 shrink-0 shadow-lg border border-amber-500/30 animate-bounce">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-base text-amber-200">تنبيه حاسم: تغيير جودة العلف باليوم {state.age} 🔄</h3>
+                        <p className="text-xs text-slate-300 font-bold mt-1.5 leading-relaxed">
+                          بما أنه تم تغيير نوع العلف اليوم إلى <span className="text-white underline font-black">{getFeedTypeForDay(toNum(state.age), state)}</span>، فإنه يُنصح بشدة غسل أمعاء الطيور وتقديم <span className="text-amber-400 font-black">مضاد سموم بيولوجي</span> فوراً لتسهيل الهضم ومنع حدوث أي خمول أو تلبك معوي ناتج عن صدمة التغذية الجديدة والسموم الفطرية.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-amber-500/10 relative z-10">
+                      {state.emergencyMeds.some(m => toNum(m.age) === toNum(state.age) && m.name === 'مضاد سموم بيولوجي') ? (
+                        <div className="text-emerald-400 font-black text-xs flex items-center gap-1.5 bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          مستحضر "مضاد سموم بيولوجي" مدرج ومفعّل حالياً في جدول أدوية اليوم
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            const ageNum = toNum(state.age);
+                            setState(prev => {
+                              const updated = [...prev.emergencyMeds];
+                              updated.push({
+                                id: Math.random().toString(36).substr(2, 9),
+                                name: 'مضاد سموم بيولوجي',
+                                startTime: '08:00',
+                                duration: 12,
+                                endTime: '',
+                                age: ageNum,
+                                doseValue: 1,
+                                unit: 'سم³/لتر'
+                              });
+                              return { ...prev, emergencyMeds: updated };
+                            });
+                          }}
+                          className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4.5 py-2.5 rounded-2xl transition-all shadow-md flex items-center gap-1.5 scale-100 active:scale-95"
+                        >
+                          <Plus size={16} />
+                          إدراج مضاد سموم بيولوجي لجدول اليوم فوراً
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Unified Timeline Header */}
                 <div className="bg-red-500/5 border border-red-500/10 p-5 rounded-3xl mb-4">
                   <div className="flex items-center justify-between">
@@ -8759,21 +11615,23 @@ export default function App() {
                        <span className="text-sm font-black text-white">إدارة الجرعات والبرنامج العلاجي</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {getSuggestedStartTime({ isRest: false, category: 'عام' }) && (
-                        <button 
-                          onClick={() => addEmergencyMed(getSuggestedStartTime({ isRest: false, category: 'عام' }) || undefined)}
-                          className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[9px] font-black px-3 py-1.5 rounded-xl transition-colors border border-white/5"
-                        >
-                          <Clock size={12} className="text-amber-400" />
-                          بدء بعد آخر نشاط
-                        </button>
-                      )}
                       <button 
-                        onClick={() => addEmergencyMed()}
-                        className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition-colors shadow-lg shadow-red-900/20"
+                        onClick={() => {
+                          const suggestedStart = getActiveOrLastEndedDoseEndTime() || '';
+                          setSuggestedMedModal({
+                            isOpen: true,
+                            startTime: suggestedStart,
+                            name: '',
+                            doseValue: '1',
+                            unit: 'سم³/لتر',
+                            duration: '8',
+                            category: 'عام',
+                          });
+                        }}
+                        className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 hover:scale-105 active:scale-95 active:bg-amber-500 active:text-slate-950 text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition-all shadow-lg shadow-sky-900/20 duration-100 cursor-pointer"
                       >
                         <Plus size={14} />
-                        إضافة جرعة طارئة
+                        جرعة إضافية
                       </button>
                     </div>
                   </div>
@@ -8781,7 +11639,7 @@ export default function App() {
 
                 <div className="bg-slate-900/50 border border-white/5 p-5 rounded-3xl">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                    <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight sm:tracking-widest block leading-tight">البرنامج العلاجي الموحد (مجدول + طارئ)</span>
+                    <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight sm:tracking-widest block leading-tight">البرنامج العلاجي الموحد (مجدول + إضافي)</span>
                     <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-widest text-right self-end sm:self-auto">
                        <div className="flex items-center gap-1.5" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
                           {state.isManualOverride ? <Edit3 size={10} className="text-amber-500" /> : <RefreshCw size={10} className="text-blue-400 animate-spin-slow" />}
@@ -8900,266 +11758,18 @@ export default function App() {
 
                         {unifiedTimeline.map((item: any, i) => {
                           const nextItem = unifiedTimeline[i + 1];
-                          const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? nextDayFirstMed : null;
+                          const localNextDayFirstMed = i === unifiedTimeline.length - 1 ? tomorrowFirstMed : null;
                           const itemKey = item.type === 'darkness' ? `${toNum(state.age)}-darkness` : 
                                           item.type === 'emergency' ? `emergency-${item.id}` : 
                                           `${toNum(state.age)}-${item.id || item.name}-${i}`;
 
                           if (item.type === 'darkness') {
-                            const darknessKey = `${toNum(state.age)}-darkness`;
-                            const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
-
-                            const colors = getCategoryColorClasses('راحة', 'إظلام');
-                            return (
-                              <div key={itemKey} className={cn("bg-gradient-to-br from-indigo-900/20 to-slate-900 shadow-xl border-t border-white/5 p-6 rounded-3xl flex flex-col gap-5 border-s-4 overflow-hidden relative group", colors.border)}>
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
-                                
-                                <div className="flex items-center justify-between relative z-10">
-                                  <div className="flex items-center gap-4">
-                                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border shadow-[0_0_20px_rgba(79,70,229,0.15)] group-hover:scale-110 transition-transform", colors.bg.replace('/10', '/20'), colors.text, colors.border.replace('border-s-', 'border-'))}>
-                                      <Moon size={24} />
-                                    </div>
-                                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button 
-                                        onClick={() => {
-                                          if (i === 0) return;
-                                          const prevItem = unifiedTimeline[i - 1];
-                                          const currentKey = `${toNum(state.age)}-darkness`;
-                                          const prevKey = prevItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${prevItem.id || prevItem.name}`;
-                                          const prevOrder = state.medDataOverrides?.[prevKey]?.order ?? (prevItem.originalIndex || 0);
-                                          setState(prev => ({
-                                            ...prev,
-                                            medDataOverrides: {
-                                              ...prev.medDataOverrides,
-                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: prevOrder - 1 },
-                                              [prevKey]: { ...prev.medDataOverrides?.[prevKey], order: prevOrder }
-                                            }
-                                          }));
-                                        }}
-                                        disabled={i === 0}
-                                        className="text-slate-500 hover:text-white disabled:opacity-30"
-                                      >
-                                        <ChevronUp size={12} />
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          if (i === unifiedTimeline.length - 1) return;
-                                          const nextItem = unifiedTimeline[i + 1];
-                                          const currentKey = `${toNum(state.age)}-darkness`;
-                                          const nextKey = nextItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${nextItem.id || nextItem.name}`;
-                                          const nextOrder = state.medDataOverrides?.[nextKey]?.order ?? (nextItem.originalIndex || 0);
-                                          setState(prev => ({
-                                            ...prev,
-                                            medDataOverrides: {
-                                              ...prev.medDataOverrides,
-                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: nextOrder + 1 },
-                                              [nextKey]: { ...prev.medDataOverrides?.[nextKey], order: nextOrder }
-                                            }
-                                          }));
-                                        }}
-                                        disabled={i === unifiedTimeline.length - 1}
-                                        className="text-slate-500 hover:text-white disabled:opacity-30"
-                                      >
-                                        <ChevronDown size={12} />
-                                      </button>
-                                    </div>
-                                    <div className="text-right">
-                                      <h3 className="text-base font-black text-white">{item.name}</h3>
-                                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest leading-none mt-1">نشاط إظلام مستقل</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {(() => {
-                                   if (toNum(state.age) !== 1 || !state.medicationLogs[darknessKey]) return null;
-                                   const orsTime = state.medicationLogs['1-d1-ors'] || '';
-                                   const isViolation = !orsTime || (() => {
-                                     const [ih, im] = state.medicationLogs[darknessKey].split(':').map(Number);
-                                     const [oh, om] = orsTime.split(':').map(Number);
-                                     if (isNaN(ih) || isNaN(im) || isNaN(oh) || isNaN(om)) return false;
-                                     return (ih * 60 + im) < (oh * 60 + om);
-                                   })();
-                                   if (!isViolation) return null;
-                                   return (
-                                     <div className="flex items-center gap-2 px-3 py-2 bg-red-400/10 border border-red-500/20 rounded-xl relative z-10 mb-2 justify-end">
-                                       <AlertTriangle size={14} className="text-red-500 shrink-0" />
-                                       <p className="text-[10px] font-bold text-red-200 text-right leading-relaxed">
-                                         {!orsTime 
-                                           ? "تنبيه: لم يتم بدء محلول معالجة الجفاف بعد! يجب البدء بمحلول معالجة الجفاف أولاً."
-                                           : `تنبيه: لا يمكن البدء قبل محلول معالجة الجفاف المقرر في الساعة (${orsTime}).`
-                                         }
-                                       </p>
-                                     </div>
-                                   );
-                                 })()}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                                  <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-4">
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest min-w-[70px]">وقت البدء:</span>
-                                      <input 
-                                        type="time" 
-                                        value={state.medicationLogs[darknessKey] ?? ''}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setState(prev => ({
-                                            ...prev,
-                                            medicationLogs: {
-                                              ...prev.medicationLogs,
-                                              [darknessKey]: val
-                                            }
-                                          }));
-                                        }}
-                                        className="bg-indigo-500/10 text-white text-sm font-black border border-indigo-500/20 rounded-xl px-4 py-2 focus:outline-none focus:border-indigo-400 transition-colors w-full text-center cursor-pointer shadow-inner"
-                                      />
-                                    </div>
-
-                                    {!state.medicationLogs[darknessKey] && getSuggestedStartTime(item, prevAct) && (
-                                      <div className="flex flex-col gap-1.5 pt-1">
-                                        <button 
-                                          onClick={() => {
-                                            const suggested = getSuggestedStartTime(item, prevAct);
-                                            if (suggested) {
-                                              setState(prev => ({
-                                                ...prev,
-                                                medicationLogs: {
-                                                  ...prev.medicationLogs,
-                                                  [darknessKey]: suggested
-                                                }
-                                              }));
-                                            }
-                                          }}
-                                          className="w-full flex items-center justify-between px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl transition-all group/btn shadow-lg shadow-emerald-500/10"
-                                        >
-                                          <div className="flex flex-col items-start gap-0.5 text-right">
-                                            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none">ربط (بعد النشاط السابق):</span>
-                                            <span className="text-xs font-black text-white leading-none mt-1">
-                                              {(() => {
-                                                const suggested = getSuggestedStartTime(item, prevAct);
-                                                if (!suggested) return '--:--';
-                                                const [sh, sm] = suggested.split(':').map(Number);
-                                                const sd = new Date();
-                                                sd.setHours(sh, sm, 0, 0);
-                                                
-                                                let refTime: Date | undefined = undefined;
-                                                if (prevAct && prevAct.startTime) {
-                                                  const [ph, pm] = prevAct.startTime.split(':').map(Number);
-                                                  const pDate = new Date();
-                                                  const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
-                                                  pDate.setHours(ph + pDuration, pm, 0, 0);
-                                                  refTime = pDate;
-                                                } else {
-                                                  const { latestEndTime } = getLatestActivityEndTime();
-                                                  refTime = latestEndTime || undefined;
-                                                }
-                                                return formatArabicTime(sd, refTime);
-                                              })()}
-                                            </span>
-                                          </div>
-                                          <div className="p-1.5 bg-emerald-500/20 rounded-lg group-hover/btn:bg-emerald-500/40 transition-colors">
-                                            <Zap size={14} className="text-emerald-400 group-hover/btn:scale-110 transition-transform" />
-                                          </div>
-                                        </button>
-                                        {(() => {
-                                          let refTime: Date | null = null;
-                                          if (prevAct && prevAct.startTime) {
-                                            const [ph, pm] = prevAct.startTime.split(':').map(Number);
-                                            const pDate = new Date();
-                                            const pDuration = prevAct.recommendedHours || toNum(prevAct.duration) || 0;
-                                            pDate.setHours(ph + pDuration, pm, 0, 0);
-                                            refTime = pDate;
-                                          } else {
-                                            const { latestEndTime } = getLatestActivityEndTime();
-                                            refTime = latestEndTime;
-                                          }
-                                          if (refTime && (refTime.getHours() < 5 && refTime.getHours() >= 0)) {
-                                            return <span className="text-[10px] font-black text-[#00EEEE] text-center">* ممتدة من اليوم السابق</span>;
-                                          }
-                                          return null;
-                                        })()}
-                                      </div>
-                                    )}
-
-                                    <div className="flex items-center gap-3 bg-slate-950/40 px-4 py-3 rounded-2xl border border-white/5 shadow-xl">
-                                      <span className="text-sm font-black text-indigo-400">فترة إظلام لمدة</span>
-                                      <input 
-                                        type="text"
-                                        inputMode="decimal"
-                                        value={state.medDataOverrides?.[darknessKey]?.duration ?? item.recommendedHours}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                            setState(prev => ({
-                                              ...prev,
-                                              medDataOverrides: {
-                                                ...prev.medDataOverrides,
-                                                [darknessKey]: { ...prev.medDataOverrides?.[darknessKey], duration: val }
-                                              }
-                                            }));
-                                          }
-                                        }}
-                                        className="w-12 bg-transparent text-white text-[15px] font-black focus:outline-none text-center border-b border-indigo-500/30"
-                                        placeholder={String(lightingSchedule.darknessHours)}
-                                      />
-                                      <span className="text-sm font-black text-indigo-400">ساعة</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10 flex flex-col justify-center gap-3">
-                                    <p className="text-[10px] text-slate-400 font-bold leading-relaxed text-right italic opacity-80 border-r-2 border-indigo-500/30 pr-3">
-                                      {lightingSchedule.ageReason}
-                                    </p>
-                                    {(lightingSchedule.tempReason || lightingSchedule.medReason) && (
-                                      <div className="space-y-1">
-                                        {lightingSchedule.tempReason && <p className="text-[9px] text-red-300 font-bold text-right">{lightingSchedule.tempReason}</p>}
-                                        {lightingSchedule.medReason && <p className="text-[9px] text-amber-300 font-bold text-right">{lightingSchedule.medReason}</p>}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {item.startTime && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
-                                  <div className="mt-2 px-5 py-4 bg-indigo-500/10 rounded-2xl flex flex-col gap-3 border border-indigo-500/10 relative z-10" dir="rtl">
-                                    {(() => {
-                                      const nextAct = nextItem || localNextDayFirstMed;
-                                      const nextInfo = getNextTime(item.startTime, item, nextAct, nextAct === localNextDayFirstMed);
-                                      if (!nextInfo) return null;
-                                      
-                                      return (
-                                        <>
-                                          <div className="flex items-start justify-between gap-3 text-right">
-                                            <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest pt-0.5">موعد الانتهاء:</span>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                              {item.isSpanningMidnight && <Moon size={14} className="text-indigo-400" />}
-                                              <span className={cn("text-sm font-black tabular-nums", item.isSpanningMidnight ? "text-indigo-300" : "text-indigo-400")}>
-                                                {nextInfo.endTimeStr}
-                                              </span>
-                                            </div>
-                                          </div>
-
-                                          <div className="flex flex-col border-t border-indigo-500/10 pt-3 gap-1.5 text-right">
-                                            <div className="flex items-center gap-2">
-                                              <Clock size={12} className="text-indigo-400 shrink-0" />
-                                              <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest leading-none">
-                                                {i === unifiedTimeline.length - 1 ? "أول جرعة غداً (" + (toNum(state.age) + 1) + "):" : nextInfo.label + " (" + nextAct.name + "):"}
-                                              </span>
-                                            </div>
-                                            <div className="text-sm font-black text-indigo-400 tabular-nums pr-5">
-                                              {nextInfo.nextStartTimeStr}
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
-                              </div>
-                            );
+                            return null;
                           }
 
-                          if (item.type === 'emergency') {
+                          if (item.type === 'emergency_unreachable_unused') {
                             const med = item;
-                            const colors = getCategoryColorClasses('طوارئ', med.name);
+                            const colors = getCategoryColorClasses(med.category || 'طوارئ', med.name);
 
                             return (
                               <div key={med.id} className={cn("bg-slate-900/80 border border-white/5 p-5 rounded-3xl relative group border-s-4 transition-all hover:bg-slate-800/90 shadow-xl", colors.border)}>
@@ -9181,19 +11791,18 @@ export default function App() {
                                       {med.isSpanningMidnight && <span title="تمتد لليوم التالي"><Moon size={14} className="text-indigo-400 animate-pulse" /></span>}
                                       جرعة طوارئ
                                     </h3>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">تلقائي الترتيب ضمن المواعيد</p>
+                                    <div className="flex items-center gap-2 mt-1 justify-end">
+                                      <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.accent)}>
+                                        {med.category || 'طوارئ'}
+                                      </span>
+                                      <span className="text-[8px] font-bold text-slate-500">• تلقائي الترتيب</span>
+                                    </div>
                                   </div>
                                   <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border shadow-lg transition-transform group-hover:scale-110", colors.bg.replace('/10', '/20'), colors.text, colors.border.replace('border-s-', 'border-'))}>
                                     <Zap size={20} />
                                   </div>
                                 </div>
-                                
-                                {med.overlapsDarkness && (
-                                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4 justify-end scale-95 origin-right">
-                                    <AlertTriangle size={14} className="text-amber-500 shrink-0" />
-                                    <p className="text-[10px] font-bold text-amber-200 text-right leading-relaxed">تنبيه: الجرعة تتداخل مع فترة الإظلام.</p>
-                                  </div>
-                                )}
+
 
                                 {(() => {
                                   const ageVal = toNum(state.age);
@@ -9239,6 +11848,7 @@ export default function App() {
                                                 updates.duration = finalMatch.duration;
                                                 updates.doseValue = finalMatch.dose !== undefined ? finalMatch.dose : 1;
                                                 updates.unit = finalMatch.unit;
+                                                updates.category = finalMatch.category;
                                               }
                                               updateEmergencyMed(med.id, updates);
                                             }}
@@ -9274,7 +11884,8 @@ export default function App() {
                                                       name: m.name,
                                                       duration: m.duration,
                                                       doseValue: m.dose !== undefined ? m.dose : 1,
-                                                      unit: m.unit
+                                                      unit: m.unit,
+                                                      category: m.category
                                                     });
                                                     setOpenMedDropdown(null);
                                                   }}
@@ -9291,7 +11902,8 @@ export default function App() {
                                     <div className="flex flex-col space-y-3 mb-1 max-w-[280px] mx-auto">
                                       {/* Start Time Field */}
                                       <div className={cn(
-                                        "flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border border-white/5 shadow-xl transition-opacity",
+                                        "flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border shadow-xl transition-all duration-200",
+                                        !med.startTime ? "border-amber-500/30 ring-1 ring-amber-500/10" : "border-white/5",
                                         (toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors']) && "opacity-50"
                                       )}>
                                         <div className="text-left flex flex-col justify-center min-w-[60px]">
@@ -9301,7 +11913,7 @@ export default function App() {
                                         <div className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 flex items-center shadow-inner relative group cursor-pointer h-[42px]">
                                           <input 
                                             type="time"
-                                            value={med.startTime ?? ''}
+                                            value={(med.isSuggestedStartTime ? "" : med.startTime) ?? ""}
                                             disabled={toNum(state.age) === 1 && !state.medicationLogs['1-d1-ors']}
                                             onChange={(e) => {
                                               const val = e.target.value;
@@ -9318,7 +11930,7 @@ export default function App() {
                                                   }
                                                 }
                                               }
-                                              updateEmergencyMed(med.id, { startTime: val });
+                                              updateEmergencyMed(med.id, { startTime: val, isSuggestedStartTime: false });
                                             }}
                                             className={cn(
                                               "absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20 [color-scheme:dark]",
@@ -9328,7 +11940,7 @@ export default function App() {
                                           <div className="flex items-center justify-between w-full z-10 pointer-events-none">
                                             <ChevronDown size={14} className="text-slate-500" />
                                             <div className="flex items-center gap-2">
-                                              {med.startTime ? (
+                                              {med.startTime && !med.isSuggestedStartTime ? (
                                                 <span className="text-[14px] font-black text-white leading-none">
                                                   {(() => {
                                                     const [h, m] = med.startTime.split(':').map(Number);
@@ -9358,7 +11970,10 @@ export default function App() {
                                       </div>
 
                                       {/* Duration Field */}
-                                      <div className="flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border border-white/5 shadow-xl">
+                                      <div className={cn(
+                                        "flex items-center gap-3 bg-slate-900/40 p-2 rounded-2xl border shadow-xl transition-all duration-200",
+                                        !med.duration ? "border-amber-500/30 ring-1 ring-amber-500/10" : "border-white/5"
+                                      )}>
                                         <div className="text-left flex flex-col justify-center min-w-[60px]">
                                           <span className="text-[11px] font-black text-slate-400 leading-tight">المدة</span>
                                           <span className="text-[11px] font-black text-slate-400 leading-tight">(س):</span>
@@ -9374,8 +11989,8 @@ export default function App() {
                                                 updateEmergencyMed(med.id, { duration: val });
                                               }
                                             }}
-                                            className="w-full bg-transparent text-white text-[15px] font-black focus:outline-none text-center [&::-webkit-inner-spin-button]:hidden leading-none"
-                                            placeholder="8"
+                                            className="w-full bg-transparent text-white text-[15px] font-black focus:outline-none text-center [&::-webkit-inner-spin-button]:hidden leading-none placeholder:text-amber-500/50 placeholder:text-xs"
+                                            placeholder="مثال: 8"
                                           />
                                         </div>
                                       </div>
@@ -9384,8 +11999,20 @@ export default function App() {
                                   
                                   <div className="flex flex-col justify-end gap-3">
                                     <div className="flex gap-2">
-                                       <div className="flex-1 bg-slate-900/40 p-2 rounded-2xl border border-white/5">
-                                          <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block text-center">الجرعة</label>
+                                       <div className="flex-1 bg-slate-900/40 p-2 rounded-2xl border border-white/5 flex flex-col justify-between">
+                                          <div className="flex flex-col gap-1 mb-1 items-center">
+                                            <label className="text-[8px] font-black text-slate-500 uppercase block text-center">الجرعة</label>
+                                            {med.name && (
+                                              <span className={cn(
+                                                "text-[8px] font-black px-1.5 py-0.5 rounded border leading-none text-center block max-w-full truncate",
+                                                getCategoryColorClasses(med.category || 'طوارئ', med.name).text,
+                                                getCategoryColorClasses(med.category || 'طوارئ', med.name).bg,
+                                                getCategoryColorClasses(med.category || 'طوارئ', med.name).border.replace('border-s-', 'border-')
+                                              )}>
+                                                {med.name}
+                                              </span>
+                                            )}
+                                          </div>
                                           <input 
                                             type="text"
                                             inputMode="decimal"
@@ -9514,12 +12141,131 @@ export default function App() {
                                 </div>
                               </div>
                             );
-                          } else {
+                          } else if (item.type === 'scheduled' || item.type === 'emergency') {
                             const med = item;
-                            const logKey = `${toNum(state.age)}-${med.id || med.name}`;
+                            const logKey = med.logKey || `${toNum(state.age)}-${med.id || med.name}`;
                             const colors = getCategoryColorClasses(med.category, med.name);
                             const prevAct = i > 0 ? unifiedTimeline[i - 1] : null;
                             const nextAct = nextItem || localNextDayFirstMed;
+
+                            const handleUpdateMed = (updates: any) => {
+                              if (med.type === 'emergency') {
+                                updateEmergencyMed(med.id, updates);
+                              } else {
+                                updateMedOverride(logKey, updates);
+                              }
+                            };
+
+                            const handleUpdateStartTime = (val: string) => {
+                              if (med.type === 'emergency') {
+                                updateEmergencyMed(med.id, { startTime: val, isSuggestedStartTime: false });
+                                if (i === unifiedTimeline.length - 1 && localNextDayFirstMed && localNextDayFirstMed.isNextDay) {
+                                  const nextInfo = getNextTime(val, med, localNextDayFirstMed, true);
+                                  if (nextInfo && nextInfo.rawNextStartTime) {
+                                    if (localNextDayFirstMed.type === 'emergency') {
+                                      updateEmergencyMed(localNextDayFirstMed.id, { startTime: nextInfo.rawNextStartTime, isSuggestedStartTime: false });
+                                    } else {
+                                      const nextLogKey = localNextDayFirstMed.logKey || `${toNum(state.age)}-${localNextDayFirstMed.id || localNextDayFirstMed.name}`;
+                                      setState(prev => ({
+                                        ...prev,
+                                        medicationLogs: {
+                                          ...prev.medicationLogs,
+                                          [nextLogKey]: nextInfo.rawNextStartTime
+                                        }
+                                      }));
+                                    }
+                                  }
+                                }
+                              } else {
+                                if (toNum(state.age) === 1 && med.id === 'd1-ors' && val) {
+                                  const [oh, om] = val.split(':').map(Number);
+                                  if (!isNaN(oh) && !isNaN(om)) {
+                                    const orsMins = oh * 60 + om;
+                                    let hasViolation = false;
+                                    Object.keys(state.medicationLogs).forEach(k => {
+                                      if (k.startsWith('1-') && k !== '1-d1-ors' && state.medicationLogs[k]) {
+                                        const [ih, im] = state.medicationLogs[k].split(':').map(Number);
+                                        if (!isNaN(ih) && !isNaN(im) && (ih * 60 + im < orsMins)) {
+                                          hasViolation = true;
+                                        }
+                                      }
+                                    });
+                                    if (hasViolation) {
+                                      if (confirm("⚠️ تعديل وقت محلول معالجة الجفاف إلى هذا الوقت يجعله متأخراً عن جرعات أخرى اليوم. هل ترغب في إعادة ضبط أوقات الجرعات الأخرى لتتبع محلول الجفاف؟")) {
+                                        setState(prev => {
+                                          const newLogs = { ...prev.medicationLogs };
+                                          Object.keys(newLogs).forEach(k => {
+                                            if (k.startsWith('1-') && k !== '1-d1-ors') {
+                                              delete newLogs[k];
+                                            }
+                                          });
+                                          newLogs['1-d1-ors'] = val;
+                                          return { ...prev, medicationLogs: newLogs };
+                                        });
+                                        return;
+                                      } else {
+                                        return;
+                                      }
+                                    }
+                                  }
+                                }
+
+                                if (toNum(state.age) === 1 && med.id !== 'd1-ors' && med.type !== 'emergency') {
+                                  const orsTime = state.medicationLogs['1-d1-ors'];
+                                  if (!orsTime) {
+                                    alert("⚠️ يجب تحديد وقت بدء محلول معالجة الجفاف أولاً لكونه بداية البرنامج العلاجي.");
+                                    return;
+                                  }
+                                  const [ih, im] = val.split(':').map(Number);
+                                  const [oh, om] = orsTime.split(':').map(Number);
+                                  if (!isNaN(ih) && !isNaN(im) && !isNaN(oh) && !isNaN(om)) {
+                                    if (ih * 60 + im < oh * 60 + om) {
+                                      alert("⚠️ لا يمكن لجرعة أو علاج أن يسبق محلول معالجة الجفاف في اليوم الأول!");
+                                      return;
+                                    }
+                                  }
+                                }
+
+                                if (i === unifiedTimeline.length - 1 && localNextDayFirstMed && localNextDayFirstMed.isNextDay) {
+                                  const nextInfo = getNextTime(val, med, localNextDayFirstMed, true);
+                                  if (nextInfo && nextInfo.rawNextStartTime) {
+                                    if (localNextDayFirstMed.type === 'emergency') {
+                                      updateEmergencyMed(localNextDayFirstMed.id, { startTime: nextInfo.rawNextStartTime });
+                                      setState(prev => ({
+                                        ...prev,
+                                        medicationLogs: {
+                                          ...prev.medicationLogs,
+                                          [logKey]: val
+                                        }
+                                      }));
+                                      return;
+                                    } else {
+                                      const nextLogKey = localNextDayFirstMed.logKey || `${toNum(state.age)}-${localNextDayFirstMed.id || localNextDayFirstMed.name}`;
+                                      setState(prev => ({
+                                        ...prev,
+                                        medicationLogs: {
+                                          ...prev.medicationLogs,
+                                          [logKey]: val,
+                                          [nextLogKey]: nextInfo.rawNextStartTime
+                                        }
+                                      }));
+                                      return;
+                                    }
+                                  }
+                                }
+
+                                setState(prev => ({
+                                  ...prev,
+                                  medicationLogs: {
+                                    ...prev.medicationLogs,
+                                    [logKey]: val
+                                  }
+                                }));
+                              }
+                            };
+
+                            const currentStartTimeValue = (med.type === 'emergency' && med.isSuggestedStartTime) ? '' : (med.type === 'emergency' ? (med.startTime ?? '') : (state.medicationLogs[logKey] ?? ''));
+                            const isDeferredUnusedOnThisDay = !currentStartTimeValue && med.isNextDay && !med.isCarriedOverDeferred && !med.isCarriedOver;
 
                             return (
                               <div key={itemKey} className={cn(
@@ -9527,6 +12273,36 @@ export default function App() {
                                 colors.border,
                                 med.isRest && "opacity-80"
                               )}>
+                                {med.isCarriedOver && (
+                                  <div className="bg-amber-500/10 border border-amber-500/20 px-3.5 py-2.5 rounded-2xl flex items-center justify-between text-right mb-1">
+                                    <div className="flex items-center gap-2 text-amber-400">
+                                      <Lock size={14} className="shrink-0 text-amber-500" />
+                                      <p className="text-[10px] font-bold leading-relaxed text-right">
+                                        هذه الجرعة ممتدة من اليوم السابق ومقروءة فقط هنا. لتعديلها يرجى الانتقال إلى اليوم السابق.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                                {isDeferredUnusedOnThisDay && (
+                                  <div className="bg-amber-500/10 border border-amber-500/20 px-3.5 py-2.5 rounded-2xl flex items-center justify-between text-right mb-1">
+                                    <div className="flex items-center gap-2 text-amber-400">
+                                      <Moon size={14} className="shrink-0 text-amber-500 animate-pulse" />
+                                      <p className="text-[10px] font-bold leading-relaxed text-right">
+                                        تم ترحيل هذه الجرعة لليوم التالي لعدم توفر وقت كافٍ لتطبيقها اليوم. يمكنك تسجيلها وإدارتها من اليوم التالي.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                                {med.isCarriedOverDeferred && !currentStartTimeValue && (
+                                  <div className="bg-blue-500/10 border border-blue-500/20 px-3.5 py-2.5 rounded-2xl flex items-center justify-between text-right mb-1">
+                                    <div className="flex items-center gap-2 text-blue-400">
+                                      <Zap size={14} className="shrink-0 text-blue-500 animate-pulse" />
+                                      <p className="text-[10px] font-bold leading-relaxed text-right">
+                                        هذه الجرعة تم ترحيلها من اليوم السابق لعدم استخدامها. يمكنك الآن تسجيل موعد بدئها وتطبيقها اليوم.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="flex items-center justify-between group">
                                   <div className="flex items-center gap-3 w-full">
                                     <div className={cn(
@@ -9535,56 +12311,62 @@ export default function App() {
                                     )}>
                                       {i + 1}
                                     </div>
-                                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button 
-                                        onClick={() => {
-                                          if (i === 0) return;
-                                          const prevItem = unifiedTimeline[i - 1];
-                                          const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
-                                          const prevKey = prevItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${prevItem.id || prevItem.name}`;
-                                          const prevOrder = state.medDataOverrides?.[prevKey]?.order ?? (prevItem.originalIndex || 0);
-                                          setState(prev => ({
-                                            ...prev,
-                                            medDataOverrides: {
-                                              ...prev.medDataOverrides,
-                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: prevOrder - 1 },
-                                              [prevKey]: { ...prev.medDataOverrides?.[prevKey], order: prevOrder }
-                                            }
-                                          }));
-                                        }}
-                                        disabled={i === 0}
-                                        className="text-slate-500 hover:text-white disabled:opacity-30"
-                                      >
-                                        <ChevronUp size={12} />
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          if (i === unifiedTimeline.length - 1) return;
-                                          const nextItem = unifiedTimeline[i + 1];
-                                          const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
-                                          const nextKey = nextItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${nextItem.id || nextItem.name}`;
-                                          const nextOrder = state.medDataOverrides?.[nextKey]?.order ?? (nextItem.originalIndex || 0);
-                                          setState(prev => ({
-                                            ...prev,
-                                            medDataOverrides: {
-                                              ...prev.medDataOverrides,
-                                              [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: nextOrder + 1 },
-                                              [nextKey]: { ...prev.medDataOverrides?.[nextKey], order: nextOrder }
-                                            }
-                                          }));
-                                        }}
-                                        disabled={i === unifiedTimeline.length - 1}
-                                        className="text-slate-500 hover:text-white disabled:opacity-30"
-                                      >
-                                        <ChevronDown size={12} />
-                                      </button>
-                                    </div>
+                                    {!med.isCarriedOver && !isDeferredUnusedOnThisDay && (
+                                      <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                          onClick={() => {
+                                            if (i === 0) return;
+                                            const prevItem = unifiedTimeline[i - 1];
+                                            const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
+                                            const prevKey = prevItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${prevItem.id || prevItem.name}`;
+                                            const prevOrder = state.medDataOverrides?.[prevKey]?.order ?? (prevItem.originalIndex || 0);
+                                            setState(prev => ({
+                                              ...prev,
+                                              medDataOverrides: {
+                                                ...prev.medDataOverrides,
+                                                [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: prevOrder - 1 },
+                                                [prevKey]: { ...prev.medDataOverrides?.[prevKey], order: prevOrder }
+                                              }
+                                            }));
+                                          }}
+                                          disabled={i === 0}
+                                          className="text-slate-500 hover:text-white disabled:opacity-30"
+                                        >
+                                          <ChevronUp size={12} />
+                                        </button>
+                                        <button 
+                                          onClick={() => {
+                                            if (i === unifiedTimeline.length - 1) return;
+                                            const nextItem = unifiedTimeline[i + 1];
+                                            const currentKey = med.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${med.id || med.name}`;
+                                            const nextKey = nextItem.type === 'darkness' ? `${toNum(state.age)}-darkness` : `${toNum(state.age)}-${nextItem.id || nextItem.name}`;
+                                            const nextOrder = state.medDataOverrides?.[nextKey]?.order ?? (nextItem.originalIndex || 0);
+                                            setState(prev => ({
+                                              ...prev,
+                                              medDataOverrides: {
+                                                ...prev.medDataOverrides,
+                                                [currentKey]: { ...prev.medDataOverrides?.[currentKey], order: nextOrder + 1 },
+                                                [nextKey]: { ...prev.medDataOverrides?.[nextKey], order: nextOrder }
+                                              }
+                                            }));
+                                          }}
+                                          disabled={i === unifiedTimeline.length - 1}
+                                          className="text-slate-500 hover:text-white disabled:opacity-30"
+                                        >
+                                          <ChevronDown size={12} />
+                                        </button>
+                                      </div>
+                                    )}
                                     <div className="flex flex-col flex-1 min-w-0">
                                       <div className="relative">
                                         <div className="flex items-center gap-2">
                                           <input 
+
                                             type="text"
+
                                             value={med.name}
+
+                                            disabled={med.isCarriedOver || isDeferredUnusedOnThisDay}
                                             onChange={(e) => {
                                               const name = e.target.value;
                                               let updates: any = { name };
@@ -9593,19 +12375,43 @@ export default function App() {
                                                 updates.doseValue = match.dose;
                                                 updates.unit = match.unit;
                                                 updates.duration = match.duration;
+                                                updates.category = match.category;
                                               }
-                                              updateMedOverride(logKey, updates);
+                                              handleUpdateMed(updates);
                                             }}
                                             onFocus={() => setOpenMedDropdown(logKey)}
-                                            className="bg-transparent border-none p-0 text-base font-black text-white focus:ring-0 w-full"
+                                            placeholder="⚠️ حدد نوع الجرعة هنا..."
+                                            className="bg-transparent border-none p-0 text-base font-black text-white focus:ring-0 w-full placeholder:text-amber-400 placeholder:text-sm placeholder:font-bold disabled:opacity-90"
                                           />
-                                          <button 
-                                            type="button"
-                                            onClick={() => setOpenMedDropdown(openMedDropdown === logKey ? null : logKey)}
-                                            className="text-slate-500 hover:text-white"
-                                          >
-                                            <ChevronDown size={14} className={cn("transition-transform", openMedDropdown === logKey && "rotate-180")} />
-                                          </button>
+                                          {!med.isCarriedOver && !isDeferredUnusedOnThisDay && (
+                                            <button 
+                                              type="button"
+                                              onClick={() => setOpenMedDropdown(openMedDropdown === logKey ? null : logKey)}
+                                              className="text-slate-500 hover:text-white shrink-0"
+                                            >
+                                              <ChevronDown size={14} className={cn("transition-transform", openMedDropdown === logKey && "rotate-180")} />
+                                            </button>
+                                          )}
+                                          {med.isCarriedOver || isDeferredUnusedOnThisDay ? (
+                                            <span className="text-slate-500 p-1 rounded-lg bg-slate-950/60 border border-white/5 flex items-center justify-center" title="جرعة مرحلة ومحمية من التعديل">
+                                              <Lock size={12} className="text-amber-500" />
+                                            </span>
+                                          ) : (
+                                            <button 
+                                              type="button"
+                                              onClick={() => {
+                                                setBillToDelete({
+                                                  id: med.type === 'emergency' ? med.id : logKey,
+                                                  section: med.type === 'emergency' ? 'emergencyMeds' : 'medicationOverrides',
+                                                  label: med.name || 'الجرعة'
+                                                });
+                                              }}
+                                              className="text-rose-500 hover:text-rose-400 p-1.5 rounded-xl hover:bg-rose-500/10 transition-all duration-200 shrink-0 flex items-center justify-center border border-transparent hover:border-rose-500/20"
+                                              title="حذف الجرعة"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          )}
                                         </div>
                                         {openMedDropdown === logKey && (
                                           <>
@@ -9620,11 +12426,12 @@ export default function App() {
                                                   type="button"
                                                   onMouseDown={(e) => {
                                                     e.preventDefault(); 
-                                                    updateMedOverride(logKey, { 
+                                                    handleUpdateMed({ 
                                                       name: m.name,
                                                       doseValue: m.dose,
                                                       unit: m.unit,
-                                                      duration: m.duration
+                                                      duration: m.duration,
+                                                      category: m.category
                                                     });
                                                     setOpenMedDropdown(null);
                                                   }}
@@ -9637,31 +12444,31 @@ export default function App() {
                                           </>
                                         )}
                                       </div>
+ 
                                       
                                       <div className="flex items-center gap-2">
                                         <span className={cn("text-[9px] font-black uppercase tracking-widest", colors.accent)}>
-                                          {med.category}
+                                          {med.category || (med.type === 'emergency' ? 'جرعة إضافية' : 'عام')}
                                         </span>
                                         {med.isSpanningMidnight && <span title="تمتد لليوم التالي"><Moon size={14} className="text-indigo-400 animate-pulse" /></span>}
-                                        {med.isNextDay && <span className="text-[9px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-lg border border-cyan-400/20 shadow-sm shadow-cyan-400/20 tracking-tight">ممتدة لليوم التالي</span>}
+{isDeferredUnusedOnThisDay ? (
+  <span className="text-[9px] font-black text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20 shadow-sm shadow-amber-400/20 tracking-tight">رحلت لليوم التالي</span>
+) : med.isNextDay ? (
+  <span className="text-[9px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-lg border border-cyan-400/20 shadow-sm shadow-cyan-400/20 tracking-tight">ممتدة لليوم التالي</span>
+) : null}
+{med.isCarriedOver && <span className="text-[9px] font-black text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20 shadow-sm shadow-amber-400/20 tracking-tight">مرحلة من اليوم السابق</span>}
+{med.isCarriedOverDeferred && <span className="text-[9px] font-black text-blue-400 bg-blue-400/10 px-2 py-1 rounded-lg border border-blue-400/20 shadow-sm shadow-blue-400/20 tracking-tight">مرحلة من اليوم السابق</span>}
                                       </div>
                                     </div>
                                   </div>
-                                  
-                                  {med.overlapsDarkness && (
-                                    <div className="flex items-center gap-2 px-2 py-1 bg-amber-500/10 border border-amber-500/10 rounded-lg shrink-0">
-                                      <span className="text-[9px] font-bold text-amber-400">تداخل</span>
-                                      <AlertTriangle size={10} className="text-amber-500" />
-                                    </div>
-                                  )}
                                 </div>
 
                                 {(() => {
                                    const ageVal = toNum(state.age);
-                                   if (ageVal !== 1 || med.id === 'd1-ors' || !med.startTime) return null;
-                                   const orsTime = state.medicationLogs['1-d1-ors'] || '';
+                                   if (ageVal !== 1 || med.id === 'd1-ors' || !currentStartTimeValue || med.type === 'emergency') return null;
+                                   const orsTime = med.type === 'emergency' ? '' : (state.medicationLogs['1-d1-ors'] || '');
                                    const isViolation = !orsTime || (() => {
-                                     const [ih, im] = med.startTime.split(':').map(Number);
+                                     const [ih, im] = currentStartTimeValue.split(':').map(Number);
                                      const [oh, om] = orsTime.split(':').map(Number);
                                      if (isNaN(ih) || isNaN(im) || isNaN(oh) || isNaN(om)) return false;
                                      return (ih * 60 + im) < (oh * 60 + om);
@@ -9680,33 +12487,51 @@ export default function App() {
                                    );
                                  })()}
 
+
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-2xl border border-white/5">
                                   <div className="space-y-2">
                                     {/* Dose Info */}
                                       {med.category !== 'راحة' && (
-                                        <div className="flex items-center gap-3">
-                                          <label className="text-[9px] font-black text-slate-500 uppercase min-w-[40px]">الجرعة:</label>
+                                        <div className="flex flex-col gap-1.5">
+                                          {med.name && (
+                                            <div className="flex justify-start">
+                                              <span className={cn(
+                                                "text-[9px] font-black px-2 py-0.5 rounded-lg border leading-none tracking-tight",
+                                                getCategoryColorClasses(med.category || 'عام', med.name).text,
+                                                getCategoryColorClasses(med.category || 'عام', med.name).bg,
+                                                getCategoryColorClasses(med.category || 'عام', med.name).border.replace('border-s-', 'border-')
+                                              )}>
+                                                {med.name}
+                                              </span>
+                                            </div>
+                                          )}
+                                          <div className="flex items-center gap-3">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase min-w-[40px]">الجرعة:</label>
                                           <div className="flex items-center gap-2 flex-1">
                                             <input 
                                               type="text"
                                               inputMode="decimal"
-                                              value={state.medDataOverrides?.[logKey]?.doseValue ?? med.doseValue}
+                                              value={med.type === 'emergency' ? med.doseValue : (state.medDataOverrides?.[logKey]?.doseValue ?? med.doseValue)}
+                                              disabled={med.isCarriedOver || isDeferredUnusedOnThisDay}
                                               onChange={(e) => {
                                                 const val = e.target.value;
                                                 if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                                  updateMedOverride(logKey, { doseValue: val });
+                                                  handleUpdateMed({ doseValue: val });
                                                 }
                                               }}
-                                              className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5"
+                                              className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5 disabled:opacity-60 disabled:cursor-not-allowed"
                                             />
                                           <div className="flex gap-1">
                                             {['سم³/لتر', 'جرام/لتر'].map((u) => (
                                               <button
                                                 key={u}
-                                                onClick={() => updateMedOverride(logKey, { unit: u })}
+                                                type="button"
+                                                onClick={() => !med.isCarriedOver && !isDeferredUnusedOnThisDay && handleUpdateMed({ unit: u })}
                                                 className={cn(
                                                   "px-2 py-1 rounded text-[8px] font-black transition-all",
-                                                  med.unit === u ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500"
+                                                  med.unit === u ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-500",
+                                                  (med.isCarriedOver || isDeferredUnusedOnThisDay) && "opacity-60 cursor-not-allowed"
                                                 )}
                                               >
                                                 {u}
@@ -9715,6 +12540,7 @@ export default function App() {
                                           </div>
                                         </div>
                                       </div>
+                                    </div>
                                     )}
 
                                     {/* Duration Info */}
@@ -9731,21 +12557,22 @@ export default function App() {
                                           <input 
                                             type="text"
                                             inputMode="decimal"
-                                            value={state.medDataOverrides?.[logKey]?.duration ?? med.recommendedHours}
+                                            value={med.type === 'emergency' ? med.recommendedHours : (state.medDataOverrides?.[logKey]?.duration ?? med.recommendedHours)}
+                                            disabled={med.isCarriedOver || isDeferredUnusedOnThisDay}
                                             onChange={(e) => {
                                               const val = e.target.value;
                                               if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                                updateMedOverride(logKey, { duration: val });
+                                                handleUpdateMed({ duration: val });
                                               }
                                             }}
-                                            className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5"
+                                            className="bg-transparent border-b border-white/10 text-xs font-black text-white w-12 text-center focus:outline-none focus:border-blue-500/50 h-5 disabled:opacity-60 disabled:cursor-not-allowed"
                                             placeholder={String(med.recommendedHours)}
                                           />
                                           <span className="text-[9px] font-bold text-slate-500 uppercase">ساعات</span>
                                         </div>
                                       </div>
                                     )}
-                                    {med.startTime && toNum(med.duration) > 0 && (
+                                    {currentStartTimeValue && toNum(med.duration) > 0 && (
                                       <div className={cn(
                                         "p-3 rounded-2xl border space-y-2 text-right",
                                         colors.bg, "bg-opacity-5", colors.border.replace('border-s-', 'border-'), "border-opacity-20"
@@ -9795,101 +12622,32 @@ export default function App() {
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ps-2">وقت البدء:</span>
                                     <input 
                                       type="time" 
-                                      value={state.medicationLogs[logKey] ?? ''}
-                                      disabled={toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        
-                                        // If setting ORS on day 1
-                                        if (toNum(state.age) === 1 && med.id === 'd1-ors' && val) {
-                                          const [oh, om] = val.split(':').map(Number);
-                                          if (!isNaN(oh) && !isNaN(om)) {
-                                            const orsMins = oh * 60 + om;
-                                            // Check if any other scheduled med has a start time earlier than this
-                                            let hasViolation = false;
-                                            Object.keys(state.medicationLogs).forEach(k => {
-                                              if (k.startsWith('1-') && k !== '1-d1-ors' && state.medicationLogs[k]) {
-                                                const [ih, im] = state.medicationLogs[k].split(':').map(Number);
-                                                if (!isNaN(ih) && !isNaN(im) && (ih * 60 + im < orsMins)) {
-                                                  hasViolation = true;
-                                                }
-                                              }
-                                            });
-                                            if (hasViolation) {
-                                              if (confirm("⚠️ تعديل وقت محلول معالجة الجفاف إلى هذا الوقت يجعله متأخراً عن جرعات أخرى اليوم. هل ترغب في إعادة ضبط أوقات الجرعات الأخرى لتتبع محلول الجفاف؟")) {
-                                                setState(prev => {
-                                                  const newLogs = { ...prev.medicationLogs };
-                                                  // Clear other day 1 medication logs since they must succeed ORS
-                                                  Object.keys(newLogs).forEach(k => {
-                                                    if (k.startsWith('1-') && k !== '1-d1-ors') {
-                                                      delete newLogs[k];
-                                                    }
-                                                  });
-                                                  newLogs['1-d1-ors'] = val;
-                                                  return { ...prev, medicationLogs: newLogs };
-                                                });
-                                                return;
-                                              } else {
-                                                return;
-                                              }
-                                            }
-                                          }
-                                        }
-
-                                        // If setting non-ORS med on day 1
-                                        if (toNum(state.age) === 1 && med.id !== 'd1-ors') {
-                                          const orsTime = state.medicationLogs['1-d1-ors'];
-                                          if (!orsTime) {
-                                            alert("⚠️ يجب تحديد وقت بدء محلول معالجة الجفاف أولاً لكونه بداية البرنامج العلاجي.");
-                                            return;
-                                          }
-                                          const [ih, im] = val.split(':').map(Number);
-                                          const [oh, om] = orsTime.split(':').map(Number);
-                                          if (!isNaN(ih) && !isNaN(im) && !isNaN(oh) && !isNaN(om)) {
-                                            if (ih * 60 + im < oh * 60 + om) {
-                                              alert("⚠️ لا يمكن لجرعة أو علاج أن يسبق محلول معالجة الجفاف في اليوم الأول!");
-                                              return;
-                                            }
-                                          }
-                                        }
-
-                                        setState(prev => ({
-                                          ...prev,
-                                          medicationLogs: {
-                                            ...prev.medicationLogs,
-                                            [logKey]: val
-                                          }
-                                        }));
-                                      }}
+                                      value={currentStartTimeValue}
+                                      disabled={(med.type !== 'emergency' && toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']) || med.isCarriedOver || isDeferredUnusedOnThisDay}
+                                      onChange={(e) => handleUpdateStartTime(e.target.value)}
                                       className={cn(
                                         "bg-slate-950 text-white text-xs font-black border border-white/10 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500/50 transition-colors w-32 shadow-inner text-center",
-                                        (toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']) && "opacity-40 cursor-not-allowed border-red-500/30 text-slate-500"
+                                        ((med.type !== 'emergency' && toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors']) || med.isCarriedOver || isDeferredUnusedOnThisDay) && "opacity-40 cursor-not-allowed border-red-500/30 text-slate-500"
                                       )}
                                     />
-                                    {toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors'] && (
+                                    {med.type !== 'emergency' && toNum(state.age) === 1 && med.id !== 'd1-ors' && !state.medicationLogs['1-d1-ors'] && (
                                       <span className="text-[9px] font-bold text-red-400 text-right pr-2">
                                         ℹ️ حدد محلول الجفاف أولاً
                                       </span>
                                     )}
-                                    {!state.medicationLogs[logKey] && getSuggestedStartTime(med, prevAct) && !(toNum(state.age) === 1 && i === 0) && (
+                                    {!currentStartTimeValue && !isDeferredUnusedOnThisDay && getSuggestedStartTime(med, prevAct) && !(toNum(state.age) === 1 && i === 0) && (
                                       <div className="flex flex-col gap-1.5 flex-1">
                                         <button 
                                           onClick={() => {
                                             const suggested = getSuggestedStartTime(med, prevAct);
                                             if (suggested) {
-                                              setState(prev => ({
-                                                ...prev,
-                                                medicationLogs: {
-                                                  ...prev.medicationLogs,
-                                                  [logKey]: suggested
-                                                }
-                                              }));
+                                              handleUpdateStartTime(suggested);
                                             }
                                           }}
                                           className="w-full flex items-center justify-between px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl transition-all group shadow-lg shadow-emerald-500/10"
                                         >
                                           <div className="flex flex-col items-start gap-0.5 text-right">
-                                            <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest leading-none text-right">ربط (بعد النشاط السابق):</span>
+                                            <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest leading-none text-right">{med.type === 'emergency' ? 'الربط مع آخر نشاط:' : 'ربط (بعد النشاط السابق):'}</span>
                                             <span className="text-[10px] font-black text-white leading-none">
                                               {(() => {
                                                 const suggested = getSuggestedStartTime(med, prevAct);
@@ -9930,14 +12688,14 @@ export default function App() {
                                             const { latestEndTime } = getLatestActivityEndTime();
                                             refTime = latestEndTime;
                                           }
-                                          if (refTime && (refTime.getHours() < 5 && refTime.getHours() >= 0)) {
+                                          if (refTime && (refTime.getHours() < 5 && refTime.getHours() >= 0) && (med.isCarriedOver || med.isCarriedOverDeferred)) {
                                             return <span className="text-[9px] font-black text-[#00EEEE]">* ممتدة من اليوم السابق</span>;
                                           }
                                           return null;
                                         })()}
                                       </div>
                                     )}
-                                    {state.medicationLogs[logKey] && (
+                                    {currentStartTimeValue && (
                                       <div className="text-[9px] font-bold text-emerald-400 bg-emerald-400/5 px-2.5 py-1 rounded-lg border border-emerald-400/10 flex items-center gap-1.5">
                                         <CheckCircle2 size={12} />
                                         تم التسجيل
@@ -9945,11 +12703,11 @@ export default function App() {
                                     )}
                                   </div>
 
-                                  {state.medicationLogs[logKey] && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
+                                  {currentStartTimeValue && (i < unifiedTimeline.length - 1 || localNextDayFirstMed) && (
                                     <div className="px-4 py-3 bg-white/5 rounded-2xl flex flex-col gap-2.5 border border-white/5">
                                       {(() => {
                                         const nextAct = nextItem || localNextDayFirstMed;
-                                        const nextInfo = getNextTime(state.medicationLogs[logKey], med, nextAct, nextAct === localNextDayFirstMed);
+                                        const nextInfo = getNextTime(currentStartTimeValue, med, nextAct, nextAct === localNextDayFirstMed);
                                         if (!nextInfo) return null;
                                         
                                         return (
@@ -9975,6 +12733,7 @@ export default function App() {
                                                 <span className="text-xs font-black text-emerald-400 whitespace-nowrap">{nextInfo.nextStartTimeStr}</span>
                                               </div>
                                             </div>
+
                                           </>
                                         );
                                       })()}
@@ -10493,9 +13252,15 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="space-y-6 text-right pb-24"
+              className={cn(
+                "space-y-6 text-right font-sans transition-all duration-300",
+                isEnvPanelOpen 
+                  ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                  : "w-full pb-32"
+              )}
               dir="rtl"
             >
+              {renderEnvPanelHeader()}
               {/* Premium Header */}
               <header className="px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
                 <div>
@@ -11010,8 +13775,15 @@ export default function App() {
              initial={{ opacity: 0, x: 20 }}
              animate={{ opacity: 1, x: 0 }}
              exit={{ opacity: 0, x: -20 }}
-             className="space-y-6"
+             className={cn(
+               "space-y-6 text-right font-sans transition-all duration-300",
+               isEnvPanelOpen 
+                 ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                 : "w-full pb-32"
+             )}
+             dir="rtl"
            >
+              {renderEnvPanelHeader()}
               <header className="px-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-black text-white tracking-tight">إدارة الحرارة والتشخيص الذكي</h2>
@@ -11166,7 +13938,79 @@ export default function App() {
                  </Card>
               </div>
 
-              {/* Diagnostic Engine Table */}
+               {/* Chick Target Temperature Guide */}
+               <Card className="bg-slate-900/80 border-white/5 overflow-hidden">
+                  <div className="bg-white/5 px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
+                           <Thermometer size={18} />
+                        </div>
+                        <h3 className="font-black text-white text-sm">جدول الحرارة المطلوبة للكتاكيت حسب العمر</h3>
+                     </div>
+                     <div className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                        دليل استرشادي معتمد
+                     </div>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                     <p className="text-[11px] text-slate-400 leading-relaxed font-bold">
+                        تتبع متطلبات الحرارة الدقيقة للكتكوت حسب العمر لضمان النمو وسلامة الجهاز التنفسي. يتم تلوين المرحلة الحالية باللون الأزرق المضيء.
+                     </p>
+
+                     <div className="flex flex-col gap-2">
+                        {(state.customTempSchedule || CHICK_TEMP_PROFILES).map((profile, idx) => {
+                           const isCurrentRange = toNum(state.age) >= profile.startDay && toNum(state.age) <= profile.endDay;
+                           return (
+                              <div 
+                                 key={idx}
+                                 className={cn(
+                                    "p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 text-right relative overflow-hidden",
+                                    isCurrentRange 
+                                       ? "bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5" 
+                                       : "bg-slate-950/40 border-white/5 opacity-70 hover:opacity-95"
+                                 )}
+                              >
+                                 {isCurrentRange && (
+                                    <span className="absolute top-0 bottom-0 right-0 w-1 bg-blue-500" />
+                                 )}
+                                 <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                       "w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0",
+                                       isCurrentRange ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-400"
+                                    )}>
+                                       {idx + 1}
+                                    </div>
+                                    <div className="space-y-0.5">
+                                       <div className="flex items-center gap-2">
+                                          <span className="text-xs font-black text-white">الأيام {profile.startDay} - {profile.endDay}</span>
+                                          {isCurrentRange && (
+                                             <span className="text-[9px] font-black text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 animate-pulse">
+                                                المرحلة الحالية
+                                             </span>
+                                          )}
+                                       </div>
+                                       <p className="text-[10px] font-bold text-slate-400">{profile.notes}</p>
+                                    </div>
+                                 </div>
+
+                                 <div className="flex items-center gap-3 self-end md:self-center">
+                                    <div className="text-center px-2.5 py-1 bg-slate-950/60 rounded-xl border border-white/5 min-w-[80px]">
+                                       <span className="text-[8px] text-slate-500 font-bold block leading-none mb-1">المثالية</span>
+                                       <span className={cn("text-xs font-black", isCurrentRange ? "text-blue-400" : "text-white")}>{toNum(profile.targetTemp).toFixed(1)}°م</span>
+                                    </div>
+                                    <div className="text-center px-2.5 py-1 bg-slate-950/60 rounded-xl border border-white/5 min-w-[80px]">
+                                       <span className="text-[8px] text-slate-500 font-bold block leading-none mb-1">المسموح</span>
+                                       <span className="text-xs font-bold text-slate-300">{toNum(profile.minTemp).toFixed(1)} - {toNum(profile.maxTemp).toFixed(1)}°م</span>
+                                    </div>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+               </Card>
+
+               {/* Diagnostic Engine Table */}
               <Card className="bg-slate-900/80 border-white/5 overflow-hidden">
                  <div className="bg-white/5 px-6 py-4 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -11375,8 +14219,15 @@ export default function App() {
              initial={{ opacity: 0, x: 20 }}
              animate={{ opacity: 1, x: 0 }}
              exit={{ opacity: 0, x: -20 }}
-             className="space-y-6"
+             className={cn(
+               "space-y-6 text-right font-sans transition-all duration-300",
+               isEnvPanelOpen 
+                 ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                 : "w-full pb-32"
+             )}
+             dir="rtl"
            >
+              {renderEnvPanelHeader()}
               <header className="px-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-black text-white tracking-tight">نظام التهوية الذكي</h2>
@@ -11618,217 +14469,179 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Visual Clock */}
-                  <div className="lg:col-span-2 bg-slate-950/80 p-8 rounded-3xl border border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-10">
-                    <div className="relative w-64 h-64 shrink-0">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                        <circle cx="60" cy="60" r="58" fill="#020617" />
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+                  {/* Cycle Durations & Air Requirements Panel */}
+                  <div className="lg:col-span-2 bg-slate-950/90 p-8 rounded-[2rem] border border-white/10 relative overflow-hidden flex flex-col gap-6 backdrop-blur-xl shadow-2xl">
+                    {/* Ambient Glows */}
+                    <div className="absolute -top-12 -left-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="w-full space-y-6 text-right z-10">
+                      {/* Header Section */}
+                      <div className="border-b border-white/5 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <h5 className="font-black text-base text-white flex items-center gap-2 justify-end">
+                            <span>تفاصيل مؤقت التهوية وحفظ بيئة العنبر</span>
+                            <span className="text-xl">⏱️</span>
+                          </h5>
+                          <p className="text-xs text-slate-400 font-medium">زمن تشغيل وإيقاف الشفاطات المحسوب فسيولوجياً وعضوياً لضمان سلامة القطيع</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full self-start md:self-auto shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-[10px] font-black text-emerald-400 tracking-tight">حساب ذكي تلقائي نَشِط</span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const cycles = Math.max(1, toNum(state.cyclesPerHour));
+                        const cycleSecs = 3600 / cycles;
+                        const onRatio = Math.max(0, Math.min(1, minVentilation / (totalActiveCapacity || 1)));
+                        const onSecs = Math.min(cycleSecs, Math.max(0, onRatio * cycleSecs));
+                        const offSecs = Math.max(0, cycleSecs - onSecs);
                         
-                        {(() => {
-                           const onRatio = Math.min(1, minVentilation / totalActiveCapacity);
-                           const cycles = Math.max(1, toNum(state.cyclesPerHour));
-                           const cycleDeg = 360 / cycles;
-                           const onDeg = cycleDeg * onRatio;
-                           
-                           return Array.from({ length: cycles }).map((_, i) => {
-                             const startAngle = i * cycleDeg;
-                             const splitAngle = startAngle + onDeg;
-                             return (
-                               <g key={i}>
-                                 <path 
-                                   d={describeArc(60, 60, 48, splitAngle, startAngle + cycleDeg)} 
-                                   className="fill-red-500/10 stroke-red-500/20" 
-                                   strokeWidth="0.5"
-                                 />
-                                 {onRatio > 0 && (
-                                   <path 
-                                     d={describeArc(60, 60, 48, startAngle, splitAngle)} 
-                                     className="fill-emerald-500 stroke-emerald-400 font-bold" 
-                                     strokeWidth="0.5"
-                                   />
-                                 )}
-                               </g>
-                             );
-                           });
-                        })()}
-                      </svg>
-                      
-                      {/* Hour labels */}
-                      <div className="absolute inset-0 pointer-events-none">
-                        {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((h, i) => {
-                          const angle = (i * 30 - 90) * (Math.PI / 180);
-                          const r = 40;
-                          return (
-                            <div 
-                              key={h}
-                              className="absolute text-[9px] font-black text-slate-700 transform -translate-x-1/2 -translate-y-1/2"
-                              style={{ left: `${50 + r * Math.cos(angle)}%`, top: `${50 + r * Math.sin(angle)}%` }}
-                            >
-                              {h}
-                            </div>
-                          );
-                        })}
-                      </div>
+                        const runM = Math.floor(onSecs / 60);
+                        const runS = Math.round(onSecs % 60);
+                        const runFormatted = runS > 0 ? `${runM} دقيقة و ${runS} ثانية` : `${runM} دقيقة`;
 
-                      {/* CENTER COUNTDOWN */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                         {(() => {
-                            const now = currentTime;
-                            const totalSecs = (now.getMinutes() * 60 + now.getSeconds() + (typeof state.ventilationOffset === 'number' ? state.ventilationOffset : 0));
-                            const cycles = Math.max(1, toNum(state.cyclesPerHour));
-                            const cycleSecs = 3600 / cycles; 
-                            const onRatio = minVentilation / (totalActiveCapacity || 1);
-                            const onSecs = onRatio * cycleSecs;
-                            const progress = ((totalSecs % cycleSecs) + cycleSecs) % cycleSecs;
-                            const active = progress < onSecs;
-                            const remaining = active ? onSecs - progress : cycleSecs - progress;
-                            
-                             const formatFullTime = (s: number) => {
-                                const h = Math.floor(s / 3600);
-                                const m = Math.floor((s % 3600) / 60);
-                                const sc = Math.floor(s % 60);
-                                return { h, m, s: sc };
-                             };
+                        const offM = Math.floor(offSecs / 60);
+                        const offS = Math.round(offSecs % 60);
+                        const offFormatted = offS > 0 ? `${offM} دقيقة و ${offS} ثانية` : `${offM} دقيقة`;
 
-                             const timeObj = formatFullTime(remaining);
-
-                             if (isEditingTimer) {
-                               return (
-                                 <div className="text-center bg-slate-900/90 backdrop-blur-sm p-4 rounded-3xl border border-emerald-500/30 z-10 shadow-2xl scale-110 pointer-events-auto">
-                                    <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-3">تعديل المؤقت</p>
-                                    <div className="flex items-center gap-1 justify-center mb-4">
-                                       <div className="flex flex-col items-center">
-                                          <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, h: Math.min(99, p.h + 1) }))} className="text-slate-500 hover:text-white pb-1"><ChevronUp size={14} /></button>
-                                          <input 
-                                            type="text" 
-                                            value={editTimerTime.h.toString().padStart(2, '0')}
-                                            onFocus={(e) => e.target.select()}
-                                            onChange={e => {
-                                              const v = parseInt(e.target.value.replace(/\D/g, '')) || 0;
-                                              setEditTimerTime(p => ({ ...p, h: Math.min(99, v) }));
-                                            }}
-                                            className="w-8 bg-slate-800 border border-white/10 rounded-md text-center text-sm font-black py-1 focus:border-emerald-500 outline-none"
-                                          />
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, h: Math.max(0, p.h - 1) }))} className="text-slate-500 hover:text-white pt-1"><ChevronDown size={14} /></button>
-                                      </div>
-                                      <span className="text-slate-500 font-bold">:</span>
-                                      <div className="flex flex-col items-center">
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, m: (p.m + 1) % 60 }))} className="text-slate-500 hover:text-white pb-1"><ChevronUp size={14} /></button>
-                                         <input 
-                                           type="text" 
-                                           value={editTimerTime.m.toString().padStart(2, '0')}
-                                           onFocus={(e) => e.target.select()}
-                                           onChange={e => {
-                                             const v = parseInt(e.target.value.replace(/\D/g, '')) || 0;
-                                             setEditTimerTime(p => ({ ...p, m: Math.min(59, v) }));
-                                           }}
-                                           className="w-8 bg-slate-800 border border-white/10 rounded-md text-center text-sm font-black py-1 focus:border-emerald-500 outline-none"
-                                         />
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, m: (p.m + 59) % 60 }))} className="text-slate-500 hover:text-white pt-1"><ChevronDown size={14} /></button>
-                                      </div>
-                                      <span className="text-slate-500 font-bold">:</span>
-                                      <div className="flex flex-col items-center">
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, s: (p.s + 1) % 60 }))} className="text-slate-500 hover:text-white pb-1"><ChevronUp size={14} /></button>
-                                         <input 
-                                           type="text" 
-                                           value={editTimerTime.s.toString().padStart(2, '0')}
-                                           onFocus={(e) => e.target.select()}
-                                           onChange={e => {
-                                             const v = parseInt(e.target.value.replace(/\D/g, '')) || 0;
-                                             setEditTimerTime(p => ({ ...p, s: Math.min(59, v) }));
-                                           }}
-                                           className="w-8 bg-slate-800 border border-white/10 rounded-md text-center text-sm font-black py-1 focus:border-emerald-500 outline-none"
-                                         />
-                                         <button type="button" onClick={() => setEditTimerTime(p => ({ ...p, s: (p.s + 59) % 60 }))} className="text-slate-500 hover:text-white pt-1"><ChevronDown size={14} /></button>
-                                      </div>
-                                   </div>
-                                   <div className="flex gap-2">
-                                      <button 
-                                        type="button" 
-                                        onClick={() => {
-                                          const newSecs = editTimerTime.h * 3600 + editTimerTime.m * 60 + editTimerTime.s;
-                                          const targetProgress = active ? onSecs - newSecs : cycleSecs - newSecs;
-                                          const currentRawSecs = now.getMinutes() * 60 + now.getSeconds();
-                                          const newOffset = targetProgress - currentRawSecs;
-                                          setState(prev => ({ ...prev, ventilationOffset: newOffset }));
-                                          setIsEditingTimer(false);
-                                        }}
-                                        className="bg-emerald-600 px-3 py-1.5 rounded-lg text-[8px] font-black hover:bg-emerald-500 transition-colors text-white"
-                                      >
-                                        تأكيد
-                                      </button>
-                                      <button 
-                                        type="button" 
-                                        onClick={() => setIsEditingTimer(false)}
-                                        className="bg-slate-800 px-3 py-1.5 rounded-lg text-[8px] font-black hover:bg-slate-700 transition-colors text-slate-300"
-                                      >
-                                        إلغاء
-                                      </button>
-                                   </div>
+                        const onPercent = (onRatio * 100).toFixed(1);
+                        const offPercent = ((1 - onRatio) * 100).toFixed(1);
+                        
+                        return (
+                          <div className="space-y-6">
+                            {/* Graphical representation of the 1-hour cycle share */}
+                            <div className="space-y-3 bg-slate-900/40 p-4 rounded-2xl border border-white/5 shadow-inner">
+                              <div className="flex justify-between items-center text-[11px] font-bold">
+                                <div className="flex items-center gap-1.5 text-red-400 font-sans">
+                                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                                  <span>فترة السكون: {offPercent}%</span>
                                 </div>
-                              );
-                            }
-                            return (
-                              <div className="text-center pointer-events-auto">
-                                 <div className={cn(
-                                   "mb-2 px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.2em] inline-block transition-all",
-                                   active ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 animate-pulse" : "bg-red-500/20 text-red-400 border border-red-500/10"
-                                 )}>
-                                   {active ? "يتم التشغيل الآن" : "في دورة السكون"}
-                                 </div>
-                                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                                    مؤقت التشغيل الرقمي
-                                 </p>
-                                 <div className="relative mb-4">
-                                   <p className="text-4xl font-black text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-                                     {formatTime(state.manualTimerSeconds)}
-                                   </p>
-                                 </div>
-
-                                 <div className="flex items-center justify-center gap-2">
-                                    <button 
-                                      onClick={() => setState(prev => ({ ...prev, isManualTimerRunning: !prev.isManualTimerRunning }))}
-                                      className={cn(
-                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-lg",
-                                        state.isManualTimerRunning ? "bg-red-600/20 text-red-400 border border-red-500/30" : "bg-emerald-600 text-white shadow-emerald-500/20"
-                                      )}
-                                    >
-                                      {state.isManualTimerRunning ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
-                                    </button>
-                                    
-                                    <button 
-                                      onClick={() => setState(prev => ({ ...prev, manualTimerSeconds: 0, isManualTimerRunning: false }))}
-                                      className="w-10 h-10 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center border border-white/10 hover:bg-slate-700 transition-all active:scale-95"
-                                    >
-                                      <RotateCcw size={16} />
-                                    </button>
-                                 </div>
-
-                                 <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
-                                   <div className="text-[7px] font-bold text-slate-600 uppercase tracking-tighter">
-                                     {active ? "باقي على الإيقاف" : "باقي على التشغيل"}: {timeObj.h > 0 ? `${timeObj.h}:${timeObj.m.toString().padStart(2, '0')}:${timeObj.s.toString().padStart(2, '0')}` : `${timeObj.m}:${timeObj.s.toString().padStart(2, '0')}`}
-                                   </div>
-                                   <div className="text-[6px] font-bold text-slate-700 italic cursor-pointer hover:text-emerald-500 transition-colors" onClick={() => setIsEditingTimer(true)}>
-                                      انقر للتعديل • دورة الـ {(cycleSecs / 60).toFixed(0)} دقيقة
-                                   </div>
-                                   {state.ventilationOffset !== 0 && (
-                                     <button 
-                                       type="button" 
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         setState(prev => ({ ...prev, ventilationOffset: 0 }));
-                                       }}
-                                       className="block w-full text-[6px] font-black text-slate-500 uppercase hover:text-emerald-400 mt-1"
-                                     >
-                                       إعادة ضبط للوقت الفعلي
-                                     </button>
-                                   )}
-                                 </div>
+                                <div className="flex items-center gap-1.5 text-emerald-400 font-sans">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                  <span>فترة التشغيل: {onPercent}%</span>
+                                </div>
+                                <span className="text-slate-400 font-black">مخطط تقسيم الدورة الواحدة ({ (cycleSecs / 60).toFixed(0) } دقيقة)</span>
                               </div>
-                            );
-                         })()}
-                      </div>
+                              
+                              <div className="relative w-full h-4 bg-slate-950/85 rounded-full overflow-hidden flex p-0.5 border border-white/5">
+                                <div 
+                                  style={{ width: `${onPercent}%` }} 
+                                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full relative transition-all duration-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                >
+                                  {/* Subtle diagonal stripe overlay to indicate active movement */}
+                                  <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:10px_10px] opacity-25" />
+                                </div>
+                                <div 
+                                  style={{ width: `${offPercent}%` }} 
+                                  className="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full relative transition-all duration-500 shadow-[0_0_12px_rgba(239,68,68,0.3)] ml-0.5"
+                                />
+                              </div>
+                              
+                              <div className="flex justify-between text-[9px] font-black text-slate-500 font-mono">
+                                <span>{(cycleSecs / 60).toFixed(0)} دقيقة</span>
+                                <span>{(cycleSecs / 120).toFixed(0)} دقيقة</span>
+                                <span>0 دقيقة</span>
+                              </div>
+                            </div>
+
+                            {/* Dual layout side-by-side cards with high visual clarity */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Run time status */}
+                              <div className="relative bg-gradient-to-tr from-slate-900/40 via-emerald-950/5 to-emerald-900/10 border border-emerald-500/20 hover:border-emerald-500/40 p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-lg shadow-emerald-950/10 overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-300" />
+                                
+                                <div className="flex items-start gap-3.5 z-10">
+                                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                                    <Play size={20} fill="currentColor" className="ml-0.5 animate-pulse" />
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-xs font-black text-slate-300 block">زمن التشغيل الفعّال</span>
+                                    <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">{onPercent}% من إجمالي وقت الدورة</span>
+                                  </div>
+                                </div>
+
+                                <div className="z-10 mt-2">
+                                  <p className="text-2xl font-black text-emerald-400 font-sans tracking-tight drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+                                    {runFormatted}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 font-medium leading-normal mt-1.5 border-t border-white/5 pt-1.5">
+                                    تقوم الشفاطات بالعمل بكامل طاقتها لضمان تدفق الأكسجين وتصريف الرطوبة والأمونيا ومخلفات التنفس.
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Off time status */}
+                              <div className="relative bg-gradient-to-tr from-slate-900/40 via-red-950/5 to-red-900/10 border border-red-500/20 hover:border-red-500/40 p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-lg shadow-red-950/10 overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-red-500/10 transition-all duration-300" />
+                                
+                                <div className="flex items-start gap-3.5 z-10">
+                                  <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 text-red-500 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                                    <Pause size={20} fill="currentColor" className="animate-pulse" />
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-xs font-black text-slate-300 block">زمن السكون والراحة</span>
+                                    <span className="text-[10px] text-red-400 font-bold block mt-0.5">{offPercent}% من إجمالي وقت الدورة</span>
+                                  </div>
+                                </div>
+
+                                <div className="z-10 mt-2">
+                                  <p className="text-2xl font-black text-red-400 font-sans tracking-tight drop-shadow-[0_0_12px_rgba(239,68,68,0.3)]">
+                                    {offFormatted}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 font-medium leading-normal mt-1.5 border-t border-white/5 pt-1.5">
+                                    تتوقف الشفاطات بشكل آمن لإعطاء فترة راحة حرارية للطيور وتجنب حدوث برودة في منسوب أرضية العنبر.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Advanced Bento Grid Metric indicators/Calculations */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-900/20 p-4 rounded-2xl border border-white/5 shadow-inner">
+                              {/* Item 1 */}
+                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
+                                <div className="flex items-center gap-1.5 justify-end text-slate-400">
+                                  <span className="text-[10px] font-bold">دورة التكرار</span>
+                                  <Clock size={12} className="text-slate-400" />
+                                </div>
+                                <p className="text-sm font-black text-white font-mono leading-none">{(cycleSecs / 60).toFixed(0)} دقيقة</p>
+                                <p className="text-[9px] text-slate-500 font-bold">{cycles} دورات في الساعة</p>
+                              </div>
+
+                              {/* Item 2 */}
+                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
+                                <div className="flex items-center gap-1.5 justify-end text-cyan-400">
+                                  <span className="text-[10px] font-bold text-slate-400">التهوية الصغرى</span>
+                                  <Wind size={12} className="text-cyan-400" />
+                                </div>
+                                <p className="text-sm font-black text-white font-mono leading-none">{minVentilation.toLocaleString()}</p>
+                                <p className="text-[9px] text-slate-500 font-bold">متر مكعب / ساعة مطلوب</p>
+                              </div>
+
+                              {/* Item 3 */}
+                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
+                                <div className="flex items-center gap-1.5 justify-end text-cyan-400">
+                                  <span className="text-[10px] font-bold text-slate-400">قدرة الشفاطات</span>
+                                  <Cpu size={12} className="text-cyan-400" />
+                                </div>
+                                <p className="text-sm font-black text-white font-mono leading-none">{totalActiveCapacity.toLocaleString()}</p>
+                                <p className="text-[9px] text-slate-500 font-bold">متر مكعب / ساعة نشط</p>
+                              </div>
+
+                              {/* Item 4 */}
+                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
+                                <div className="flex items-center gap-1.5 justify-end text-emerald-400">
+                                  <span className="text-[10px] font-bold text-slate-400">نسبة التحميل</span>
+                                  <Zap size={12} className="text-emerald-400 animate-pulse" />
+                                </div>
+                                <p className="text-sm font-black text-emerald-400 font-mono leading-none">{onPercent}%</p>
+                                <p className="text-[9px] text-slate-500 font-bold">معدل التشغيل الآمن</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -11842,8 +14655,15 @@ export default function App() {
              initial={{ opacity: 0, scale: 0.98 }}
              animate={{ opacity: 1, scale: 1 }}
              exit={{ opacity: 0, scale: 1.02 }}
-             className="space-y-6 pb-24"
+             className={cn(
+               "space-y-6 text-right font-sans transition-all duration-300",
+               isEnvPanelOpen 
+                 ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                 : "w-full pb-32"
+             )}
+             dir="rtl"
            >
+              {renderEnvPanelHeader()}
               <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
                 <div className="flex items-center gap-4 px-4 sm:px-6">
                   <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
@@ -12298,7 +15118,7 @@ export default function App() {
                 <Card className="bg-slate-900 border-white/5 border-b-4 border-b-blue-600/50 p-6 flex flex-col group">
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner ring-1 ring-white/5">
+                        <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner ring-1 ring-white/5">
                              <Layers size={20} />
                            </div>
                            <div>
@@ -12603,74 +15423,77 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* 2. Flock Age & Rate Rows */}
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Flock Age Input */}
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">عمر القطيع (يوم):</label>
-                              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                                <button 
-                                  onClick={() => {
-                                    const currentAge = toNum(state.age);
-                                    const newAge = Math.max(1, currentAge - 1);
-                                    setState(prev => ({ ...prev, age: newAge }));
-                                  }}
-                                  className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                                >
-                                  <Minus size={12} strokeWidth={3} />
-                                </button>
-                                <input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  value={state.age}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === '' || /^\d*$/.test(val)) {
-                                      setState(prev => ({ ...prev, age: parseInt(val, 10) || 1 }));
+                          {/* 2. Weight and Age inputs arranged vertically to adjust visual identity */}
+                          {/* Average Weight */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">وزن الطائر (جرام):</label>
+                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                              <button 
+                                onClick={() => setHumidityAvgWeight(prev => String(Math.max(10, (parseFloat(prev) || 0) - 5)))}
+                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
+                              >
+                                <Minus size={14} strokeWidth={3} />
+                              </button>
+                              <input 
+                                type="text" 
+                                inputMode="decimal" 
+                                value={humidityAvgWeight}
+                                maxLength={5}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                    if (val.length <= 5) {
+                                      setHumidityAvgWeight(val);
                                     }
-                                  }}
-                                  className="bg-transparent text-center font-bold text-white text-sm flex-1 outline-none font-mono min-w-0" 
-                                />
-                                <button 
-                                  onClick={() => {
-                                    const currentAge = toNum(state.age);
-                                    const newAge = currentAge + 1;
-                                    setState(prev => ({ ...prev, age: newAge }));
-                                  }}
-                                  className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                                >
-                                  <Plus size={12} strokeWidth={3} />
-                                </button>
-                              </div>
+                                  }
+                                }}
+                                className="bg-transparent text-center font-black text-white text-md flex-1 outline-none font-mono min-w-0" 
+                              />
+                              <button 
+                                onClick={() => setHumidityAvgWeight(prev => String((parseFloat(prev) || 0) + 5))}
+                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
+                              >
+                                <Plus size={14} strokeWidth={3} />
+                              </button>
                             </div>
+                          </div>
 
-                            {/* Average Weight */}
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">وزن الطائر (جرام):</label>
-                              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                                <button 
-                                  onClick={() => setHumidityAvgWeight(prev => String(Math.max(10, (parseFloat(prev) || 0) - 5)))}
-                                  className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                                >
-                                  <Minus size={12} strokeWidth={3} />
-                                </button>
-                                <input 
-                                  type="text" 
-                                  inputMode="decimal" 
-                                  value={humidityAvgWeight}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === '' || /^\d*\.?\d*$/.test(val)) setHumidityAvgWeight(val);
-                                  }}
-                                  className="bg-transparent text-center font-bold text-white text-sm flex-1 outline-none font-mono min-w-0" 
-                                />
-                                <button 
-                                  onClick={() => setHumidityAvgWeight(prev => String((parseFloat(prev) || 0) + 5))}
-                                  className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                                >
-                                  <Plus size={12} strokeWidth={3} />
-                                </button>
-                              </div>
+                          {/* Flock Age Input */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">عمر القطيع (يوم):</label>
+                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                              <button 
+                                onClick={() => {
+                                  const currentAge = toNum(state.age);
+                                  const newAge = Math.max(1, currentAge - 1);
+                                  setState(prev => ({ ...prev, age: newAge }));
+                                }}
+                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
+                              >
+                                <Minus size={14} strokeWidth={3} />
+                              </button>
+                              <input 
+                                type="text" 
+                                inputMode="numeric" 
+                                value={state.age}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === '' || /^\d*$/.test(val)) {
+                                    setState(prev => ({ ...prev, age: parseInt(val, 10) || 1 }));
+                                  }
+                                }}
+                                className="bg-transparent text-center font-black text-white text-md flex-1 outline-none font-mono min-w-0" 
+                              />
+                              <button 
+                                onClick={() => {
+                                  const currentAge = toNum(state.age);
+                                  const newAge = currentAge + 1;
+                                  setState(prev => ({ ...prev, age: newAge }));
+                                }}
+                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
+                              >
+                                <Plus size={14} strokeWidth={3} />
+                              </button>
                             </div>
                           </div>
 
@@ -12847,8 +15670,15 @@ export default function App() {
              initial={{ opacity: 0, scale: 0.98 }}
              animate={{ opacity: 1, scale: 1 }}
              exit={{ opacity: 0, scale: 1.02 }}
-             className="space-y-6 pb-24"
+             className={cn(
+               "space-y-6 text-right font-sans transition-all duration-300",
+               isEnvPanelOpen 
+                 ? "fixed top-0 bottom-0 right-0 w-full sm:max-w-xl bg-slate-950/95 backdrop-blur-xl border-l border-white/10 p-6 pb-32 z-50 overflow-y-auto no-scrollbar rounded-l-[2rem] lg:relative lg:top-0 lg:z-10 lg:col-span-4 lg:w-full lg:max-h-[calc(100vh-4rem)] lg:bg-slate-900 lg:border lg:rounded-[2rem] lg:p-6 lg:pb-12"
+                 : "w-full pb-32"
+             )}
+             dir="rtl"
            >
+              {renderEnvPanelHeader()}
                <header className="flex items-center justify-between px-2 py-4 border-b border-white/5 bg-slate-900/40 -mx-4 sm:-mx-6 mb-6">
                 <div className="flex items-center gap-4 px-4 sm:px-6">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
@@ -13093,6 +15923,7 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              className="pb-32"
             >
               <ExpertScreen age={toNum(state.age)} onNavigate={setScreen} />
             </motion.div>
@@ -13104,12 +15935,310 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              className="pb-32"
             >
               <WorkshopScreen onNavigate={setScreen} />
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
+      </div>
+
+          </div> {/* End Left Column */}
+        </div> {/* End Main Columns Grid */}
       </main>
+      </div> {/* End Overall Layout Wrapper */}
+
+      {/* Floating Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100] px-4 pb-4 flex justify-center pointer-events-none md:pb-6">
+        <div className="w-full max-w-md bg-[#0d121f] border border-white/10 rounded-[2.25rem] p-2 px-3 shadow-[0_12px_45px_rgba(0,0,0,0.7)] flex items-center justify-between gap-1 pointer-events-auto h-[4.5rem] select-none text-right" dir="rtl">
+          
+          {/* 1. الرئيسية */}
+          <button
+            type="button"
+            onClick={() => {
+              setScreen('dashboard');
+              setIsCategoriesModalOpen(false);
+            }}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-2xl transition-all relative overflow-hidden",
+              ((screen as string) === 'dashboard' || (screen as string) === 'landing') ? "text-[#00b0ff]" : "text-slate-400 hover:text-white"
+            )}
+          >
+            <Home size={20} className={cn("transition-transform duration-300", ((screen as string) === 'dashboard' || (screen as string) === 'landing') ? "scale-110 drop-shadow-[0_0_8px_rgba(30,176,255,0.4)]" : "")} />
+            <span className="text-[10px] font-black tracking-wide">الرئيسية</span>
+            {((screen as string) === 'dashboard' || (screen as string) === 'landing') && (
+              <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#00b0ff] shadow-[0_0_6px_rgba(30,176,255,0.8)]" />
+            )}
+          </button>
+
+          {/* 2. الفئات */}
+          <button
+            type="button"
+            onClick={() => setIsCategoriesModalOpen(true)}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-2xl transition-all relative overflow-hidden",
+              isCategoriesModalOpen ? "text-emerald-400" : "text-slate-400 hover:text-white"
+            )}
+          >
+            <LayoutGrid size={20} className={cn("transition-transform duration-300", isCategoriesModalOpen ? "scale-110 drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "")} />
+            <span className="text-[10px] font-black tracking-wide">الفئات</span>
+            {isCategoriesModalOpen && (
+              <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+            )}
+          </button>
+
+          {/* 3. الشعار في المنتصف */}
+          <div className="flex-1 flex flex-col items-center justify-center relative -translate-y-5 z-20">
+            <button
+              type="button"
+              onClick={() => {
+                setScreen('expert');
+                setIsCategoriesModalOpen(false);
+              }}
+              className="w-14 h-14 rounded-full bg-slate-950 p-[2px] shadow-[0_5px_15px_rgba(99,102,241,0.4)] active:scale-95 transition-all duration-300 relative overflow-hidden group flex items-center justify-center"
+            >
+              {/* Spinning/glowing gradient border */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#fe3b79] via-[#00dfa2] to-[#00b0ff] opacity-80 group-hover:opacity-100 transition-opacity animate-[spin_6s_linear_infinite]" />
+              <div className="absolute inset-[2.5px] bg-slate-950 rounded-full flex items-center justify-center z-10 transition-colors group-hover:bg-slate-900">
+                <Bird size={22} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] animate-pulse" />
+              </div>
+            </button>
+            <span className="text-[8px] font-black text-[#818cf8] mt-1.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] bg-slate-900/40 px-2 py-0.5 rounded-full border border-white/5 backdrop-blur-sm whitespace-nowrap">الخبير الذكي</span>
+          </div>
+
+          {/* 4. الحساب */}
+          <button
+            type="button"
+            onClick={() => {
+              setScreen('profile');
+              setIsCategoriesModalOpen(false);
+            }}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-2xl transition-all relative overflow-hidden",
+              screen === 'profile' ? "text-[#00b0ff]" : "text-slate-400 hover:text-white"
+            )}
+          >
+            <User size={20} className={cn("transition-transform duration-300", screen === 'profile' ? "scale-110 drop-shadow-[0_0_8px_rgba(30,176,255,0.4)]" : "")} />
+            <span className="text-[10px] font-black tracking-wide">الحساب</span>
+            {screen === 'profile' && (
+              <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#00b0ff] shadow-[0_0_6px_rgba(30,176,255,0.8)]" />
+            )}
+          </button>
+
+          {/* 5. العربة / البورصة */}
+          <button
+            type="button"
+            onClick={() => {
+              setScreen('market');
+              setIsCategoriesModalOpen(false);
+            }}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-2xl transition-all relative overflow-hidden",
+              screen === 'market' ? "text-amber-400" : "text-slate-400 hover:text-white"
+            )}
+          >
+            <div className="relative">
+              <ShoppingCart size={20} className={cn("transition-transform duration-300", screen === 'market' ? "scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" : "")} />
+            </div>
+            <span className="text-[10px] font-black tracking-wide">البورصة</span>
+            {screen === 'market' && (
+              <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+            )}
+          </button>
+
+        </div>
+      </div>
+
+      {/* Categories Fullscreen Drawer Modal */}
+      <AnimatePresence>
+        {isCategoriesModalOpen && (
+          <div className="fixed inset-0 z-[150] flex justify-end">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCategoriesModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            {/* Modal Sheet - Sidebar aligned on the Right */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 220 }}
+              className="relative w-[300px] sm:w-[350px] h-full bg-[#0d121f] border-l border-white/10 rounded-l-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 text-right overflow-hidden"
+              dir="rtl"
+            >
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5 flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 flex items-center justify-center text-white font-black shadow-lg shadow-emerald-500/20">
+                    <LayoutGrid size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white leading-tight">فئات وأقسام العنبر</h3>
+                    <p className="text-[9px] text-[#00dfa2] font-black">الوصول السريع لجميع الخدمات</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCategoriesModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-white/5 outline-none active:scale-90"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Categories Scrollable Container with high bottom padding to prevent any occlusion */}
+              <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-6 pb-40">
+                
+                {/* 1. الرعاية والتشغيل */}
+                <div className="space-y-2.5">
+                  <h4 className="text-[10px] font-black text-[#00b0ff] tracking-widest uppercase mb-1">الرعاية اليومية والدورة</h4>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: 'dashboard', label: 'لوحة التحكم', desc: 'الحالة التفصيلية الفورية لقسم الرعاية', icon: LayoutDashboard },
+                      { id: 'landing', label: 'الدورات الحالية', desc: 'إدارة وتنشيط دورات تحضين الدواجن', icon: RefreshCw },
+                      { id: 'setup', label: 'إدارة العنابر', desc: 'تعديل وتخصيص تجهيزات العنبر، أبعاده ونظام التربية والتهوية', icon: Settings },
+                      { id: 'medication', label: 'برنامج الأدوية', desc: 'التحصينات والجرعات واللقاحات البيطرية', icon: Stethoscope },
+                      ...(state.breedingSystem !== 'Floor' ? [
+                        { id: 'battery', label: 'إدارة الأدوار', desc: 'تنظيم البطاريات والتشغيل بالأدوار', icon: Layers }
+                      ] : []),
+                    ].map((item) => {
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      return (
+                        <button
+                          type="button"
+                          key={item.id}
+                          onClick={() => {
+                            setScreen(item.id as Screen);
+                            setIsCategoriesModalOpen(false);
+                          }}
+                          className="p-3.5 rounded-2xl border text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-blue-400 border-white/5 w-full relative overflow-hidden"
+                        >
+                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-blue-400">
+                            <item.icon size={16} />
+                          </div>
+                          <div className="min-w-0 flex-grow">
+                            <div className="flex items-center gap-1.5 justify-start">
+                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              {isLocked && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
+                                  <Lock size={8} />
+                                  مغلق
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. النظام البيئي والمناخ */}
+                <div className="space-y-2.5">
+                  <h4 className="text-[10px] font-black text-rose-400 tracking-widest uppercase mb-1">التحكم البيئي والمناخ</h4>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: 'ventilation', label: 'مراوح التهوية', desc: 'إدارة الشفاطات والمراوح ومستويات التبريد', icon: Wind },
+                      { id: 'heating', label: 'نظام التدفئة', desc: 'توزيع خلايا الدفء وشعلات التدفئة المستهدفة', icon: Flame },
+                      { id: 'humidity', label: 'الرطوبة والتبخير', desc: 'درجات رطوبة الهواء وتشغيل خلايا التبريد', icon: Droplets },
+                      { id: 'climate', label: 'تشخيص المناخ', desc: 'إدارة ومراقبة جودة هواء العنبر المتكاملة', icon: Thermometer },
+                      { id: 'weather', label: 'محطة الطقس', desc: 'تحسس درجات THI ومقارنتها بالخلايا الخارجية', icon: Cloud },
+                      { id: 'environmental_load', label: 'الحمل الحراري', desc: 'حساب معامل التبخر وحرارة الطيور الفسيولوجية', icon: Activity },
+                    ].map((item) => {
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      return (
+                        <button
+                          type="button"
+                          key={item.id}
+                          onClick={() => {
+                            setScreen(item.id as Screen);
+                            setIsCategoriesModalOpen(false);
+                          }}
+                          className="p-3.5 rounded-2xl border border-white/5 text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-rose-400 w-full relative overflow-hidden"
+                        >
+                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-rose-400">
+                            <item.icon size={16} />
+                          </div>
+                          <div className="min-w-0 flex-grow">
+                            <div className="flex items-center gap-1.5 justify-start">
+                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              {isLocked && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
+                                  <Lock size={8} />
+                                  مغلق
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. الإدارة المالية والدعم */}
+                <div className="space-y-2.5">
+                  <h4 className="text-[10px] font-black text-violet-400 tracking-widest uppercase mb-1">الحسابات والذكاء الاصطناعي</h4>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: 'finances', label: 'الحسابات والأرباح', desc: 'لوحة الأوراق المالية والمصاريف والأرباح', icon: Wallet },
+                      { id: 'market', label: 'بورصة الدواجن', desc: 'آخر تحديثات أسعار اللحم والكتكوت والأعلاف', icon: TrendingUp },
+                      { id: 'charts', label: 'الإحصائيات والرسومات', desc: 'رسوميات بيانية ومخططات نمو الدورة النشطة', icon: BarChart2 },
+                      { id: 'expert', label: 'الخبير الذكيّ', desc: 'الاستشارة والذكاء الاصطناعي البيطري المتقدم', icon: MessageSquare },
+                      { id: 'workshop', label: 'مركز العناية بالدعم', desc: 'الاتصال الفني وصيانة الأجهزة والاستفسار', icon: Wrench },
+                      { id: 'profile', label: 'بيانات الحساب الشخصي', desc: 'تفاصيل الدخول وصلاحيات الاشتراك المعتمدة', icon: User },
+                    ].map((item) => {
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      return (
+                        <button
+                          type="button"
+                          key={item.id}
+                          onClick={() => {
+                            if (item.id === 'finances') {
+                              handleRequestScreen('finances', () => {
+                                setScreen(item.id as Screen);
+                                setIsCategoriesModalOpen(false);
+                              });
+                            } else {
+                              setScreen(item.id as Screen);
+                              setIsCategoriesModalOpen(false);
+                            }
+                          }}
+                          className="p-3.5 rounded-2xl border border-white/5 text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-violet-400 w-full relative overflow-hidden"
+                        >
+                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-violet-400">
+                            <item.icon size={16} />
+                          </div>
+                          <div className="min-w-0 flex-grow">
+                            <div className="flex items-center gap-1.5 justify-start">
+                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              {isLocked && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
+                                  <Lock size={8} />
+                                  مغلق
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Global Modals Container */}
       <AnimatePresence>
@@ -13163,7 +16292,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Floating Day Navigation Arrows */}
-      {(screen as string) !== 'landing' && (screen as string) !== 'finances' && (
+      {(screen as string) !== 'landing' && (screen as string) !== 'finances' && (screen as string) !== 'profile' && (
         <>
           {/* Previous Day */}
           {toNum(state.age) > 1 && (
@@ -13193,158 +16322,7 @@ export default function App() {
         </>
       )}
 
-      {/* Bottom Navigation */}
-      <motion.nav 
-        initial={false}
-        animate={{ 
-          y: isNavVisible ? 0 : 100,
-          opacity: isNavVisible ? 1 : 0,
-          scale: isNavVisible ? 1 : 0.95
-        }}
-        transition={{ 
-          duration: 0.2, 
-          ease: "easeOut"
-        }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl h-16 bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2rem] flex items-center gap-1 px-4 z-40 ring-1 ring-white/5 overflow-x-auto no-scrollbar flex-nowrap"
-      >
-        <NavButton 
-          active={(screen as string) === 'landing'} 
-          onClick={() => {
-            setScreen('landing');
-            setIsNavVisible(true);
-          }} 
-          icon={RefreshCw} 
-          label="الدورات" 
-        />
-        <NavButton 
-          active={screen === 'dashboard'} 
-          onClick={() => {
-            setScreen('dashboard');
-            setIsNavVisible(true);
-          }} 
-          icon={LayoutDashboard} 
-          label="الرئيسية" 
-        />
-        <NavButton 
-          active={screen === 'medication'} 
-          onClick={() => {
-            setScreen('medication');
-            setIsNavVisible(true);
-          }} 
-          icon={Stethoscope} 
-          label="الأدوية" 
-        />
-        {state.breedingSystem !== 'Floor' && (
-          <NavButton 
-            active={screen === 'battery'} 
-            onClick={() => {
-              setScreen('battery');
-              setIsNavVisible(true);
-            }} 
-            icon={Layers} 
-            label="البطاريات" 
-          />
-        )}
-        <NavButton 
-          active={screen === 'heating'} 
-          onClick={() => {
-            setScreen('heating');
-            setIsNavVisible(true);
-          }} 
-          icon={Flame} 
-          label="التدفئة" 
-        />
-        <NavButton 
-          active={screen === 'climate'} 
-          onClick={() => {
-            setScreen('climate');
-            setIsNavVisible(true);
-          }} 
-          icon={Thermometer} 
-          label="المناخ" 
-        />
-        <NavButton 
-          active={screen === 'weather'} 
-          onClick={() => {
-            setScreen('weather');
-            setIsNavVisible(true);
-          }} 
-          icon={Cloud} 
-          label="الطقس" 
-        />
-        <NavButton 
-          active={screen === 'ventilation'} 
-          onClick={() => {
-            setScreen('ventilation');
-            setIsNavVisible(true);
-          }} 
-          icon={Wind} 
-          label="التهوية" 
-        />
-        <NavButton 
-          active={screen === 'humidity'} 
-          onClick={() => {
-            setScreen('humidity');
-            setIsNavVisible(true);
-          }} 
-          icon={Droplets} 
-          label="الرطوبة" 
-        />
-        <NavButton 
-          active={screen === 'environmental_load'} 
-          onClick={() => {
-            setScreen('environmental_load');
-            setIsNavVisible(true);
-          }} 
-          icon={Activity} 
-          label="الحمل الحراري" 
-        />
-        <NavButton 
-          active={screen === 'finances'} 
-          onClick={() => {
-            setScreen('finances');
-            setIsNavVisible(true);
-          }} 
-          icon={Wallet} 
-          label="الأرباح" 
-        />
-        <NavButton 
-          active={screen === 'expert'} 
-          onClick={() => {
-            setScreen('expert');
-            setIsNavVisible(true);
-          }} 
-          icon={MessageSquare} 
-          label="اسأل خبير" 
-        />
-        <NavButton 
-          active={screen === 'market'} 
-          onClick={() => {
-            setScreen('market');
-            setIsNavVisible(true);
-          }} 
-          icon={TrendingUp} 
-          label="البورصة" 
-        />
-        <NavButton 
-          active={screen === 'charts'} 
-          onClick={() => {
-            setScreen('charts');
-            setIsNavVisible(true);
-          }} 
-          icon={BarChart2} 
-          label="الإحصائيات" 
-        />
-        <NavButton 
-          active={screen === 'workshop'} 
-          onClick={() => {
-            setScreen('workshop');
-            setIsNavVisible(true);
-          }} 
-          icon={Wrench} 
-          label="خدمة العملاء" 
-        />
-      </motion.nav>
+
 
       <AnimatePresence>
         {selectedMedInfo && (
@@ -13467,7 +16445,7 @@ export default function App() {
               <div className="space-y-2">
                 <h3 className="text-xl font-black text-white">تأكيد الحذف</h3>
                 <p className="text-slate-400 text-sm font-bold leading-relaxed">
-                  هل أنت متأكد من حذف {billToDelete.section === 'emergencyMeds' ? 'هذه الجرعة' : billToDelete.section === 'salesRecords' ? 'هذا السجل' : 'هذه الفاتورة'}؟ لا يمكن التراجع عن هذا الإجراء.
+                  هل أنت متأكد من حذف {['emergencyMeds', 'medicationOverrides'].includes(billToDelete.section) ? 'هذه الجرعة' : billToDelete.section === 'salesRecords' ? 'هذا السجل' : 'هذه الفاتورة'}؟ لا يمكن التراجع عن هذا الإجراء.
                 </p>
               </div>
 
@@ -13480,15 +16458,279 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => {
-                    setState(prev => ({ 
-                      ...prev, 
-                      [billToDelete.section]: (prev[billToDelete.section as keyof AppState] as any[]).filter(b => b.id !== billToDelete.id) 
-                    }));
+                    if (billToDelete.section === 'medicationOverrides') {
+                      deleteDose(billToDelete.id, 'scheduled');
+                    } else if (billToDelete.section === 'emergencyMeds') {
+                      deleteDose('', 'emergency', billToDelete.id);
+                    } else {
+                      setState(prev => ({ 
+                        ...prev, 
+                        [billToDelete.section]: (prev[billToDelete.section as keyof AppState] as any[]).filter(b => b.id !== billToDelete.id) 
+                      }));
+                    }
                     setBillToDelete(null);
                   }}
                   className="py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all active:scale-95 font-sans"
                 >
                   حذف
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {suggestedMedModal && suggestedMedModal.isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+            onClick={() => setSuggestedMedModal(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl space-y-6 text-right"
+              onClick={e => e.stopPropagation()}
+              dir="rtl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">إضافة جرعة إضافية (بعد آخر نشاط)</h3>
+                    <p className="text-[10px] text-slate-400 font-bold">تخصيص وتأكيد تفاصيل الجرعة المقترحة</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSuggestedMedModal(null)}
+                  className="text-slate-500 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="space-y-4">
+                {/* 1. Medication Name Selector & Input */}
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">اسم الدواء / الجرعة:</label>
+                  <div className="relative">
+                    <input 
+                      type="text"
+                      placeholder="اكتب اسم الجرعة أو اختر من القائمة بالأسفل..."
+                      value={suggestedMedModal.name}
+                      onChange={(e) => setSuggestedMedModal(prev => prev ? { ...prev, name: e.target.value } : null)}
+                      className={cn(
+                        "w-full bg-slate-950 border border-white/10 rounded-xl py-3 text-xs font-bold text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all text-right pr-4",
+                        suggestedMedModal.name ? "pl-16" : "pl-4"
+                      )}
+                    />
+                    {suggestedMedModal.name && (
+                      <button
+                        type="button"
+                        onClick={() => setSuggestedMedModal(prev => prev ? { ...prev, name: '', doseValue: '', unit: 'سم³/لتر', category: 'عام' } : null)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition-all text-[10px] font-bold cursor-pointer"
+                        title="مسح الحقل وكتابة دواء آخر"
+                      >
+                        <X size={12} />
+                        <span>مسح</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Quick Select Grid from CUSTOM_MED_LIST */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-slate-500 block">اختيار سريع من الأدوية الشائعة:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-950/40 border border-white/5 rounded-xl">
+                      {CUSTOM_MED_LIST.map((m, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSuggestedMedModal(prev => prev ? { 
+                            ...prev, 
+                            name: m.name,
+                            doseValue: String(m.dose),
+                            unit: m.unit,
+                            duration: String(m.duration),
+                            category: m.category
+                          } : null)}
+                          className={cn(
+                            "text-right px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer",
+                            suggestedMedModal.name === m.name 
+                              ? "bg-amber-500/10 border-amber-500 text-amber-400" 
+                              : "bg-slate-900 border-white/5 text-slate-400 hover:border-white/10 hover:text-white"
+                          )}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid for Start Time, Dose, and Duration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Start Time */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-400 block">وقت البدء المقترح:</label>
+                    <div className="relative bg-slate-950 border border-white/10 rounded-xl px-3 py-2 flex items-center shadow-inner h-[42px] cursor-pointer">
+                      <input 
+                        type="time"
+                        value={suggestedMedModal.startTime}
+                        onChange={(e) => setSuggestedMedModal(prev => prev ? { ...prev, startTime: e.target.value } : null)}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-20 [color-scheme:dark]"
+                      />
+                      <div className="flex items-center justify-between w-full pointer-events-none">
+                        <ChevronDown size={14} className="text-slate-500" />
+                        <span className="text-xs font-black text-white leading-none">
+                          {suggestedMedModal.startTime ? (() => {
+                            const [h, m] = suggestedMedModal.startTime.split(':').map(Number);
+                            if (isNaN(h)) return suggestedMedModal.startTime;
+                            const ampm = h >= 12 ? 'م' : 'ص';
+                            const displayH = h % 12 || 12;
+                            return `${displayH}:${String(m).padStart(2, '0')} ${ampm}`;
+                          })() : 'غير محدد'}
+                        </span>
+                        <Clock size={14} className="text-amber-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Duration in Hours */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-400 block">مدة الإعطاء (بالساعات):</label>
+                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px]">
+                      <input 
+                        type="text"
+                        inputMode="decimal"
+                        value={suggestedMedModal.duration}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                            setSuggestedMedModal(prev => prev ? { ...prev, duration: val } : null);
+                          }
+                        }}
+                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600"
+                        placeholder="8"
+                      />
+                      <span className="text-[9px] font-bold text-slate-500 mr-2">ساعة</span>
+                    </div>
+                  </div>
+
+                  {/* Dose Value */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label className="text-[11px] font-black text-slate-400 block">مقدار الجرعة:</label>
+                      {suggestedMedModal.name && (
+                        <span className={cn(
+                          "text-[9px] font-black px-2 py-0.5 rounded-lg border",
+                          getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).text,
+                          getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).bg,
+                          getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).border.replace('border-s-', 'border-')
+                        )}>
+                          {suggestedMedModal.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px]">
+                      <input 
+                        type="text"
+                        inputMode="decimal"
+                        value={suggestedMedModal.doseValue}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                            setSuggestedMedModal(prev => prev ? { ...prev, doseValue: val } : null);
+                          }
+                        }}
+                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600"
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dose Unit */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-400 block">وحدة الجرعة:</label>
+                    <div className="grid grid-cols-2 gap-2 h-[42px]">
+                      {['سم³/لتر', 'جرام/لتر'].map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setSuggestedMedModal(prev => prev ? { ...prev, unit: u } : null)}
+                          className={cn(
+                            "rounded-xl text-[10px] font-black transition-all border cursor-pointer",
+                            suggestedMedModal.unit === u 
+                              ? "bg-amber-500 border-amber-500 text-slate-950" 
+                              : "bg-slate-950 border-white/10 text-slate-400 hover:border-white/20"
+                          )}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dynamically calculated Water & Medicine Volumes summary if duration is present */}
+                {suggestedMedModal.duration && toNum(suggestedMedModal.duration) > 0 && (
+                  <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl space-y-2.5">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">ملخص الكميات التقريبية المحسوبة:</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right">
+                        <span className="text-[8px] font-black text-slate-400 block">إجمالي المياه المطلوبة:</span>
+                        <span className="text-sm font-black text-sky-400 mt-1">
+                          {Math.round((dailyWaterTotalLiters / 24) * toNum(suggestedMedModal.duration))} لتر
+                        </span>
+                      </div>
+                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right">
+                        <span className="text-[8px] font-black text-slate-400 block">إجمالي الدواء المطلوب:</span>
+                        <span className="text-sm font-black text-amber-400 mt-1">
+                          {(() => {
+                            const waterLiters = Math.round((dailyWaterTotalLiters / 24) * toNum(suggestedMedModal.duration));
+                            const totalMed = waterLiters * toNum(suggestedMedModal.doseValue);
+                            const unitShort = suggestedMedModal.unit && suggestedMedModal.unit.includes('/') ? suggestedMedModal.unit.split('/')[0] : suggestedMedModal.unit;
+                            return `${totalMed.toLocaleString()} ${unitShort}`;
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
+                <button 
+                  onClick={() => setSuggestedMedModal(null)}
+                  className="py-3.5 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all font-sans cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  disabled={!suggestedMedModal.name.trim()}
+                  onClick={() => {
+                    addEmergencyMed(suggestedMedModal.startTime || undefined, false, {
+                      name: suggestedMedModal.name,
+                      doseValue: suggestedMedModal.doseValue,
+                      unit: suggestedMedModal.unit,
+                      duration: suggestedMedModal.duration
+                    });
+                    setSuggestedMedModal(null);
+                  }}
+                  className={cn(
+                    "py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 font-sans cursor-pointer",
+                    suggestedMedModal.name.trim() 
+                      ? "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20" 
+                      : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
+                  )}
+                >
+                  نعم، إضافة الجرعة
                 </button>
               </div>
             </motion.div>
@@ -13553,7 +16795,8 @@ export default function App() {
                             body: notifyBody,
                             id: 1110002,
                             schedule: { at: new Date(Date.now() + 500) },
-                            sound: 'beep.wav'
+                            sound: 'beep.wav',
+                            channelId: 'poultry-alerts'
                           }]
                         });
                         await Toast.show({ text: "تم إرسال إشعار تجريبي بنجاح عبر نظام الهاتف!" });
@@ -13834,6 +17077,45 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function SidebarLink({ id, label, icon: Icon, color, onClick, activeId, isLocked }: { id: string, label: string, icon: any, color: string, onClick: () => void, activeId: string, isLocked?: boolean }) {
+  const active = activeId === id;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-right transition-all group relative border",
+        active
+          ? "bg-slate-800/80 border-white/10 font-bold text-white shadow-lg shadow-black/20"
+          : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-white/5 font-medium"
+      )}
+    >
+      <div className={cn(
+        "p-1.5 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 relative",
+        active 
+          ? "bg-slate-900 border-white/10 " + color
+          : "bg-slate-950/40 border-white/5 text-slate-500 group-hover:text-slate-300 group-hover:border-white/10"
+      )}>
+        <Icon size={14} className="flex-shrink-0" />
+        {isLocked && (
+          <div className="absolute -top-1 -left-1 bg-amber-500 text-slate-950 rounded-full p-0.5 border border-[#0a0f1d] shadow-md flex items-center justify-center">
+            <Lock size={7} strokeWidth={3} />
+          </div>
+        )}
+      </div>
+      <span className="text-[11px] truncate flex-1 min-w-0 flex items-center justify-between">
+        <span>{label}</span>
+        {isLocked && (
+          <Lock size={11} className="text-amber-500/80 ml-1.5 flex-shrink-0 animate-pulse" />
+        )}
+      </span>
+      {active && (
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-500 rounded-l-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" />
+      )}
+    </button>
   );
 }
 

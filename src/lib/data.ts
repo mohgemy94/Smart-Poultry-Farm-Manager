@@ -106,35 +106,96 @@ export function getDailyStats(strain: Strain, age: number): DailyData {
   };
 }
 
-// Scientific target temperature profile for industrial broiler management
-export function getTargetTemperature(age: number): number {
-  const profile = [
-    { age: 1, temp: 33 },
-    { age: 3, temp: 31 },
-    { age: 7, temp: 29 },
-    { age: 14, temp: 26 },
-    { age: 21, temp: 23 },
-    { age: 28, temp: 21 },
-    { age: 35, temp: 20 },
-    { age: 40, temp: 20 }
-  ];
+export interface TempProfile {
+  startDay: number;
+  endDay: number;
+  minTemp: number;
+  maxTemp: number;
+  targetTemp: number;
+  notes: string;
+}
 
-  if (age <= 1) return profile[0].temp;
-  if (age >= 40) return profile[profile.length - 1].temp;
-
-  let lower = profile[0];
-  let upper = profile[profile.length - 1];
-
-  for (let i = 0; i < profile.length - 1; i++) {
-    if (age >= profile[i].age && age <= profile[i + 1].age) {
-      lower = profile[i];
-      upper = profile[i + 1];
-      break;
-    }
+export const CHICK_TEMP_PROFILES: TempProfile[] = [
+  {
+    startDay: 1,
+    endDay: 5,
+    minTemp: 33,
+    maxTemp: 34,
+    targetTemp: 33.5,
+    notes: "فترة التحضين الأساسية (توفير الدفء الكامل)"
+  },
+  {
+    startDay: 6,
+    endDay: 7,
+    minTemp: 32.5,
+    maxTemp: 33.5,
+    targetTemp: 33.0,
+    notes: "المرحلة الأولى لتنزيل الحرارة لـ 33 درجة"
+  },
+  {
+    startDay: 8,
+    endDay: 14,
+    minTemp: 30.5,
+    maxTemp: 31.5,
+    targetTemp: 31.0,
+    notes: "النزول التدريجي بمعدل درجتين مع التهوئة"
+  },
+  {
+    startDay: 15,
+    endDay: 21,
+    minTemp: 26.5,
+    maxTemp: 27.5,
+    targetTemp: 27.0,
+    notes: "التنزيل التدريجي لـ 27 درجة وزيادة نشاط الشفاطات"
+  },
+  {
+    startDay: 22,
+    endDay: 25,
+    minTemp: 24.5,
+    maxTemp: 25.5,
+    targetTemp: 25.0,
+    notes: "الوصول تدريجياً إلى 25 درجة لتهيئة الترييش"
+  },
+  {
+    startDay: 26,
+    endDay: 40,
+    minTemp: 24.5,
+    maxTemp: 25.5,
+    targetTemp: 25.0,
+    notes: "تثبيت الحرارة عند 25 درجة لنهاية الدورة"
   }
+];
 
-  const factor = (age - lower.age) / (upper.age - lower.age);
-  return Math.round((lower.temp + (upper.temp - lower.temp) * factor) * 10) / 10;
+// Scientific target temperature profile for industrial broiler management with dynamic linear interpolation
+export function getTargetTemperature(age: number): number {
+  if (age <= 5) {
+    return 33.5;
+  }
+  if (age <= 7) {
+    return 33.0;
+  }
+  if (age <= 14) {
+    // Drop from Day 7 target (33.0) to Day 14 target (31.0) gradual over 7 days
+    const startTemp = 33.0;
+    const endTemp = 31.0;
+    const factor = (age - 7) / (14 - 7);
+    return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+  }
+  if (age <= 21) {
+    // Drop from Day 14 target (31.0) to Day 21 target (27.0) gradual over 7 days
+    const startTemp = 31.0;
+    const endTemp = 27.0;
+    const factor = (age - 14) / (21 - 14);
+    return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+  }
+  if (age <= 25) {
+    // Drop from Day 21 target (27.0) to Day 25 target (25.0) gradual over 4 days
+    const startTemp = 27.0;
+    const endTemp = 25.0;
+    const factor = (age - 21) / (25 - 21);
+    return Math.round((startTemp + (endTemp - startTemp) * factor) * 10) / 10;
+  }
+  return 25.0; // Default when age > 25
 }
 
 export function getTargetHumidity(age: number): { min: number, max: number } {
@@ -158,7 +219,7 @@ export const MEDICATIONS = [
     id: 'd1-ors', 
     name: 'محلول معالجة جفاف', 
     unit: 'جرام/لتر', 
-    doseValue: 5, 
+    doseValue: 1, 
     category: 'تأسيس', 
     usageType: 'ضروري', 
     recommendedHours: 8, 
