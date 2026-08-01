@@ -4,10 +4,13 @@ export interface EnvironmentalLoadResult {
   qLatentBird: number;
   qTotalHouse: number;
   qSensibleHouse: number;
+  qLatentHouse: number;
   moisturePerDayKg: number;
   requiredAirflow: number;
   sensibleFactor: number;
   heatStress: boolean;
+  outdoorTemp?: number;
+  calculatedDeltaT?: number;
 }
 
 export class EnvironmentalLoadService {
@@ -15,6 +18,7 @@ export class EnvironmentalLoadService {
     weightKg,
     birdsCount,
     temperatureC,
+    outdoorTemp,
     deltaT,
     targetTemp = 25,
     densityKgM2 = 0,
@@ -23,6 +27,7 @@ export class EnvironmentalLoadService {
     weightKg: number;
     birdsCount: number;
     temperatureC: number;
+    outdoorTemp?: number;
     deltaT: number;
     targetTemp?: number;
     densityKgM2?: number;
@@ -83,6 +88,7 @@ export class EnvironmentalLoadService {
     // =========================
     const qTotalHouse = qTotalBird * birdsCount;
     let qSensibleHouse = qSensibleBird * birdsCount;
+    const qLatentHouse = qLatentBird * birdsCount;
 
     // Poor Insulation Correction
     if (poorInsulation) {
@@ -110,15 +116,19 @@ export class EnvironmentalLoadService {
     // =========================
     // Required Airflow
     // =========================
+    const calculatedDeltaT = outdoorTemp !== undefined ? Math.abs(temperatureC - outdoorTemp) : undefined;
+    const effectiveDeltaT = deltaT > 0 ? deltaT : (calculatedDeltaT && calculatedDeltaT > 0 ? calculatedDeltaT : 3);
+    
     // Airflow m3/h = Qsensible / (0.34 * DeltaT)
-    const requiredAirflow = deltaT > 0 ? qSensibleHouse / (0.34 * deltaT) : 0;
+    const requiredAirflow = effectiveDeltaT > 0 ? qSensibleHouse / (0.34 * effectiveDeltaT) : 0;
 
     // =========================
     // Heat Stress Detection
     // =========================
-    // Heat stress triggers when temperature exceeds target by a significant margin (e.g., +4C)
-    // or when it exceeds a risky absolute threshold (e.g., 32C for older birds)
-    const heatStress = temperatureC > Math.max(dynamicHighThreshold + 1, targetTemp + 3);
+    // Heat stress triggers when temperature exceeds target by a significant margin
+    // or when outdoor weather temperature is severely elevated (>34C)
+    const heatStress = temperatureC > Math.max(dynamicHighThreshold + 1, targetTemp + 3) || 
+      (outdoorTemp !== undefined && outdoorTemp >= 35 && temperatureC >= targetTemp + 1);
 
     return {
       qTotalBird,
@@ -126,10 +136,13 @@ export class EnvironmentalLoadService {
       qLatentBird,
       qTotalHouse,
       qSensibleHouse,
+      qLatentHouse,
       moisturePerDayKg,
       requiredAirflow,
       sensibleFactor,
       heatStress,
+      outdoorTemp,
+      calculatedDeltaT,
     };
   }
 }

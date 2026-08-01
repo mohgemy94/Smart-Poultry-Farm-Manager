@@ -55,3 +55,3266 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
+
+/* Daylight & High Contrast Mode Styles for Outdoor / Sunlight Readability */
+body.daylight-mode,
+.daylight-mode {
+  background-color: #f1f5f9 !important; /* Crisp Slate 100 */
+  background-image: none !important;
+  color: #020617 !important; /* Extreme high contrast slate 950 */
+}
+
+/* Transform dark containers to bright high contrast cards */
+.daylight-mode .bg-\[\#061e27\],
+.daylight-mode .bg-slate-950,
+.daylight-mode .bg-slate-900,
+.daylight-mode .bg-slate-950\/40,
+.daylight-mode .bg-slate-950\/50,
+.daylight-mode .bg-slate-950\/60,
+.daylight-mode .bg-slate-950\/80,
+.daylight-mode .bg-slate-950\/90,
+.daylight-mode .bg-slate-900\/60,
+.daylight-mode .bg-slate-900\/80,
+.daylight-mode .bg-slate-900\/90,
+.daylight-mode .bg-slate-800,
+.daylight-mode .bg-slate-800\/80,
+.daylight-mode .bg-neutral-900,
+.daylight-mode .bg-neutral-900\/90,
+.daylight-mode .bg-black,
+.daylight-mode .bg-black\/40,
+.daylight-mode .bg-black\/60,
+.daylight-mode .bento-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important; /* slate-300 */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Inner card items & translucent rows in Daylight Mode */
+.daylight-mode .bg-white\/5,
+.daylight-mode .bg-white\/10,
+.daylight-mode .bg-white\/\[0\.01\],
+.daylight-mode .bg-white\/\[0\.02\],
+.daylight-mode .bg-white\/\[0\.03\],
+.daylight-mode .bg-white\/\[0\.05\],
+.daylight-mode .bg-white\/\[0\.08\] {
+  background-color: #f8fafc !important; /* slate-50 */
+  border-color: #cbd5e1 !important; /* slate-300 */
+  color: #020617 !important;
+}
+
+/* Headers and Navbars in Daylight Mode */
+.daylight-mode header,
+.daylight-mode nav,
+.daylight-mode .sticky-header {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Sidebar and Modals in Daylight Mode */
+.daylight-mode aside,
+.daylight-mode .bg-\[\#0e1322\],
+.daylight-mode .bg-\[\#0a0f1d\],
+.daylight-mode .bg-\[\#0d121f\],
+.daylight-mode .bg-slate-950\/95,
+.daylight-mode .bg-slate-900\/95,
+.daylight-mode .bg-slate-950\/90 {
+  background-color: #ffffff !important;
+  color: #020617 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+.daylight-mode aside h3,
+.daylight-mode aside h4,
+.daylight-mode .bg-\[\#0e1322\] h3,
+.daylight-mode .bg-\[\#0a0f1d\] h3,
+.daylight-mode .bg-\[\#0d121f\] h3 {
+  color: #020617 !important;
+}
+
+/* Sidebar Links Default / Inactive State in Daylight Mode */
+.daylight-mode aside button:not([class*="bg-sky-950"]):not(.close-x-btn),
+.daylight-mode .bg-\[\#0e1322\] button:not([class*="bg-sky-950"]):not(.close-x-btn),
+.daylight-mode .bg-\[\#0a0f1d\] button:not([class*="bg-sky-950"]):not(.close-x-btn) {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.daylight-mode aside button:not([class*="bg-sky-950"]):not(.close-x-btn):hover,
+.daylight-mode .bg-\[\#0e1322\] button:not([class*="bg-sky-950"]):not(.close-x-btn):hover,
+.daylight-mode .bg-\[\#0a0f1d\] button:not([class*="bg-sky-950"]):not(.close-x-btn):hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #020617 !important;
+}
+
+/* Close X Button in Daylight Mode (Red icon on Black background) */
+.daylight-mode .close-x-btn {
+  background-color: #000000 !important;
+  color: #ef4444 !important;
+  border-color: #dc2626 !important;
+}
+
+.daylight-mode .close-x-btn:hover {
+  background-color: #111111 !important;
+  color: #f87171 !important;
+  border-color: #ef4444 !important;
+}
+
+.daylight-mode .close-x-btn svg {
+  color: #ef4444 !important;
+  stroke: #ef4444 !important;
+}
+
+/* Active Sidebar Link in Daylight Mode */
+.daylight-mode aside button[class*="bg-sky-950"],
+.daylight-mode .bg-\[\#0e1322\] button[class*="bg-sky-950"],
+.daylight-mode .bg-\[\#0a0f1d\] button[class*="bg-sky-950"] {
+  background-color: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  color: #0369a1 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important;
+}
+
+.daylight-mode aside button[class*="bg-sky-950"] span,
+.daylight-mode .bg-\[\#0e1322\] button[class*="bg-sky-950"] span,
+.daylight-mode .bg-\[\#0a0f1d\] button[class*="bg-sky-950"] span {
+  color: #0369a1 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode aside button[class*="bg-sky-950"] > div,
+.daylight-mode .bg-\[\#0e1322\] button[class*="bg-sky-950"] > div,
+.daylight-mode .bg-\[\#0a0f1d\] button[class*="bg-sky-950"] > div {
+  background-color: #bae6fd !important;
+  border-color: #0284c7 !important;
+}
+
+/* Text Colors for High Contrast Daylight Visibility on White Cards */
+.daylight-mode .text-slate-400,
+.daylight-mode .text-slate-500,
+.daylight-mode .text-slate-600 {
+  color: #334155 !important; /* slate-700 - ultra readable under sunlight */
+  font-weight: 600 !important;
+}
+
+.daylight-mode .text-slate-300,
+.daylight-mode .text-slate-200,
+.daylight-mode .text-slate-100,
+.daylight-mode .text-white {
+  color: #020617 !important; /* slate-950 for light cards */
+}
+
+/* Ensure headings & titles on light backgrounds pop with high contrast */
+.daylight-mode h1,
+.daylight-mode h2,
+.daylight-mode h3,
+.daylight-mode h4,
+.daylight-mode h5,
+.daylight-mode h6 {
+  color: #020617 !important;
+}
+
+/* 
+   CRITICAL OVERRIDE FOR DARK CONTAINERS / CARDS / BANNERS / BUTTONS IN DAYLIGHT MODE:
+   When any container, banner, card, badge or button has a dark background, 
+   all text, titles, headings (h1-h6), and spans inside it MUST be bright light/white (#ffffff)
+   for maximum contrast and sunlight legibility.
+*/
+.daylight-mode .bg-slate-900:not(.bento-card) .text-white,
+.daylight-mode .bg-slate-900:not(.bento-card) .text-slate-100,
+.daylight-mode .bg-slate-900:not(.bento-card) .text-slate-200,
+.daylight-mode .bg-slate-900:not(.bento-card) h1,
+.daylight-mode .bg-slate-900:not(.bento-card) h2,
+.daylight-mode .bg-slate-900:not(.bento-card) h3,
+.daylight-mode .bg-slate-900:not(.bento-card) h4,
+.daylight-mode .bg-slate-900:not(.bento-card) h5,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-white,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-slate-100,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-slate-200,
+.daylight-mode .bg-slate-950:not(.bento-card) h1,
+.daylight-mode .bg-slate-950:not(.bento-card) h2,
+.daylight-mode .bg-slate-950:not(.bento-card) h3,
+.daylight-mode .bg-slate-950:not(.bento-card) h4,
+.daylight-mode .bg-black .text-white,
+.daylight-mode .bg-black h1,
+.daylight-mode .bg-black h2,
+.daylight-mode .bg-black h3,
+.daylight-mode .bg-emerald-600 *,
+.daylight-mode .bg-emerald-700 *,
+.daylight-mode .bg-emerald-800 *,
+.daylight-mode .bg-emerald-900 *,
+.daylight-mode .bg-emerald-950 *,
+.daylight-mode .bg-blue-600 *,
+.daylight-mode .bg-blue-700 *,
+.daylight-mode .bg-blue-800 *,
+.daylight-mode .bg-blue-900 *,
+.daylight-mode .bg-blue-950 *,
+.daylight-mode .bg-indigo-600 *,
+.daylight-mode .bg-indigo-700 *,
+.daylight-mode .bg-indigo-800 *,
+.daylight-mode .bg-rose-600 *,
+.daylight-mode .bg-rose-700 *,
+.daylight-mode .bg-rose-800 *,
+.daylight-mode [class*="bg-gradient-to-"] .text-white,
+.daylight-mode [class*="bg-gradient-to-"] .text-slate-100,
+.daylight-mode [class*="bg-gradient-to-"] .text-slate-200,
+.daylight-mode [class*="bg-gradient-to-"] h1,
+.daylight-mode [class*="bg-gradient-to-"] h2,
+.daylight-mode [class*="bg-gradient-to-"] h3,
+.daylight-mode [class*="bg-gradient-to-"] h4,
+.daylight-mode [class*="bg-gradient-to-"] h5,
+.daylight-mode [class*="bg-gradient-to-"] h6,
+.daylight-mode button.bg-slate-900 *,
+.daylight-mode button.bg-slate-800 *,
+.daylight-mode button.bg-emerald-600 *,
+.daylight-mode button.bg-blue-600 *,
+.daylight-mode button.bg-rose-600 *,
+.daylight-mode button.bg-amber-600 * {
+  color: #ffffff !important;
+}
+
+.daylight-mode .bg-slate-900:not(.bento-card) .text-slate-300,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-slate-300,
+.daylight-mode [class*="bg-gradient-to-"] .text-slate-300 {
+  color: #e2e8f0 !important; /* light slate-200 for subtext in dark banners */
+}
+
+.daylight-mode .bg-slate-900:not(.bento-card) .text-slate-400,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-slate-400,
+.daylight-mode [class*="bg-gradient-to-"] .text-slate-400 {
+  color: #cbd5e1 !important; /* light slate-300 */
+}
+
+.daylight-mode .bg-slate-900:not(.bento-card) .text-emerald-300,
+.daylight-mode .bg-slate-900:not(.bento-card) .text-emerald-400,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-emerald-300,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-emerald-400,
+.daylight-mode [class*="bg-gradient-to-"] .text-emerald-300,
+.daylight-mode [class*="bg-gradient-to-"] .text-emerald-400 {
+  color: #6ee7b7 !important; /* vivid light emerald on dark */
+}
+
+.daylight-mode .bg-slate-900:not(.bento-card) .text-cyan-300,
+.daylight-mode .bg-slate-900:not(.bento-card) .text-cyan-400,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-cyan-300,
+.daylight-mode .bg-slate-950:not(.bento-card) .text-cyan-400,
+.daylight-mode [class*="bg-gradient-to-"] .text-cyan-300,
+.daylight-mode [class*="bg-gradient-to-"] .text-cyan-400 {
+  color: #67e8f9 !important; /* vivid light cyan on dark */
+}
+
+/* Border overrides */
+.daylight-mode .border-white\/5,
+.daylight-mode .border-white\/10,
+.daylight-mode .border-white\/20,
+.daylight-mode .border-slate-800,
+.daylight-mode .border-slate-700 {
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
+
+/* Inputs, Selects, and Textareas */
+.daylight-mode input,
+.daylight-mode select,
+.daylight-mode textarea {
+  background-color: #f8fafc !important; /* slate-50 */
+  color: #020617 !important;
+  border-color: #94a3b8 !important; /* slate-400 */
+  font-weight: 700 !important;
+}
+
+.daylight-mode input::placeholder,
+.daylight-mode textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* High Contrast Accent Badges & Cards */
+.daylight-mode .bg-emerald-500\/10,
+.daylight-mode .bg-emerald-500\/15,
+.daylight-mode .bg-emerald-500\/20,
+.daylight-mode .bg-emerald-950\/20,
+.daylight-mode .bg-emerald-950\/30 {
+  background-color: #d1fae5 !important; /* emerald-100 */
+  border-color: #059669 !important; /* emerald-600 */
+}
+
+.daylight-mode .text-emerald-400,
+.daylight-mode .text-emerald-300 {
+  color: #047857 !important; /* emerald-700 */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .bg-amber-500\/10,
+.daylight-mode .bg-amber-500\/15,
+.daylight-mode .bg-amber-500\/20,
+.daylight-mode .bg-amber-950\/20,
+.daylight-mode .bg-amber-950\/30,
+.daylight-mode .bg-yellow-500\/10,
+.daylight-mode .bg-yellow-500\/20 {
+  background-color: #fef2f2 !important; /* High contrast light red background for alerts */
+  border-color: #ef4444 !important; /* Vivid red border for alerts */
+}
+
+.daylight-mode .bg-amber-500\/10 *,
+.daylight-mode .bg-amber-500\/15 *,
+.daylight-mode .bg-amber-500\/20 *,
+.daylight-mode .bg-amber-950\/20 *,
+.daylight-mode .bg-amber-950\/30 *,
+.daylight-mode .bg-yellow-500\/10 *,
+.daylight-mode .bg-yellow-500\/20 * {
+  color: #991b1b !important; /* Deep brick red text for daylight alert readability */
+  font-weight: 700 !important;
+}
+
+.daylight-mode .bg-amber-500\/10 svg,
+.daylight-mode .bg-amber-500\/15 svg,
+.daylight-mode .bg-amber-500\/20 svg,
+.daylight-mode .bg-amber-950\/20 svg,
+.daylight-mode .bg-amber-950\/30 svg,
+.daylight-mode .bg-yellow-500\/10 svg,
+.daylight-mode .bg-yellow-500\/20 svg {
+  color: #dc2626 !important; /* Vivid red alert icon */
+}
+
+.daylight-mode .bg-amber-500\/10 strong,
+.daylight-mode .bg-amber-500\/15 strong,
+.daylight-mode .bg-amber-500\/20 strong,
+.daylight-mode .bg-amber-950\/20 strong,
+.daylight-mode .bg-amber-950\/30 strong {
+  color: #991b1b !important; /* Deep brick red alert title */
+  font-weight: 900 !important;
+}
+
+.daylight-mode .text-amber-100,
+.daylight-mode .text-amber-200,
+.daylight-mode .text-amber-300,
+.daylight-mode .text-amber-400,
+.daylight-mode .text-amber-500,
+.daylight-mode .text-amber-600,
+.daylight-mode .text-amber-500\/60,
+.daylight-mode .text-amber-500\/80,
+.daylight-mode .text-amber-400\/80,
+.daylight-mode .text-yellow-100,
+.daylight-mode .text-yellow-200,
+.daylight-mode .text-yellow-300,
+.daylight-mode .text-yellow-400,
+.daylight-mode .text-yellow-500,
+.daylight-mode .text-yellow-600,
+.daylight-mode .text-orange-400,
+.daylight-mode .text-orange-500 {
+  color: #991b1b !important; /* Brick Red (أحمر طوبي غامق) */
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+/* Maintain bright amber on dark gradient image overlays in Daylight mode */
+.daylight-mode [class*="bg-gradient-to-"] .text-amber-400,
+.daylight-mode [class*="bg-gradient-to-"] .text-amber-300,
+.daylight-mode [class*="bg-gradient-to-"] .text-amber-400\/80,
+.daylight-mode [class*="bg-gradient-to-"] .text-yellow-400 {
+  color: #fbbf24 !important; /* Vivid bright amber for image overlays */
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .bg-rose-500\/10,
+.daylight-mode .bg-rose-500\/15,
+.daylight-mode .bg-rose-500\/20,
+.daylight-mode .bg-rose-950\/20,
+.daylight-mode .bg-rose-950\/30 {
+  background-color: #ffe4e6 !important; /* rose-100 */
+  border-color: #e11d48 !important; /* rose-600 */
+}
+
+.daylight-mode .text-rose-400,
+.daylight-mode .text-rose-300 {
+  color: #be123c !important; /* rose-700 */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .bg-blue-500\/10,
+.daylight-mode .bg-blue-500\/20,
+.daylight-mode .bg-cyan-500\/10,
+.daylight-mode .bg-cyan-500\/20 {
+  background-color: #e0f2fe !important; /* sky-100 */
+  border-color: #0284c7 !important;
+}
+
+.daylight-mode .text-blue-400,
+.daylight-mode .text-blue-300,
+.daylight-mode .text-cyan-300,
+.daylight-mode .text-cyan-400,
+.daylight-mode .text-\[\#00b0ff\] {
+  color: #0369a1 !important; /* sky-700 */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .bg-violet-500\/10,
+.daylight-mode .bg-violet-500\/20,
+.daylight-mode .bg-purple-500\/10,
+.daylight-mode .bg-indigo-500\/10 {
+  background-color: #f3e8ff !important;
+  border-color: #9333ea !important;
+}
+
+.daylight-mode .text-violet-400,
+.daylight-mode .text-purple-400,
+.daylight-mode .text-indigo-400 {
+  color: #6b21a8 !important;
+  font-weight: 800 !important;
+}
+
+/* Glass buttons in daylight mode */
+.daylight-mode .glass-button {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #020617 !important;
+}
+
+/* Market Screen Daylight Specific Visual Rules */
+.daylight-mode .market-gold-title,
+.daylight-mode span.market-gold-title {
+  color: #f59e0b !important; /* Golden Gold for "قطاع التداول والبورصة" in daylight mode */
+  font-weight: 900 !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.daylight-mode .market-card-title,
+.daylight-mode .market-screen-wrapper h2,
+.daylight-mode .market-screen-wrapper h3,
+.daylight-mode .market-screen-wrapper h4 {
+  color: #ffffff !important; /* Pure white for category titles like "الفراخ", "الكتاكيت", "بورصة البيض", etc. */
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7) !important;
+}
+
+.daylight-mode .glass-button:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* ==========================================================================
+   Bottom Navigation Bar Daylight Mode Visual Identity (شريط التنقل السفلي)
+   ========================================================================== */
+
+/* Main Floating Nav Outer Bar */
+.daylight-mode nav.fixed,
+.daylight-mode div.fixed.bottom-0 {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Inner Floating Pill Container */
+.daylight-mode nav.fixed > div,
+.daylight-mode div.fixed.bottom-0 > div {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.12), 0 2px 10px -1px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Unselected Navigation Buttons (Inactive Tabs) */
+.daylight-mode div.fixed.bottom-0 button.text-slate-400,
+.daylight-mode div.fixed.bottom-0 button .text-slate-400 {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+.daylight-mode div.fixed.bottom-0 button.text-slate-400:hover,
+.daylight-mode div.fixed.bottom-0 button:hover .text-slate-400 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Selected Tab Icons & Text Labels */
+.daylight-mode div.fixed.bottom-0 button.text-\[\#00b0ff\] {
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+}
+
+.daylight-mode div.fixed.bottom-0 button.text-emerald-400 {
+  color: #059669 !important;
+  -webkit-text-fill-color: #059669 !important;
+}
+
+.daylight-mode div.fixed.bottom-0 button.text-amber-400 {
+  color: #d97706 !important;
+  -webkit-text-fill-color: #d97706 !important;
+}
+
+/* Selected Indicator Dots */
+.daylight-mode div.fixed.bottom-0 span.bg-\[\#00b0ff\] {
+  background-color: #0284c7 !important;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.6) !important;
+}
+
+.daylight-mode div.fixed.bottom-0 span.bg-emerald-400 {
+  background-color: #059669 !important;
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.6) !important;
+}
+
+.daylight-mode div.fixed.bottom-0 span.bg-amber-400 {
+  background-color: #d97706 !important;
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.6) !important;
+}
+
+/* Center AI Expert Floating Button ("الخبير الذكي") */
+.daylight-mode div.fixed.bottom-0 div.z-20 button {
+  background-color: #0f172a !important;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28) !important;
+}
+
+.daylight-mode div.fixed.bottom-0 div.z-20 button .bg-slate-950,
+.daylight-mode div.fixed.bottom-0 div.z-20 button .bg-slate-900 {
+  background-color: #0f172a !important;
+}
+
+.daylight-mode div.fixed.bottom-0 div.z-20 button svg {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)) !important;
+}
+
+/* "الخبير الذكي" Pill Badge */
+.daylight-mode div.fixed.bottom-0 div.z-20 span.text-\[\#818cf8\],
+.daylight-mode div.fixed.bottom-0 div.z-20 span {
+  background-color: #e0e7ff !important;
+  border-color: #c7d2fe !important;
+  color: #3730a3 !important;
+  -webkit-text-fill-color: #3730a3 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 8px rgba(55, 48, 163, 0.12) !important;
+}
+
+/* Categories Modal Drawer (شاشة القائمة الجانبية للفئات) */
+.daylight-mode div.z-\[150\] [class*="w-\[300px\]"],
+.daylight-mode div.z-\[150\] [class*="w-\[350px\]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: -10px 0 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+.daylight-mode div.z-\[150\] h3,
+.daylight-mode div.z-\[150\] h4 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode div.z-\[150\] p,
+.daylight-mode div.z-\[150\] span {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+.daylight-mode div.z-\[150\] button.bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Barn Readings Screen (شاشة قراءة العنبر) Daylight Mode Custom Theme */
+.daylight-mode .barn-readings-wrapper h2.barn-main-title,
+.daylight-mode .barn-readings-wrapper .barn-main-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] h2.barn-main-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .barn-main-title {
+  color: #334155 !important; /* رمادي غامق - Dark Slate Gray */
+  text-shadow: none !important;
+}
+
+.daylight-mode .barn-readings-wrapper h3.thermometer-card-title,
+.daylight-mode .barn-readings-wrapper .thermometer-card-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] h3.thermometer-card-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .thermometer-card-title,
+.daylight-mode .barn-readings-wrapper h3.hygrometer-card-title,
+.daylight-mode .barn-readings-wrapper .hygrometer-card-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] h3.hygrometer-card-title,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .hygrometer-card-title {
+  color: #000000 !important; /* أسود - Black */
+  text-shadow: none !important;
+}
+
+.daylight-mode .barn-readings-wrapper p.thermometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper .thermometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] p.thermometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .thermometer-card-subtitle {
+  color: #dc2626 !important; /* أحمر - Red */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-readings-wrapper p.hygrometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper .hygrometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] p.hygrometer-card-subtitle,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .hygrometer-card-subtitle {
+  color: #0284c7 !important; /* أزرق جنزاري - Teal/Cyan Blue */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-readings-wrapper .target-temp-text,
+.daylight-mode .barn-readings-wrapper .target-temp-text *,
+.daylight-mode .barn-readings-wrapper span.target-temp-text,
+.daylight-mode .barn-readings-wrapper span.target-temp-text span,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .target-temp-text,
+.daylight-mode .barn-readings-wrapper [class*="bg-gradient-to-"] .target-temp-text *,
+.daylight-mode .target-temp-text,
+.daylight-mode .target-temp-text * {
+  color: #000000 !important; /* أسود - Black for "المستهدفة لعمر..." */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-readings-wrapper .real-time-sync-title,
+.daylight-mode .barn-readings-wrapper .real-time-sync-title span,
+.daylight-mode .real-time-sync-title,
+.daylight-mode .real-time-sync-title span {
+  color: #2563eb !important; /* أزرق - Blue for "الربط اللحظي بالأنظمة:" */
+  -webkit-text-fill-color: #2563eb !important;
+  font-weight: 900 !important;
+}
+
+/* Header Card in Barn Readings */
+.daylight-mode .barn-readings-wrapper > div:first-child {
+  background: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15) !important;
+}
+
+.daylight-mode .barn-readings-wrapper > div:first-child p {
+  color: #475569 !important;
+}
+
+.daylight-mode .barn-readings-wrapper > div:first-child .bg-slate-950\/80 {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+/* Thermometer & Hygrometer Cards in Barn Readings */
+.daylight-mode .barn-readings-wrapper .to-amber-950\/40 {
+  background: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.12) !important;
+}
+
+.daylight-mode .barn-readings-wrapper .to-cyan-950\/40 {
+  background: #ffffff !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.12) !important;
+}
+
+/* Input Containers & Quick Step Buttons in Barn Readings */
+.daylight-mode .barn-readings-wrapper .bg-slate-950\/90 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .barn-readings-wrapper button.bg-slate-800 {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #020617 !important;
+}
+
+.daylight-mode .barn-readings-wrapper button.bg-slate-800:hover {
+  background-color: #cbd5e1 !important;
+}
+
+/* Thermometer Value & Step Buttons */
+.daylight-mode .barn-readings-wrapper input.text-amber-400 {
+  color: #b45309 !important;
+  font-weight: 900 !important;
+}
+
+/* Hygrometer Value & Step Buttons */
+.daylight-mode .barn-readings-wrapper input.text-cyan-400 {
+  color: #0369a1 !important;
+  font-weight: 900 !important;
+}
+
+/* Info Notice Boxes inside Cards */
+.daylight-mode .barn-readings-wrapper .bg-slate-950\/60 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.daylight-mode .barn-readings-wrapper .bg-slate-950\/60 p {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+/* Linked Systems Cards Grid */
+.daylight-mode .barn-readings-wrapper .bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .barn-readings-wrapper .bg-slate-950\/80 p {
+  color: #64748b !important;
+}
+
+/* Dashboard Screen Custom Daylight Rules */
+.daylight-mode .dashboard-readings-title,
+.daylight-mode .dashboard-readings-title-text,
+.daylight-mode [class*="bg-gradient-to-"] .dashboard-readings-title-text {
+  color: #000000 !important; /* أسود - Black for "قراءات العنبر الحالية" */
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
+.daylight-mode .dashboard-readings-subtitle,
+.daylight-mode [class*="bg-gradient-to-"] .dashboard-readings-subtitle {
+  color: #0284c7 !important; /* أزرق - Blue for "الترمومتر والرطوبة النسبية داخل العنبر" */
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-dimensions-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .barn-dim-title {
+  color: #0284c7 !important; /* Blue title in daylight mode */
+  font-weight: 900 !important;
+}
+
+.daylight-mode .barn-dim-label {
+  color: #475569 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-dim-value {
+  color: #020617 !important; /* High contrast black value */
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
+.daylight-mode .barn-dim-vol-label {
+  color: #475569 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .barn-dim-vol-value {
+  color: #020617 !important;
+  font-weight: 900 !important;
+}
+
+/* Background watermark icons (LayoutDashboard, Wind, etc.) in daylight mode */
+.daylight-mode .dashboard-bg-icon,
+.daylight-mode .dashboard-bg-icon svg,
+.daylight-mode .dashboard-bg-icon * {
+  color: #e2e8f0 !important; /* Very light gray - رمادي فاتح جداً */
+  opacity: 0.8 !important;
+}
+
+/* Setup & Management Screen Daylight Mode Theme (إدارة العنبر والتجهيز) */
+
+/* Screen background */
+.daylight-mode.setup-screen-wrapper,
+.daylight-mode .setup-screen-wrapper,
+.daylight-mode .management-screen-wrapper {
+  background-color: #f8fafc !important;
+  color: #020617 !important;
+}
+
+/* Main card containers */
+.daylight-mode .setup-screen-wrapper .bento-card,
+.daylight-mode .setup-screen-wrapper [class*="bg-slate-900"],
+.daylight-mode .setup-screen-wrapper [class*="bg-[#061e27]"],
+.daylight-mode .management-screen-wrapper [class*="bg-slate-900"],
+.daylight-mode .management-screen-wrapper [class*="bg-purple-600"],
+.daylight-mode .management-screen-wrapper [class*="bg-amber-600"],
+.daylight-mode .management-screen-wrapper [class*="bg-emerald-600"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Headings and primary texts: change white to bold black (#020617) */
+.daylight-mode .setup-screen-wrapper h1,
+.daylight-mode .setup-screen-wrapper h2,
+.daylight-mode .setup-screen-wrapper h3,
+.daylight-mode .setup-screen-wrapper h4,
+.daylight-mode .setup-screen-wrapper .text-white,
+.daylight-mode .setup-screen-wrapper .text-slate-100,
+.daylight-mode .setup-screen-wrapper .text-slate-200,
+.daylight-mode .setup-screen-wrapper .text-slate-300,
+.daylight-mode .management-screen-wrapper h1,
+.daylight-mode .management-screen-wrapper h2,
+.daylight-mode .management-screen-wrapper h3,
+.daylight-mode .management-screen-wrapper h4,
+.daylight-mode .management-screen-wrapper .text-white,
+.daylight-mode .management-screen-wrapper .text-slate-100,
+.daylight-mode .management-screen-wrapper .text-slate-200,
+.daylight-mode .management-screen-wrapper .text-slate-300 {
+  color: #020617 !important;
+  text-shadow: none !important;
+}
+
+/* Labels and muted subtexts: high-contrast dark slate gray (#334155) */
+.daylight-mode .setup-screen-wrapper label,
+.daylight-mode .setup-screen-wrapper .text-slate-400,
+.daylight-mode .setup-screen-wrapper .text-slate-500,
+.daylight-mode .setup-screen-wrapper .text-slate-600,
+.daylight-mode .management-screen-wrapper label,
+.daylight-mode .management-screen-wrapper .text-slate-400,
+.daylight-mode .management-screen-wrapper .text-slate-500,
+.daylight-mode .management-screen-wrapper .text-slate-600 {
+  color: #334155 !important;
+  font-weight: 800 !important;
+}
+
+/* Text inputs, selects, and input boxes */
+.daylight-mode .setup-screen-wrapper input[type="text"],
+.daylight-mode .setup-screen-wrapper input[type="date"],
+.daylight-mode .setup-screen-wrapper input[type="number"],
+.daylight-mode .setup-screen-wrapper .bg-slate-900,
+.daylight-mode .setup-screen-wrapper .bg-slate-950,
+.daylight-mode .management-screen-wrapper input[type="text"] {
+  background-color: #ffffff !important;
+  border-color: #94a3b8 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .setup-screen-wrapper input::placeholder {
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+/* Option buttons (Strain, Breeding System, Distribution) unselected state */
+.daylight-mode .setup-screen-wrapper button.bg-slate-900 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #020617 !important;
+  font-weight: 800 !important;
+}
+
+/* Setup Screen Top Bar Controls (Home Button & Border) in Daylight Mode */
+.daylight-mode .setup-screen-wrapper .daylight-btn-home {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #020617 !important;
+  -webkit-text-fill-color: #020617 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .daylight-btn-home:hover {
+  background-color: #e2e8f0 !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .daylight-border-slate {
+  border-color: #e2e8f0 !important;
+}
+
+/* Setup Screen Night Mode Toggle Button in Daylight Mode (Janzari Green with White Moon Icon & Text) */
+.daylight-mode .setup-screen-wrapper .setup-night-toggle-btn,
+.daylight-mode.setup-screen-wrapper .setup-night-toggle-btn {
+  background-color: #0f766e !important; /* Janzari Green / Teal */
+  border-color: #14b8a6 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35) !important;
+}
+
+.daylight-mode .setup-screen-wrapper .setup-night-toggle-btn:hover,
+.daylight-mode.setup-screen-wrapper .setup-night-toggle-btn:hover {
+  background-color: #0d9488 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .setup-night-toggle-btn span,
+.daylight-mode .setup-screen-wrapper .setup-night-toggle-btn svg,
+.daylight-mode .setup-screen-wrapper .setup-night-toggle-btn *,
+.daylight-mode.setup-screen-wrapper .setup-night-toggle-btn span,
+.daylight-mode.setup-screen-wrapper .setup-night-toggle-btn svg,
+.daylight-mode.setup-screen-wrapper .setup-night-toggle-btn * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Icon visibility in Daylight Mode */
+.daylight-mode .setup-screen-wrapper svg,
+.daylight-mode .management-screen-wrapper svg {
+  opacity: 1 !important;
+  stroke-width: 2.2px !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-slate-600 svg,
+.daylight-mode .setup-screen-wrapper .text-slate-500 svg,
+.daylight-mode .setup-screen-wrapper .text-slate-400 svg,
+.daylight-mode .management-screen-wrapper .text-slate-600 svg,
+.daylight-mode .management-screen-wrapper .text-slate-500 svg,
+.daylight-mode .management-screen-wrapper .text-slate-400 svg {
+  color: #020617 !important;
+  stroke: #020617 !important;
+}
+
+/* Brand colored icons & badges remain vibrant & high contrast */
+.daylight-mode .setup-screen-wrapper .daylight-strain-selected,
+.daylight-mode .daylight-strain-selected {
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+  background-color: #d1fae5 !important;
+  border-color: #059669 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-emerald-400,
+.daylight-mode .setup-screen-wrapper .text-emerald-500 {
+  color: #059669 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-blue-400,
+.daylight-mode .setup-screen-wrapper .text-blue-500 {
+  color: #0284c7 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-purple-400,
+.daylight-mode .setup-screen-wrapper .text-purple-500 {
+  color: #7c3aed !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-sky-400,
+.daylight-mode .setup-screen-wrapper .text-sky-500 {
+  color: #0284c7 !important;
+}
+
+.daylight-mode .setup-screen-wrapper .text-amber-400,
+.daylight-mode .setup-screen-wrapper .text-amber-500 {
+  color: #d97706 !important;
+}
+
+/* Keep text white inside primary action buttons */
+.daylight-mode .setup-screen-wrapper button[type="submit"],
+.daylight-mode .setup-screen-wrapper button[type="submit"] *,
+.daylight-mode .setup-screen-wrapper button.bg-blue-600,
+.daylight-mode .setup-screen-wrapper button.bg-blue-600 *,
+.daylight-mode .setup-screen-wrapper button.bg-red-600,
+.daylight-mode .setup-screen-wrapper button.bg-red-600 *,
+.daylight-mode .setup-screen-wrapper button.bg-orange-600,
+.daylight-mode .setup-screen-wrapper button.bg-orange-600 *,
+.daylight-mode .management-screen-wrapper button.bg-purple-500,
+.daylight-mode .management-screen-wrapper button.bg-purple-500 * {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Medication Screen Daylight Mode Visual Identity (شاشة الأدوية - التنسيق النهاري)
+   ========================================================================== */
+
+/* Main Container Canvas & Root Typography */
+.daylight-mode.medication-screen-wrapper,
+.daylight-mode .medication-screen-wrapper {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  color-scheme: light !important;
+}
+
+/* Force Light Color Scheme on All Descendants */
+.daylight-mode .medication-screen-wrapper *,
+.daylight-mode .medication-screen-wrapper *::before,
+.daylight-mode .medication-screen-wrapper *::after {
+  color-scheme: light !important;
+}
+
+/* Base Headings & Titles -> Deep Navy Charcoal (#0f172a / #020617) */
+.daylight-mode .medication-screen-wrapper h1,
+.daylight-mode .medication-screen-wrapper h2,
+.daylight-mode .medication-screen-wrapper h3,
+.daylight-mode .medication-screen-wrapper h4,
+.daylight-mode .medication-screen-wrapper h5,
+.daylight-mode .medication-screen-wrapper h6 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+/* Base Labels & Secondary Texts -> Slate Navy (#334155 / #1e293b) */
+.daylight-mode .medication-screen-wrapper label,
+.daylight-mode .medication-screen-wrapper p,
+.daylight-mode .medication-screen-wrapper span,
+.daylight-mode .medication-screen-wrapper div,
+.daylight-mode .medication-screen-wrapper strong,
+.daylight-mode .medication-screen-wrapper b {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+  text-shadow: none !important;
+}
+
+/* ALL White / Light Gray Text Overrides -> Dark Navy */
+.daylight-mode .medication-screen-wrapper .text-white,
+.daylight-mode .medication-screen-wrapper [class*="text-white"],
+.daylight-mode .medication-screen-wrapper .text-slate-100,
+.daylight-mode .medication-screen-wrapper .text-slate-200,
+.daylight-mode .medication-screen-wrapper .text-slate-300 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+.daylight-mode .medication-screen-wrapper .text-slate-400,
+.daylight-mode .medication-screen-wrapper .text-slate-500,
+.daylight-mode .medication-screen-wrapper .text-slate-600 {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  font-weight: 700 !important;
+}
+
+/* FORM INPUTS & SELECTS (Fix for invisible text in boxes) */
+.daylight-mode .medication-screen-wrapper input,
+.daylight-mode .medication-screen-wrapper input[type="text"],
+.daylight-mode .medication-screen-wrapper input[type="time"],
+.daylight-mode .medication-screen-wrapper input[type="number"],
+.daylight-mode .medication-screen-wrapper select,
+.daylight-mode .medication-screen-wrapper textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  font-weight: 800 !important;
+  color-scheme: light !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .medication-screen-wrapper input.bg-transparent {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.daylight-mode .medication-screen-wrapper input:focus,
+.daylight-mode .medication-screen-wrapper select:focus {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+
+.daylight-mode .medication-screen-wrapper input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+/* Color Accents (Harmonized Medical Palette) */
+
+/* 1. Primary Blue / Hydration / Sky Accents */
+.daylight-mode .medication-screen-wrapper .text-blue-400,
+.daylight-mode .medication-screen-wrapper .text-blue-500,
+.daylight-mode .medication-screen-wrapper .text-sky-400,
+.daylight-mode .medication-screen-wrapper .text-sky-500,
+.daylight-mode .medication-screen-wrapper .text-cyan-400,
+.daylight-mode .medication-screen-wrapper .text-cyan-500 {
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  font-weight: 800 !important;
+}
+
+/* 2. Red / Finish Times / Critical Warnings */
+.daylight-mode .medication-screen-wrapper .text-red-400,
+.daylight-mode .medication-screen-wrapper .text-red-500,
+.daylight-mode .medication-screen-wrapper .text-red-600,
+.daylight-mode .medication-screen-wrapper .text-rose-400,
+.daylight-mode .medication-screen-wrapper .text-rose-500 {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 800 !important;
+}
+
+/* 3. Amber / Feed Alerts / Warnings / Medication Totals */
+.daylight-mode .medication-screen-wrapper .text-amber-400,
+.daylight-mode .medication-screen-wrapper .text-amber-500,
+.daylight-mode .medication-screen-wrapper .text-amber-600 {
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+/* 4. Emerald / Success / Completed Status */
+.daylight-mode .medication-screen-wrapper .text-emerald-400,
+.daylight-mode .medication-screen-wrapper .text-emerald-500,
+.daylight-mode .medication-screen-wrapper .text-green-500 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+/* 5. Purple / Vaccines / Special Treatments */
+.daylight-mode .medication-screen-wrapper .text-purple-400,
+.daylight-mode .medication-screen-wrapper .text-purple-500,
+.daylight-mode .medication-screen-wrapper .text-violet-400 {
+  color: #6d28d9 !important;
+  -webkit-text-fill-color: #6d28d9 !important;
+  font-weight: 800 !important;
+}
+
+/* Card Containers & Structural Boxes */
+
+/* Main Medication Cards (بطاقات الأدوية الرئيسية) */
+.daylight-mode .medication-screen-wrapper .bg-slate-900,
+.daylight-mode .medication-screen-wrapper .bg-slate-900\/80,
+.daylight-mode .medication-screen-wrapper .bg-slate-900\/60,
+.daylight-mode .medication-screen-wrapper .bg-slate-900\/50 {
+  background-color: #ffffff !important;
+  border-top-color: #cbd5e1 !important;
+  border-bottom-color: #cbd5e1 !important;
+  border-left-color: #cbd5e1 !important;
+  border-right-color: #cbd5e1 !important;
+  box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Daylight Mode - Card Borders Highlighted by Medication Dose Color (تحديد حدود البطاقات بلون جرعة الدواء في الوضع النهاري) */
+.daylight-mode .medication-screen-wrapper .border-s-red-400,
+.daylight-mode .medication-screen-wrapper .border-s-red-500,
+.daylight-mode .medication-screen-wrapper .border-s-red-600 {
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  border-inline-start-color: #dc2626 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(220, 38, 38, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-emerald-500,
+.daylight-mode .medication-screen-wrapper .border-s-emerald-600,
+.daylight-mode .medication-screen-wrapper .border-s-green-500 {
+  border-color: rgba(5, 150, 105, 0.35) !important;
+  border-inline-start-color: #059669 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(5, 150, 105, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-yellow-400,
+.daylight-mode .medication-screen-wrapper .border-s-amber-400,
+.daylight-mode .medication-screen-wrapper .border-s-amber-500 {
+  border-color: rgba(217, 119, 6, 0.35) !important;
+  border-inline-start-color: #d97706 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(217, 119, 6, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-\[\#d2b48c\],
+.daylight-mode .medication-screen-wrapper .border-s-amber-600 {
+  border-color: rgba(180, 83, 9, 0.35) !important;
+  border-inline-start-color: #b45309 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(180, 83, 9, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-sky-400,
+.daylight-mode .medication-screen-wrapper .border-s-cyan-400 {
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  border-inline-start-color: #0284c7 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(2, 132, 199, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-blue-500,
+.daylight-mode .medication-screen-wrapper .border-s-indigo-500 {
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  border-inline-start-color: #2563eb !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(37, 99, 235, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-white {
+  border-color: rgba(30, 41, 59, 0.35) !important;
+  border-inline-start-color: #0f172a !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .border-s-slate-500 {
+  border-color: rgba(100, 116, 139, 0.35) !important;
+  border-inline-start-color: #64748b !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 4px 18px -2px rgba(100, 116, 139, 0.12) !important;
+}
+
+/* Inner Sub-Containers inside Cards */
+.daylight-mode .medication-screen-wrapper .bg-slate-950,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/50,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/40,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/60,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/80,
+.daylight-mode .medication-screen-wrapper .bg-slate-900\/40 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-slate-950 *,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/50 *,
+.daylight-mode .medication-screen-wrapper .bg-slate-950\/40 *,
+.daylight-mode .medication-screen-wrapper .bg-slate-900\/40 * {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Calculated Totals Boxes inside Cards (إجمالي الدواء / إجمالي المياه) */
+.daylight-mode .medication-screen-wrapper .bg-amber-500\/10,
+.daylight-mode .medication-screen-wrapper .bg-white\/5 {
+  background-color: #fef3c7 !important;
+  border-color: #fde68a !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-amber-500\/10 *,
+.daylight-mode .medication-screen-wrapper .bg-white\/5 * {
+  color: #78350f !important;
+  -webkit-text-fill-color: #78350f !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-red-600\/10 {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-red-600\/10 * {
+  color: #991b1b !important;
+  -webkit-text-fill-color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+/* Header Banners & Badges */
+.daylight-mode .medication-screen-wrapper header h2 .bg-red-400\/10 {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.daylight-mode .medication-screen-wrapper [class*="from-amber-600"] {
+  background: linear-gradient(135deg, #fffbe3 0%, #fef3c7 100%) !important;
+  border-color: #fde68a !important;
+  box-shadow: 0 4px 16px -2px rgba(217, 119, 6, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper [class*="from-amber-600"] h3,
+.daylight-mode .medication-screen-wrapper [class*="from-amber-600"] .text-amber-200 {
+  color: #78350f !important;
+  -webkit-text-fill-color: #78350f !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-screen-wrapper [class*="from-amber-600"] p,
+.daylight-mode .medication-screen-wrapper [class*="from-amber-600"] .text-slate-300 {
+  color: #92400e !important;
+  -webkit-text-fill-color: #92400e !important;
+  font-weight: 700 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-red-500\/5 {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 2px 10px -2px rgba(220, 38, 38, 0.06) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-red-500\/5 .text-white,
+.daylight-mode .medication-screen-wrapper .bg-red-500\/5 span {
+  color: #991b1b !important;
+  -webkit-text-fill-color: #991b1b !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-blue-500\/10 {
+  background-color: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-blue-500\/10 .text-blue-400 {
+  color: #0369a1 !important;
+  -webkit-text-fill-color: #0369a1 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-screen-wrapper [class*="from-red-500"] {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+  border-color: #fca5a5 !important;
+}
+
+.daylight-mode .medication-screen-wrapper [class*="from-red-500"] h4,
+.daylight-mode .medication-screen-wrapper [class*="from-red-500"] p {
+  color: #991b1b !important;
+  -webkit-text-fill-color: #991b1b !important;
+  font-weight: 800 !important;
+}
+
+/* Dropdown Search Popups */
+.daylight-mode .medication-screen-wrapper .bg-slate-900.border-white\/10 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12) !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-slate-900.border-white\/10 button {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+.daylight-mode .medication-screen-wrapper .bg-slate-900.border-white\/10 button:hover {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+}
+
+/* SOLID BUTTONS EXCEPTION (Must keep solid white text) */
+.daylight-mode .medication-screen-wrapper button.bg-blue-600,
+.daylight-mode .medication-screen-wrapper button.bg-sky-600 {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.22) !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-blue-600 *,
+.daylight-mode .medication-screen-wrapper button.bg-sky-600 * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-amber-500 {
+  background-color: #d97706 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.22) !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-amber-500 * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Daylight Mode - Card Borders Highlighted by Medication Dose Color (تحديد حدود البطاقات بلون جرعة الدواء في الوضع النهاري) */
+.daylight-mode .medication-screen-wrapper div[class*="border-s-red-400"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-red-500"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-red-600"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-red-400"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-red-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-red-600"] {
+  border-top-color: rgba(220, 38, 38, 0.45) !important;
+  border-bottom-color: rgba(220, 38, 38, 0.45) !important;
+  border-left-color: rgba(220, 38, 38, 0.45) !important;
+  border-right-color: rgba(220, 38, 38, 0.45) !important;
+  border-inline-start-color: #dc2626 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(220, 38, 38, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-emerald-500"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-emerald-600"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-green-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-emerald-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-emerald-600"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-green-500"] {
+  border-top-color: rgba(5, 150, 105, 0.45) !important;
+  border-bottom-color: rgba(5, 150, 105, 0.45) !important;
+  border-left-color: rgba(5, 150, 105, 0.45) !important;
+  border-right-color: rgba(5, 150, 105, 0.45) !important;
+  border-inline-start-color: #059669 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(5, 150, 105, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-yellow-400"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-amber-400"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-amber-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-yellow-400"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-amber-400"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-amber-500"] {
+  border-top-color: rgba(217, 119, 6, 0.45) !important;
+  border-bottom-color: rgba(217, 119, 6, 0.45) !important;
+  border-left-color: rgba(217, 119, 6, 0.45) !important;
+  border-right-color: rgba(217, 119, 6, 0.45) !important;
+  border-inline-start-color: #d97706 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(217, 119, 6, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-[#d2b48c]"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-amber-600"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-[#d2b48c]"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-amber-600"] {
+  border-top-color: rgba(180, 83, 9, 0.45) !important;
+  border-bottom-color: rgba(180, 83, 9, 0.45) !important;
+  border-left-color: rgba(180, 83, 9, 0.45) !important;
+  border-right-color: rgba(180, 83, 9, 0.45) !important;
+  border-inline-start-color: #b45309 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(180, 83, 9, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-sky-400"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-cyan-400"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-sky-400"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-cyan-400"] {
+  border-top-color: rgba(2, 132, 199, 0.45) !important;
+  border-bottom-color: rgba(2, 132, 199, 0.45) !important;
+  border-left-color: rgba(2, 132, 199, 0.45) !important;
+  border-right-color: rgba(2, 132, 199, 0.45) !important;
+  border-inline-start-color: #0284c7 !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-blue-500"],
+.daylight-mode .medication-screen-wrapper div[class*="border-s-indigo-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-blue-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-indigo-500"] {
+  border-top-color: rgba(37, 99, 235, 0.45) !important;
+  border-bottom-color: rgba(37, 99, 235, 0.45) !important;
+  border-left-color: rgba(37, 99, 235, 0.45) !important;
+  border-right-color: rgba(37, 99, 235, 0.45) !important;
+  border-inline-start-color: #2563eb !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(37, 99, 235, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-white"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-white"] {
+  border-top-color: rgba(51, 65, 85, 0.45) !important;
+  border-bottom-color: rgba(51, 65, 85, 0.45) !important;
+  border-left-color: rgba(51, 65, 85, 0.45) !important;
+  border-right-color: rgba(51, 65, 85, 0.45) !important;
+  border-inline-start-color: #0f172a !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(15, 23, 42, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper div[class*="border-s-slate-500"],
+.daylight-mode.medication-screen-wrapper div[class*="border-s-slate-500"] {
+  border-top-color: rgba(100, 116, 139, 0.45) !important;
+  border-bottom-color: rgba(100, 116, 139, 0.45) !important;
+  border-left-color: rgba(100, 116, 139, 0.45) !important;
+  border-right-color: rgba(100, 116, 139, 0.45) !important;
+  border-inline-start-color: #64748b !important;
+  border-inline-start-width: 6px !important;
+  box-shadow: 0 6px 20px -2px rgba(100, 116, 139, 0.18) !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-emerald-600 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-emerald-600 * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Unselected Option / Unit Toggle Buttons */
+.daylight-mode .medication-screen-wrapper button.bg-slate-800,
+.daylight-mode .medication-screen-wrapper button.bg-slate-950 {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  font-weight: 700 !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.bg-slate-800:hover,
+.daylight-mode .medication-screen-wrapper button.bg-slate-950:hover {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Icons & Action Controls */
+.daylight-mode .medication-screen-wrapper svg {
+  opacity: 1 !important;
+  stroke-width: 2.2px !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.text-rose-500,
+.daylight-mode .medication-screen-wrapper button.text-red-500 {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.daylight-mode .medication-screen-wrapper button.text-rose-500:hover,
+.daylight-mode .medication-screen-wrapper button.text-red-500:hover {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+  -webkit-text-fill-color: #b91c1c !important;
+}
+
+/* Pure White for Expert Recommendation in Humidity System */
+.daylight-mode .expert-recommendation-title,
+.expert-recommendation-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Daylight Mode Black Text (for هيدا, نيوهوب, الإيمان, نوفافيد, سامي عايد, الدقهلية, الوادي, بيض بلدي, كلمة الوزن, and First Currency Word) */
+.daylight-mode .daylight-black-text,
+body.daylight-mode .daylight-black-text,
+.daylight-mode .market-screen-wrapper h4.daylight-black-text,
+.daylight-mode .market-screen-wrapper td.daylight-black-text,
+.daylight-mode .market-screen-wrapper span.daylight-black-text {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+body:not(.daylight-mode) .daylight-black-text,
+:not(.daylight-mode) .daylight-black-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+/* Daylight Mode Red Text (for الشركة المنتجة, بيض أحمر, and Second Currency Word) */
+.daylight-mode .daylight-red-text,
+body.daylight-mode .daylight-red-text,
+.daylight-mode .market-screen-wrapper span.daylight-red-text {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+/* Daylight Mode White Mixed with Gray Text (for بيض أبيض) */
+.daylight-mode .daylight-white-gray-text,
+.daylight-white-gray-text {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  font-weight: 900 !important;
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom Shiny Lustrous Gold Text */
+.daylight-mode .text-golden-yellow,
+.daylight-mode .market-screen-wrapper .text-golden-yellow,
+.text-golden-yellow {
+  color: #fbbf24 !important;
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 40%, #d97706 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 900 !important;
+  filter: drop-shadow(0px 1px 2px rgba(245, 158, 11, 0.35));
+}
+
+/* Very Light Gray Gauge Track for Circular Humidity Gauge */
+.daylight-mode .track-very-light-gray,
+.track-very-light-gray {
+  stroke: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+
+
+
+
+
+
+/* Daylight Mode Dark Navy Blue Text (for Headers in Market Screen) */
+.daylight-mode .daylight-dark-navy-text {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background: none !important;
+  font-weight: 900 !important;
+}
+
+/* Daylight Mode Teal / Janzari Blue Text (أزرق جنزاري لعنوان مدير مزارع) */
+.daylight-mode .daylight-teal-blue-text,
+.daylight-teal-blue-text {
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  background: none !important;
+  font-weight: 900 !important;
+}
+
+/* Daylight Mode Pure Blue Text (لون أزرق ناصع لعنوان مدير مزارع) */
+.daylight-mode .daylight-blue-text,
+.daylight-mode .setup-screen-wrapper h1.daylight-blue-text,
+.daylight-blue-text {
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb !important;
+  background: none !important;
+  font-weight: 900 !important;
+}
+
+/* Daylight Mode White Text (for Execution Price Title - سعر التنفيذ اليوم - أرض المزرعة) */
+.daylight-mode .daylight-bright-gold-text,
+.daylight-mode.daylight-bright-gold-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  drop-shadow: none !important;
+}
+
+/* Daylight Mode Dark Green Janzari Text (لون أخضر غامق جنزاري لكلمة إدارة ذكية) */
+.daylight-mode .daylight-janzari-green-text,
+.daylight-janzari-green-text {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  background: none !important;
+  font-weight: 900 !important;
+}
+
+/* Dark Green for Nahy 19% Column Numbers in Daylight mode, Pure White in Night mode */
+.daylight-mode .nahy-finisher-number,
+body.daylight-mode .nahy-finisher-number {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .nahy-finisher-number,
+:not(.daylight-mode) .nahy-finisher-number {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+/* Professional Shiny Profile Avatar Ring & Inner Circle */
+.profile-avatar-ring {
+  background: linear-gradient(135deg, #00b0ff 0%, #38bdf8 30%, #00dfa2 70%, #6366f1 100%);
+  padding: 3.5px;
+  border-radius: 9999px;
+  box-shadow: 0 0 22px rgba(0, 176, 255, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.profile-avatar-inner {
+  background: linear-gradient(145deg, #090d16 0%, #0f172a 100%);
+  border-radius: 9999px;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15), inset 0 -2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.daylight-mode .profile-avatar-ring {
+  background: linear-gradient(135deg, #0b1329 0%, #1e3a8a 25%, #3b82f6 50%, #38bdf8 75%, #0b1329 100%) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28), 0 2px 10px rgba(59, 130, 246, 0.25), inset 0 1px 3px rgba(255, 255, 255, 0.9) !important;
+  padding: 3.5px !important;
+}
+
+.daylight-mode .profile-avatar-inner {
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%) !important;
+  border: 1px solid rgba(30, 58, 138, 0.2) !important;
+  box-shadow: inset 0 2px 5px #ffffff, inset 0 -2px 6px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Night Mode & Daylight Mode Toggle Buttons Custom Styling */
+.night-mode-btn-style,
+.daylight-mode .night-mode-btn-style {
+  background: linear-gradient(135deg, #061e27 0%, #0a2d39 100%) !important;
+  color: #00dfa2 !important;
+  border: 1px solid rgba(0, 223, 162, 0.5) !important;
+  box-shadow: 0 0 14px rgba(0, 223, 162, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  font-weight: 900 !important;
+}
+
+.night-mode-btn-style *,
+.daylight-mode .night-mode-btn-style * {
+  color: #00dfa2 !important;
+  -webkit-text-fill-color: #00dfa2 !important;
+}
+
+.night-mode-btn-style:hover,
+.daylight-mode .night-mode-btn-style:hover {
+  background: linear-gradient(135deg, #082834 0%, #0e3b4a 100%) !important;
+  border-color: rgba(0, 223, 162, 0.8) !important;
+  box-shadow: 0 0 18px rgba(0, 223, 162, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.daylight-mode-btn-style,
+.daylight-mode .daylight-mode-btn-style {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%) !important;
+  color: #020617 !important;
+  border: 1px solid #d97706 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.4) !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode-btn-style *,
+.daylight-mode .daylight-mode-btn-style * {
+  color: #020617 !important;
+  -webkit-text-fill-color: #020617 !important;
+}
+
+/* =========================================================
+   Daylight Mode - Guidance Notifications Center Modal
+   (مركز التنبيهات الإرشادية - أسود، أحمر، بنفسجي غامق)
+   ========================================================= */
+
+.daylight-mode .notifications-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .notifications-modal-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.22) !important;
+}
+
+/* Modal Header */
+.daylight-mode .notifications-modal-header {
+  border-color: #e2e8f0 !important;
+}
+
+.daylight-mode .notifications-modal-header-icon {
+  background-color: #f3e8ff !important;
+  border-color: #d8b4fe !important;
+}
+
+.daylight-mode .notifications-modal-header-icon svg {
+  color: #581c87 !important;
+  stroke: #581c87 !important;
+}
+
+.daylight-mode .notifications-modal-title {
+  color: #4c1d95 !important; /* بنفسجي غامق */
+  -webkit-text-fill-color: #4c1d95 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-subtitle {
+  color: #000000 !important; /* أسود */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .notifications-modal-close {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .notifications-modal-close svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.daylight-mode .notifications-modal-close:hover {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important; /* أحمر */
+}
+
+/* Quick Banner Test Notification */
+.daylight-mode .notifications-modal-banner {
+  background: linear-gradient(135deg, #f3e8ff 0%, #fae8ff 100%) !important;
+  border-color: #d8b4fe !important;
+  box-shadow: 0 4px 12px rgba(126, 34, 206, 0.08) !important;
+}
+
+.daylight-mode .notifications-modal-banner-title {
+  color: #3b0764 !important; /* بنفسجي غامق */
+  -webkit-text-fill-color: #3b0764 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-banner-body {
+  color: #000000 !important; /* أسود */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .notifications-modal-banner-btn {
+  background-color: #581c87 !important; /* بنفسجي غامق */
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(88, 28, 135, 0.25) !important;
+}
+
+.daylight-mode .notifications-modal-banner-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.daylight-mode .notifications-modal-banner-btn:hover {
+  background-color: #4c1d95 !important;
+}
+
+/* Section Titles */
+.daylight-mode .notifications-modal-section-title {
+  color: #581c87 !important; /* بنفسجي غامق */
+  -webkit-text-fill-color: #581c87 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-warnings-title {
+  color: #dc2626 !important; /* أحمر */
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+/* Notification Toggles Rows */
+.daylight-mode .notifications-modal-row {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.daylight-mode .notifications-modal-item-title {
+  color: #000000 !important; /* أسود */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-item-sub {
+  color: #4c1d95 !important; /* بنفسجي غامق */
+  -webkit-text-fill-color: #4c1d95 !important;
+  font-weight: 800 !important;
+}
+
+/* Empty Active Warnings Card */
+.daylight-mode .notifications-modal-empty-card {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.daylight-mode .notifications-modal-empty-title {
+  color: #dc2626 !important; /* أحمر */
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-empty-sub {
+  color: #000000 !important; /* أسود */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* Alert Item List */
+.daylight-mode .notifications-modal-alert-item {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .notifications-modal-alert-item-title {
+  color: #dc2626 !important; /* أحمر */
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .notifications-modal-alert-item-body {
+  color: #000000 !important; /* أسود */
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .notifications-modal-alert-item-time {
+  color: #581c87 !important; /* بنفسجي غامق */
+  -webkit-text-fill-color: #581c87 !important;
+  font-weight: 900 !important;
+}
+
+/* Bottom Apply Button */
+.daylight-mode .notifications-modal-submit-btn {
+  background-color: #581c87 !important; /* بنفسجي غامق */
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 20px rgba(88, 28, 135, 0.3) !important;
+}
+
+.daylight-mode .notifications-modal-submit-btn:hover {
+  background-color: #3b0764 !important;
+}
+
+/* =========================================================
+   Daylight Mode - PIN Security Modal Visual Identity
+   (شاشة PIN المنبثقة باللونين الأسود والأحمر في الوضع النهاري)
+   ========================================================= */
+
+.daylight-mode .pin-security-modal-overlay,
+.daylight-mode.pin-security-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .pin-security-modal-card,
+.daylight-mode.pin-security-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #ef4444 !important;
+  box-shadow: 0 25px 50px -12px rgba(220, 38, 38, 0.22) !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .pin-security-modal-icon {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+.daylight-mode .pin-security-modal-icon svg {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+
+/* Red Title */
+.daylight-mode .pin-security-modal-title {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
+/* Black Description Subtitle */
+.daylight-mode .pin-security-modal-subtitle {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+/* Red Error Box */
+.daylight-mode .pin-security-modal-error {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+/* Number Key Pad Buttons (Black numbers on light background with subtle red border) */
+.daylight-mode .pin-security-modal-key {
+  background-color: #f8fafc !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.daylight-mode .pin-security-modal-key:hover {
+  background-color: #fef2f2 !important;
+  border-color: #ef4444 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+/* Red Cancel Button */
+.daylight-mode .pin-security-modal-cancel {
+  background-color: #fee2e2 !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .pin-security-modal-cancel:hover {
+  background-color: #fca5a5 !important;
+  color: #991b1b !important;
+  -webkit-text-fill-color: #991b1b !important;
+}
+
+/* Black Backspace/Clear Button */
+.daylight-mode .pin-security-modal-clear {
+  background-color: #f1f5f9 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .pin-security-modal-clear:hover {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+/* =========================================================
+   Daylight Mode - Finances, Invoices, Sales & Mortality Visual Identity
+   (الهوية البصرية لشاشة التكاليف والأرباح باللون الأسود والأحمر والأخضر الغامق والأبيض)
+   ========================================================= */
+
+/* 1. Header & General Wrapper */
+.daylight-mode .finances-screen-wrapper header h2 {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .finances-screen-wrapper header .bg-emerald-400\/10 {
+  background-color: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+/* 2. Standard Card Styling in Finances (Input Prices, Sales, Feed, Bills, Mortality, Profit Summary) */
+.daylight-mode .finances-screen-wrapper .bg-slate-900,
+.daylight-mode .finances-screen-wrapper .finances-input-prices-card,
+.daylight-mode .finances-screen-wrapper .sales-management-card,
+.daylight-mode .finances-screen-wrapper .profit-summary-card,
+.daylight-mode .finances-screen-wrapper .feed-management-card,
+.daylight-mode .finances-screen-wrapper .mortality-section-card,
+.daylight-mode .finances-screen-wrapper .bill-section-card {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+  color: #000000 !important;
+}
+
+/* Titles inside Cards */
+.daylight-mode .finances-screen-wrapper h3,
+.daylight-mode .finances-screen-wrapper h4 {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+/* General Labels */
+.daylight-mode .finances-screen-wrapper label {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* General Text and Numbers */
+.daylight-mode .finances-screen-wrapper p,
+.daylight-mode .finances-screen-wrapper span:not(.text-emerald-400):not(.text-red-400):not(.text-emerald-500) {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Input Fields inside Finances Screen */
+.daylight-mode .finances-screen-wrapper input[type="text"],
+.daylight-mode .finances-screen-wrapper input[type="number"],
+.daylight-mode .finances-screen-wrapper input[type="date"] {
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.daylight-mode .finances-screen-wrapper input[type="text"]:focus,
+.daylight-mode .finances-screen-wrapper input[type="number"]:focus,
+.daylight-mode .finances-screen-wrapper input[type="date"]:focus {
+  border-color: #047857 !important;
+  outline: 2px solid rgba(4, 120, 87, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.15) !important;
+}
+
+/* 3. Sales Management & Sales Invoices (فواتير عملية البيع - أخضر غامق وأسود وأبيض) */
+.daylight-mode .sales-management-card {
+  border-color: #047857 !important;
+}
+
+.daylight-mode .sales-management-card h3 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+}
+
+.daylight-mode .sales-management-card .p-2.bg-slate-950 {
+  background-color: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+.daylight-mode .sales-management-card button.bg-emerald-500 {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.25) !important;
+}
+
+.daylight-mode .sales-management-card button.bg-emerald-500:hover {
+  background-color: #065f46 !important;
+}
+
+.daylight-mode .sale-invoice-item {
+  background-color: #ffffff !important;
+  border: 1.5px solid #047857 !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.08) !important;
+}
+
+.daylight-mode .sale-invoice-item input {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+.daylight-mode .sale-invoice-item .text-emerald-400 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .sale-invoice-item .bg-slate-900.border-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #047857 !important;
+  color: #047857 !important;
+}
+
+.daylight-mode .sale-invoice-item .bg-slate-900\/50 {
+  background-color: #fef2f2 !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+/* 4. Mortality Records & Invoices (تسجيل النافق - أحمر وأسود وأبيض) */
+.daylight-mode .mortality-section-card {
+  border-color: #ef4444 !important;
+}
+
+.daylight-mode .mortality-section-card h3 {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.daylight-mode .mortality-section-card .p-2.bg-slate-950 {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+.daylight-mode .mortality-section-card button.bg-red-500 {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+}
+
+.daylight-mode .mortality-section-card button.bg-red-500:hover {
+  background-color: #b91c1c !important;
+}
+
+.daylight-mode .mortality-invoice-item {
+  background-color: #ffffff !important;
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.08) !important;
+}
+
+.daylight-mode .mortality-invoice-item input {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+.daylight-mode .mortality-invoice-item .text-red-500,
+.daylight-mode .mortality-invoice-item .text-red-400 {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .mortality-invoice-item .bg-slate-900.border-red-500\/20 {
+  background-color: #fef2f2 !important;
+  border: 1.5px solid #ef4444 !important;
+  color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+/* 5. General Bills & Feed Invoices (فواتير الكهرباء، المياه، الأدوية، العمال، العلف) */
+.daylight-mode .feed-section-container,
+.daylight-mode .feed-bill-item,
+.daylight-mode .general-bill-item {
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #000000 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+
+.daylight-mode .feed-bill-item input::placeholder,
+.daylight-mode .general-bill-item input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+/* Feed Price & Total Badges */
+.daylight-mode .feed-bill-item .bg-slate-950\/80 {
+  background-color: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.daylight-mode .feed-bill-item .text-emerald-400 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .feed-bill-item .text-blue-400 {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .bill-section-card .p-2.bg-slate-950 {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .bill-section-card button.bg-blue-600\/20 {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* 6. Overall Financial Summary Card (إجمالي المصروفات والأرباح) */
+.daylight-mode .profit-summary-card {
+  background: #ffffff !important;
+  border: 2px solid #047857 !important;
+}
+
+.daylight-mode .profit-summary-card .text-3xl.font-black.text-white {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.daylight-mode .profit-summary-card .text-emerald-400,
+.daylight-mode .profit-summary-card .text-emerald-500 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+}
+
+.daylight-mode .profit-summary-card .bg-white\/5 {
+  background-color: #ecfdf5 !important;
+  border: 2px solid #047857 !important;
+}
+
+.daylight-mode .profit-summary-card .text-5xl.text-emerald-400 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  text-shadow: none !important;
+}
+
+/* Trash/Delete Buttons in Daylight Mode (أزرار الحذف باللون الأحمر في الأسود) */
+.daylight-mode .finances-screen-wrapper .trash-btn-black-red,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash-2),
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash),
+.daylight-mode .finances-screen-wrapper button[title="حذف"] {
+  background-color: #000000 !important;
+  border: 1.5px solid #dc2626 !important;
+  color: #ef4444 !important;
+  -webkit-text-fill-color: #ef4444 !important;
+  border-radius: 0.75rem !important;
+  padding: 0.4rem 0.6rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.daylight-mode .finances-screen-wrapper .trash-btn-black-red svg,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash-2) svg,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash) svg,
+.daylight-mode .finances-screen-wrapper button[title="حذف"] svg {
+  color: #ef4444 !important;
+  stroke: #ef4444 !important;
+}
+
+.daylight-mode .finances-screen-wrapper .trash-btn-black-red:hover,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash-2):hover,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash):hover,
+.daylight-mode .finances-screen-wrapper button[title="حذف"]:hover {
+  background-color: #dc2626 !important;
+  border-color: #000000 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45) !important;
+}
+
+.daylight-mode .finances-screen-wrapper .trash-btn-black-red:hover svg,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash-2):hover svg,
+.daylight-mode .finances-screen-wrapper button:has(.lucide-trash):hover svg,
+.daylight-mode .finances-screen-wrapper button[title="حذف"]:hover svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* 7. Remaining Amount Field in Daylight Mode (خانة المبلغ المتبقي باللون الأسود الغامق) */
+.daylight-mode .finances-screen-wrapper .remaining-amount-label {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .finances-screen-wrapper .remaining-amount-value {
+  background-color: #f1f5f9 !important;
+  border: 1.5px solid #000000 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+  font-size: 0.9rem !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 8. Customer Support WhatsApp Channel Text in Daylight Mode (لون أخضر غامق) */
+.daylight-mode .whatsapp-channel-desc,
+.daylight-mode.whatsapp-channel-desc {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+/* 9. Daylight Mode - New Cycle Naming Modal (الشاشة المنبثقة عند الضغط على دورة جديدة بالأسود والأخضر والأحمر) */
+.daylight-mode .new-cycle-modal-overlay,
+.daylight-mode.new-cycle-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .new-cycle-modal-card,
+.daylight-mode.new-cycle-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #047857 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(4, 120, 87, 0.2) !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .new-cycle-modal-icon {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #a7f3d0 !important;
+}
+
+.daylight-mode .new-cycle-modal-icon svg {
+  color: #047857 !important;
+  stroke: #047857 !important;
+}
+
+.daylight-mode .new-cycle-modal-title {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .new-cycle-modal-subtitle {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .new-cycle-modal-input {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.daylight-mode .new-cycle-modal-input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+.daylight-mode .new-cycle-modal-input:focus {
+  border-color: #047857 !important;
+  outline: 2px solid rgba(4, 120, 87, 0.3) !important;
+}
+
+/* زر حفظ والبدء (أخضر غامق وأبيض) */
+.daylight-mode .new-cycle-modal-submit {
+  background-color: #047857 !important;
+  border: 1.5px solid #065f46 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.35) !important;
+}
+
+.daylight-mode .new-cycle-modal-submit:hover {
+  background-color: #065f46 !important;
+}
+
+.daylight-mode .new-cycle-modal-submit svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* زر إلغاء (أسود وأحمر) */
+.daylight-mode .new-cycle-modal-cancel {
+  background-color: #000000 !important;
+  border: 1.5px solid #dc2626 !important;
+  color: #ef4444 !important;
+  -webkit-text-fill-color: #ef4444 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.daylight-mode .new-cycle-modal-cancel:hover {
+  background-color: #dc2626 !important;
+  border-color: #000000 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* 10. Water Distribution Card Styling (بطاقة توزيع المياه الفعلي في الوضعين الليلي والنهاري) */
+
+/* الوضع الليلي (Night Mode - Default): الأبيض، الأزرق، والأخضر */
+.water-actual-dist-card,
+.water-actual-dist-subcard {
+  background-color: rgba(15, 23, 42, 0.75) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+.water-actual-dist-label {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.water-actual-dist-badge {
+  background-color: #020617 !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.water-actual-dist-badge .unit-name {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  font-weight: 800 !important;
+}
+
+.water-actual-dist-badge .unit-val {
+  color: #10b981 !important;
+  -webkit-text-fill-color: #10b981 !important;
+  font-weight: 900 !important;
+}
+
+
+/* الوضع النهاري (Daylight Mode): الأخضر الغامق، الأزرق، والأسود */
+.daylight-mode .water-actual-dist-card,
+.daylight-mode .water-actual-dist-subcard,
+.daylight-mode.water-actual-dist-card {
+  background-color: #f0fdf4 !important;
+  border: 2px solid #047857 !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.18) !important;
+}
+
+.daylight-mode .water-actual-dist-label,
+.daylight-mode.water-actual-dist-label {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .water-actual-dist-badge,
+.daylight-mode.water-actual-dist-badge {
+  background-color: #ffffff !important;
+  border: 1.5px solid #000000 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+.daylight-mode .water-actual-dist-badge .unit-name {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .water-actual-dist-badge .unit-val {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+/* 11. Medication Water & Dose Distribution Button (زر عرض التفاصيل باللونين الأخضر والأزرق) */
+
+/* Night Mode (Default) */
+.water-actual-dist-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(14, 165, 233, 0.25) 100%) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.45) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15) !important;
+}
+
+.water-actual-dist-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.38) 0%, rgba(14, 165, 233, 0.42) 100%) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.25) !important;
+}
+
+/* Daylight Mode (الوضع النهاري - أخضر وأزرق متناسق) */
+.daylight-mode .water-actual-dist-btn,
+.daylight-mode.water-actual-dist-btn {
+  background: linear-gradient(135deg, #059669 0%, #0284c7 100%) !important;
+  border: 1.5px solid #047857 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3) !important;
+}
+
+.daylight-mode .water-actual-dist-btn:hover,
+.daylight-mode.water-actual-dist-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #0369a1 100%) !important;
+  border-color: #065f46 !important;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35) !important;
+}
+
+.daylight-mode .daylight-icon-white {
+  color: #ffffff !important;
+}
+
+/* 12. Medication Water & Dose Distribution Popup Modal (الشاشة المنبثقة لتوزيع المياه والدواء لكل بطارية) */
+
+/* Daylight Mode (الوضع النهاري) */
+.daylight-mode .medication-dist-modal-overlay,
+.daylight-mode.medication-dist-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .medication-dist-modal-card,
+.daylight-mode.medication-dist-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #047857 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(4, 120, 87, 0.2) !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .medication-dist-modal-header {
+  background-color: #f0fdf4 !important;
+  border-bottom: 1.5px solid #d1fae5 !important;
+}
+
+.daylight-mode .medication-dist-modal-icon {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #a7f3d0 !important;
+}
+
+.daylight-mode .medication-dist-modal-icon svg {
+  color: #047857 !important;
+  stroke: #047857 !important;
+}
+
+.daylight-mode .medication-dist-modal-title {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-modal-subtitle {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-dist-modal-close,
+.daylight-mode.medication-dist-modal-close {
+  background-color: #ffe4e6 !important;
+  color: #e11d48 !important;
+  -webkit-text-fill-color: #e11d48 !important;
+  border: 1.5px solid #f43f5e !important;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.2) !important;
+}
+
+.daylight-mode .medication-dist-modal-close:hover,
+.daylight-mode.medication-dist-modal-close:hover {
+  background-color: #e11d48 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #be123c !important;
+}
+
+.daylight-mode .medication-dist-modal-summary {
+  background-color: #f8fafc !important;
+  border: 1.5px solid #000000 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+.daylight-mode .medication-dist-modal-summary .summary-label {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-modal-summary .summary-val {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-units-header {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-unit-card {
+  background-color: #ffffff !important;
+  border: 1.5px solid #047857 !important;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.12) !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-card-name {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-card-birds {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-water-label {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-water-val {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-dose-label {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-dist-unit-card .unit-dose-val {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-dist-modal-footer {
+  background-color: #f8fafc !important;
+  border-top: 1.5px solid #e2e8f0 !important;
+}
+
+.daylight-mode .medication-dist-modal-submit {
+  background-color: #047857 !important;
+  border: 1.5px solid #065f46 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.35) !important;
+}
+
+.daylight-mode .medication-dist-modal-submit:hover {
+  background-color: #065f46 !important;
+}
+
+/* 13. Daylight Mode for Medication Info Modal & Cards (بطاقات ونوافذ معلومات الأدوية) */
+.daylight-mode .medication-info-modal-card,
+.daylight-mode.medication-info-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .medication-info-modal-header,
+.daylight-mode.medication-info-modal-header {
+  background-color: #f8fafc !important;
+  border-bottom: 1.5px solid #e2e8f0 !important;
+}
+
+.daylight-mode .medication-info-modal-icon,
+.daylight-mode.medication-info-modal-icon {
+  background-color: #e0f2fe !important;
+  border: 1.5px solid #38bdf8 !important;
+  color: #0284c7 !important;
+}
+
+.daylight-mode .medication-info-modal-icon svg {
+  color: #0284c7 !important;
+  stroke: #0284c7 !important;
+}
+
+.daylight-mode .medication-info-modal-title,
+.daylight-mode.medication-info-modal-title {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .medication-info-modal-close,
+.daylight-mode.medication-info-modal-close {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.daylight-mode .medication-info-modal-close:hover,
+.daylight-mode.medication-info-modal-close:hover {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.daylight-mode .medication-info-modal-body,
+.daylight-mode.medication-info-modal-body {
+  background-color: #ffffff !important;
+}
+
+.daylight-mode .medication-info-modal-text,
+.daylight-mode.medication-info-modal-text,
+.daylight-mode .medication-info-modal-body p,
+.daylight-mode .medication-info-modal-body * {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .medication-info-modal-footer,
+.daylight-mode.medication-info-modal-footer {
+  background-color: #f8fafc !important;
+  border-top: 1.5px solid #e2e8f0 !important;
+}
+
+.daylight-mode .medication-info-modal-btn,
+.daylight-mode.medication-info-modal-btn {
+  background-color: #0284c7 !important;
+  border: 1.5px solid #0369a1 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+}
+
+.daylight-mode .medication-info-modal-btn:hover,
+.daylight-mode.medication-info-modal-btn:hover {
+  background-color: #0369a1 !important;
+}
+
+/* Daylight mode bottom info card blocks (بطاقات المعلومات أسفل شاشة الأدوية) */
+.daylight-mode .med-bottom-info-cards {
+  background-color: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+.daylight-mode .med-info-label {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .med-info-val,
+.daylight-mode .med-info-val span,
+.daylight-mode .med-info-val p {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* 14. Daylight Mode for Extra Dose Modal (الشاشة المنبثقة لجرعة إضافية) */
+/* Overlay & Main Card */
+.daylight-mode .extra-dose-modal-overlay,
+.daylight-mode.extra-dose-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .extra-dose-modal-card,
+.daylight-mode.extra-dose-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  color: #000000 !important;
+}
+
+.daylight-mode .extra-dose-modal-header {
+  background-color: #f8fafc !important;
+  border-bottom: 1.5px solid #e2e8f0 !important;
+}
+
+.daylight-mode .extra-dose-header-icon {
+  background-color: #fef3c7 !important;
+  border: 1.5px solid #f59e0b !important;
+  color: #d97706 !important;
+}
+
+/* --- 1. BLACK TEXTS (النصوص باللون الأسود) --- */
+/* العنوان الرئيسي للشاشة (إضافة جرعة إضافية)، القيم داخل حقول الإدخال، أسماء الأدوية وحقول الخيارات غير المحددة */
+.daylight-mode .extra-dose-title,
+body.daylight-mode .extra-dose-title {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-input,
+.daylight-mode .extra-dose-input-val,
+body.daylight-mode .extra-dose-input,
+body.daylight-mode .extra-dose-input-val,
+.daylight-mode .extra-dose-input-wrapper input {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .extra-dose-input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+.daylight-mode .extra-dose-input-wrapper {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .extra-dose-quick-btn:not(.extra-dose-quick-btn-active),
+body.daylight-mode .extra-dose-quick-btn:not(.extra-dose-quick-btn-active) {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .extra-dose-unit-btn:not(.extra-dose-unit-btn-active),
+body.daylight-mode .extra-dose-unit-btn:not(.extra-dose-unit-btn-active) {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+/* --- 2. RED TEXTS (النصوص باللون الأحمر) --- */
+/* النص الوصفي الفرعي، زر الإغلاق X، زر المسح، وزر الإلغاء */
+.daylight-mode .extra-dose-subtitle,
+body.daylight-mode .extra-dose-subtitle {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .extra-dose-close-btn,
+body.daylight-mode .extra-dose-close-btn {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+.daylight-mode .extra-dose-close-btn:hover,
+body.daylight-mode .extra-dose-close-btn:hover {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.daylight-mode .extra-dose-cancel-btn,
+body.daylight-mode .extra-dose-cancel-btn {
+  background-color: #fee2e2 !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-cancel-btn:hover,
+body.daylight-mode .extra-dose-cancel-btn:hover {
+  background-color: #fca5a5 !important;
+  color: #7f1d1d !important;
+  -webkit-text-fill-color: #7f1d1d !important;
+}
+
+.daylight-mode .extra-dose-clear-btn,
+body.daylight-mode .extra-dose-clear-btn {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+/* --- 3. BLUE TEXTS (النصوص باللون الأزرق) --- */
+/* عناوين جميع الحقول، وعنوان وقيمة كمية المياه المطلوبة */
+.daylight-mode .extra-dose-label-blue,
+body.daylight-mode .extra-dose-label-blue {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-water-label,
+body.daylight-mode .extra-dose-water-label {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-water-val,
+body.daylight-mode .extra-dose-water-val {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-unit-text,
+body.daylight-mode .extra-dose-unit-text {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 800 !important;
+}
+
+/* --- 4. GREEN TEXTS (النصوص باللون الأخضر) --- */
+/* عنوان قسم الاختيار السريع، عنوان قسم ملخص الكميات، وزر التأكيد النهائي */
+.daylight-mode .extra-dose-quick-select-header,
+body.daylight-mode .extra-dose-quick-select-header {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-summary-header,
+body.daylight-mode .extra-dose-summary-header {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-quick-select-box,
+body.daylight-mode .extra-dose-quick-select-box {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .extra-dose-summary-box,
+body.daylight-mode .extra-dose-summary-box {
+  background-color: #f0fdf4 !important;
+  border: 1.5px solid #a7f3d0 !important;
+}
+
+.daylight-mode .extra-dose-summary-card,
+body.daylight-mode .extra-dose-summary-card {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.daylight-mode .extra-dose-unit-btn-active,
+body.daylight-mode .extra-dose-unit-btn-active {
+  background-color: #047857 !important;
+  border-color: #065f46 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-modal-footer,
+body.daylight-mode .extra-dose-modal-footer {
+  border-top: 1.5px solid #e2e8f0 !important;
+}
+
+.daylight-mode .extra-dose-submit-btn,
+body.daylight-mode .extra-dose-submit-btn {
+  background-color: #047857 !important;
+  border: 1.5px solid #065f46 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(4, 120, 87, 0.35) !important;
+}
+
+.daylight-mode .extra-dose-submit-btn:hover,
+body.daylight-mode .extra-dose-submit-btn:hover {
+  background-color: #065f46 !important;
+}
+
+/* --- 5. YELLOW / AMBER TEXTS (النصوص باللون الأصفر / الكهرماني) --- */
+/* عنوان وقيمة كمية الدواء المطلوب، زر وشارة الدواء المحدد في الاختيار السريع */
+.daylight-mode .extra-dose-med-label,
+body.daylight-mode .extra-dose-med-label {
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-med-val,
+body.daylight-mode .extra-dose-med-val {
+  color: #d97706 !important;
+  -webkit-text-fill-color: #d97706 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-quick-btn-active,
+body.daylight-mode .extra-dose-quick-btn-active {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .extra-dose-med-badge,
+body.daylight-mode .extra-dose-med-badge {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+  font-weight: 900 !important;
+}
+
+/* 15. Night Mode Text Colors for Extra Dose Modal (الشاشة المنبثقة لجرعة إضافية في الوضع الليلي) */
+/* 1. White Text (أبيض) */
+body:not(.daylight-mode) .extra-dose-title,
+:not(.daylight-mode) .extra-dose-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-input,
+body:not(.daylight-mode) .extra-dose-input-val,
+:not(.daylight-mode) .extra-dose-input,
+:not(.daylight-mode) .extra-dose-input-val {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+body:not(.daylight-mode) .extra-dose-quick-btn,
+:not(.daylight-mode) .extra-dose-quick-btn {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-unit-btn,
+:not(.daylight-mode) .extra-dose-unit-btn {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+}
+
+/* 2. Red Text (أحمر) */
+body:not(.daylight-mode) .extra-dose-subtitle,
+:not(.daylight-mode) .extra-dose-subtitle {
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+  font-weight: 800 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-close-btn,
+:not(.daylight-mode) .extra-dose-close-btn {
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-clear-btn,
+:not(.daylight-mode) .extra-dose-clear-btn {
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-cancel-btn,
+:not(.daylight-mode) .extra-dose-cancel-btn {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-cancel-btn:hover,
+:not(.daylight-mode) .extra-dose-cancel-btn:hover {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+  -webkit-text-fill-color: #ef4444 !important;
+}
+
+/* 3. Blue Text (أزرق) */
+body:not(.daylight-mode) .extra-dose-label-blue,
+:not(.daylight-mode) .extra-dose-label-blue {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-water-label,
+:not(.daylight-mode) .extra-dose-water-label {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-water-val,
+:not(.daylight-mode) .extra-dose-water-val {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+  font-weight: 900 !important;
+}
+
+/* 4. Green Text (أخضر) */
+body:not(.daylight-mode) .extra-dose-quick-select-header,
+:not(.daylight-mode) .extra-dose-quick-select-header {
+  color: #34d399 !important;
+  -webkit-text-fill-color: #34d399 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-summary-header,
+:not(.daylight-mode) .extra-dose-summary-header {
+  color: #34d399 !important;
+  -webkit-text-fill-color: #34d399 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-submit-btn,
+:not(.daylight-mode) .extra-dose-submit-btn {
+  background-color: #059669 !important;
+  border: 1.5px solid #10b981 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+body:not(.daylight-mode) .extra-dose-submit-btn:hover,
+:not(.daylight-mode) .extra-dose-submit-btn:hover {
+  background-color: #10b981 !important;
+}
+
+/* 5. Yellow Text (أصفر) */
+body:not(.daylight-mode) .extra-dose-med-label,
+:not(.daylight-mode) .extra-dose-med-label {
+  color: #fbbf24 !important;
+  -webkit-text-fill-color: #fbbf24 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-med-val,
+:not(.daylight-mode) .extra-dose-med-val {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-unit-text,
+:not(.daylight-mode) .extra-dose-unit-text {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-quick-btn-active,
+:not(.daylight-mode) .extra-dose-quick-btn-active {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+  border-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .extra-dose-unit-btn-active,
+:not(.daylight-mode) .extra-dose-unit-btn-active {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background-color: #f59e0b !important;
+  border-color: #fbbf24 !important;
+  font-weight: 900 !important;
+}
+
+/* 16. Ventilation Screen Night Mode Text Colors */
+body:not(.daylight-mode) .vent-fans-card-minute-text,
+:not(.daylight-mode) .vent-fans-card-minute-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+body:not(.daylight-mode) .vent-duration-and-text,
+:not(.daylight-mode) .vent-duration-and-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .vent-fans-card-minute-text,
+body.daylight-mode .vent-fans-card-minute-text,
+.daylight-mode .vent-duration-and-text,
+body.daylight-mode .vent-duration-and-text,
+.daylight-mode .vent-calc-duration-label,
+body.daylight-mode .vent-calc-duration-label,
+.daylight-mode .vent-auto-text,
+body.daylight-mode .vent-auto-text,
+.daylight-mode .vent-manual-text,
+body.daylight-mode .vent-manual-text,
+.daylight-mode .vent-mode-badge,
+body.daylight-mode .vent-mode-badge {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 900 !important;
+}
+
+/* Heating Screen Daylight Mode - Heating Boost Button White Text */
+.daylight-mode .heating-boost-btn-text,
+body.daylight-mode .heating-boost-btn-text,
+.daylight-mode .heating-boost-btn,
+body.daylight-mode .heating-boost-btn {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Climate Diagnostics Screen - Daylight Mode Specific Colors */
+.daylight-mode .climate-action-plan-card,
+body.daylight-mode .climate-action-plan-card {
+  background-color: #eff6ff !important; /* light sky blue bg */
+  border: 1px solid #bfdbfe !important;
+}
+
+.daylight-mode .climate-action-plan-title,
+body.daylight-mode .climate-action-plan-title,
+.daylight-mode .climate-action-plan-text,
+body.daylight-mode .climate-action-plan-text,
+.daylight-mode .climate-suggested-action-text,
+body.daylight-mode .climate-suggested-action-text,
+.daylight-mode .climate-suggested-action-text span,
+body.daylight-mode .climate-suggested-action-text span,
+.daylight-mode .climate-required-op-val,
+body.daylight-mode .climate-required-op-val,
+.daylight-mode .climate-required-op-val span,
+body.daylight-mode .climate-required-op-val span,
+.daylight-mode .climate-required-op-unit,
+body.daylight-mode .climate-required-op-unit {
+  color: #1e3a8a !important; /* Dark Blue */
+  -webkit-text-fill-color: #1e3a8a !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .climate-action-plan-box,
+body.daylight-mode .climate-action-plan-box {
+  background-color: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+
+/* Current Operation Box: Dark Blue container with White text in Daylight Mode */
+.daylight-mode .climate-current-op-box,
+body.daylight-mode .climate-current-op-box {
+  background-color: #1e3a8a !important;
+  border-color: #1e40af !important;
+}
+
+.daylight-mode .climate-current-op-title,
+body.daylight-mode .climate-current-op-title,
+.daylight-mode .climate-current-op-val,
+body.daylight-mode .climate-current-op-val,
+.daylight-mode .climate-current-op-val span,
+body.daylight-mode .climate-current-op-val span,
+.daylight-mode .climate-current-op-unit,
+body.daylight-mode .climate-current-op-unit {
+  color: #ffffff !important; /* White */
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+/* Thermal Load Screen - Daylight Mode Input Text Color (Delta T and Density) */
+.daylight-mode .thermal-load-input,
+body.daylight-mode .thermal-load-input,
+.daylight-mode input.thermal-load-input,
+body.daylight-mode input.thermal-load-input {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+
+
+
+
+
+

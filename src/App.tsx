@@ -24,12 +24,14 @@ import {
   Snowflake,
   Sun,
   Flame,
+  Lightbulb,
   Search,
   MapPin,
   AlertTriangle,
   RefreshCw,
   Thermometer, 
   Target,
+  Gauge,
   Calendar,
   AlertCircle,
   PlusCircle,
@@ -105,7 +107,12 @@ import {
   ShoppingCart,
   Mail,
   Phone,
-  Loader2
+  Loader2,
+  CreditCard,
+  FileSpreadsheet,
+  HelpCircle,
+  Timer,
+  Maximize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
@@ -309,7 +316,7 @@ if (Capacitor.isNativePlatform() && !API_BASE_URL) {
 }
 
 // --- Types ---
-type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'heating' | 'finances' | 'management' | 'weather' | 'expert' | 'market' | 'workshop' | 'profile';
+type Screen = 'gateway' | 'landing' | 'login' | 'dashboard' | 'barn_readings' | 'medication' | 'climate' | 'ventilation' | 'humidity' | 'environmental_load' | 'charts' | 'setup' | 'battery' | 'heating' | 'finances' | 'management' | 'weather' | 'expert' | 'market' | 'workshop' | 'profile' | 'disclaimer';
 
 const STRAIN_NAMES: Record<Strain, string> = {
   Cobb: 'كوب',
@@ -382,7 +389,7 @@ const WeatherScreen = ({
     const advices = [];
     const targetT = getTargetTemp(age);
 
-    if (temp > targetT + 3) advices.push(`الحرارة الحالية (${Math.round(temp)}°م) أعلى من المطلوب لعمر ${age} يوم (${targetT}°م). زد التهوية.`);
+    if (temp > targetT + 3) advices.push(`درجة حرارة الطقس الخارجية (${Math.round(temp)}°م) أعلى من المطلوب لعمر ${age} يوم (${targetT}°م). زد التهوية.`);
     if (temp < targetT - 3) advices.push(`الحرارة الحالية (${Math.round(temp)}°م) أقل من المطلوب لعمر ${age} يوم (${targetT}°م). تأكد من التدفئة.`);
     if (rh > 75) advices.push('الرطوبة الخارجية مرتفعة: اعتمد على زيادة سرعة الهواء.');
     if (wind > 25) advices.push('رياح قوية خارجية: تأكد من إحكام غلق الستائر لمنع التيارات الهوائية.');
@@ -458,6 +465,7 @@ const WeatherScreen = ({
               "p-3 rounded-2xl transition-all duration-300 border shadow-lg",
               showSearch ? "bg-white text-slate-900 border-white" : "bg-slate-900/60 text-blue-400 border-white/5 hover:bg-slate-900"
             )}
+            title="البحث عن مدينة"
           >
             {showSearch ? <X size={20} /> : <Search size={20} />}
           </button>
@@ -562,9 +570,11 @@ const WeatherScreen = ({
                             <span className="text-white font-black text-2xl tracking-tighter drop-shadow-md">{getWeatherLabel(weather?.current_weather?.weathercode)}</span>
                             <span className="text-slate-500 font-bold text-xs mt-1">سماء {getWeatherLabel(weather?.current_weather?.weathercode).includes('غائم') ? 'مغطاة' : 'صافية كلياً'}</span>
                          </div>
-                         <h1 className="text-8xl font-black text-white tracking-tighter drop-shadow-2xl order-1 md:order-2 tabular-nums">
-                            {Math.round(weather?.current_weather?.temperature)}°
-                         </h1>
+                         <div className="flex flex-col items-center md:items-end order-1 md:order-2">
+                            <h1 className="text-8xl font-black text-white tracking-tighter drop-shadow-2xl tabular-nums">
+                               {Math.round(weather?.current_weather?.temperature)}°
+                            </h1>
+                         </div>
                       </div>
                    </div>
                    
@@ -902,12 +912,14 @@ const ExpertScreen = ({ age, onNavigate }: { age: number, onNavigate: (screen: S
           </div>
         )}
       </div>
+      <CalculationDisclaimerNotice />
     </motion.div>
   );
 };
 
 const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }) => {
   const whatsappLink = `https://wa.me/201115127032?text=${encodeURIComponent('السلام عليكم ورحمة الله وبركاته، أود الاستفسار وطلب عرض سعر لتجهيزات وبطاريات دواجن ومستلزمات العنابر لمزرعتي.')}`;
+  const whatsappChannelLink = 'https://chat.whatsapp.com/EEMvXW4PL6IExP5OcihMhi?s=cl&p=a&ilr=1&amv=3';
   const telegramLink = `https://t.me/smartpoultrymanager`;
   const facebookLink = `https://www.facebook.com/profile.php?id=61589961329928`;
 
@@ -923,13 +935,6 @@ const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }
           <p className="text-xs text-slate-400 font-bold leading-relaxed">
             تواصل مباشر وحصري للحصول على أفضل الحلول الهندسية لتصميم وتفصيل بطاريات الدواجن وتوفير جميع مستلزمات تجهيز العنابر بأعلى كفاءة وجودة.
           </p>
-        </div>
-        <div className="flex items-center gap-2 bg-slate-900 border border-white/5 px-3 py-1.5 rounded-full self-start sm:self-auto shadow-inner">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="text-[10px] font-black text-slate-300">ممثلو الدعم متصلون الآن (حالة نشطة)</span>
         </div>
       </header>
 
@@ -1010,6 +1015,27 @@ const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }
             </div>
 
             <div className="grid grid-cols-1 gap-3">
+              {/* WhatsApp Channel Download & Updates Button */}
+              <a
+                href={whatsappChannelLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 bg-teal-600/10 hover:bg-teal-600/20 text-teal-400 border border-teal-500/30 rounded-2xl transition-all duration-300 hover:scale-[1.01] active:scale-95 shadow-md shadow-teal-950/10 group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 bg-teal-500/20 rounded-xl flex items-center justify-center text-teal-300 group-hover:scale-110 transition-transform shadow-inner">
+                    <Download size={22} />
+                  </div>
+                  <div className="text-right">
+                    <h5 className="text-xs font-black text-white">قناة الواتساب لتحميل التطبيق والتحديثات 📲</h5>
+                    <p className="text-[10px] text-teal-300/80 font-bold mt-0.5 whatsapp-channel-desc">انضم لقناة الواتساب الرسمية لمتابعة أحدث التحديثات وروابط تحميل التطبيق المباشرة</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-300 group-hover:translate-x-[-4px] transition-transform">
+                  <Send size={14} />
+                </div>
+              </a>
+
               {/* WhatsApp Contact Button */}
               <a
                 href={whatsappLink}
@@ -1022,8 +1048,8 @@ const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }
                     <MessageCircle size={22} />
                   </div>
                   <div className="text-right">
-                    <h5 className="text-xs font-black text-white">تواصل مبيعات عبر واتس آب (WhatsApp)</h5>
-                    <p className="text-[10px] text-emerald-400/80 font-bold mt-0.5">دردشة فورية لطلب البطاريات وعروض أسعار جميع مستلزمات تجهيز العنابر</p>
+                    <h5 className="text-xs font-black text-white">تواصل مبيعات عبر واتساب (WhatsApp)</h5>
+                    <p className="text-[10px] text-emerald-400/80 font-bold mt-0.5">دردشة فورية للاستفسار وطلب البطاريات وعروض أسعار جميع مستلزمات تجهيز عنابر ومزارع الدواجن بأفضل الأسعار</p>
                   </div>
                 </div>
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:translate-x-[-4px] transition-transform">
@@ -1080,6 +1106,114 @@ const WorkshopScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }
   );
 };
 
+const DisclaimerScreen = ({ onNavigate }: { onNavigate: (screen: Screen) => void }) => {
+  return (
+    <div className="space-y-6 text-right pb-56" dir="rtl">
+      {/* Premium Header */}
+      <header className="px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1 justify-start">
+            <ShieldAlert size={20} className="text-amber-400" />
+            <h1 className="text-xl font-black text-white">إخلاء المسؤولية وشروط الاستخدام</h1>
+          </div>
+          <p className="text-xs text-slate-400 font-bold">تنبيهات قانونية وفنية هامة لاستخدام أدوات التطبيق والحسابات الميدانية</p>
+        </div>
+        <button
+          onClick={() => onNavigate('dashboard')}
+          className="px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 text-xs font-bold transition-all border border-white/10 flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+        >
+          <span>الرئيسية</span>
+        </button>
+      </header>
+
+      <div className="space-y-4">
+        {[
+          {
+            title: "التفسيرات والتعريفات",
+            content: [
+              "• الشركة / التطبيق / المنصة: تُشير إلى الجهة المالكة والمطورة للتطبيق، وكل من يمثلها أو يشارك في إدارتها وتطويرها.",
+              "• الخدمة: تُشير إلى التطبيق الإلكتروني بجميع أدواته، محتوياته، الحسابات الفنية، والبيانات المتاحة من خلاله.",
+              "• المستخدم / أنت / المربي: أي شخص طبيعي أو اعتباري يقوم بتحميل التطبيق، أو الوصول إليه، أو استخدام أي جزء من خدماته."
+            ]
+          },
+          {
+            title: "أولًا: رسالة إلى المربي",
+            content: [
+              "صُمم هذا التطبيق ليكون أداة مساعدة ودليلًا استرشاديًا يدعم المربين في إدارة مزارع الدواجن من خلال توفير حسابات فنية، وبرامج رعاية، وبيانات، ومؤشرات مبنية على الممارسات الشائعة والمراجع الفنية المتخصصة. وهدفنا هو المساعدة في اتخاذ قرارات أكثر وعيًا، مع التأكيد على أن نجاح أي دورة تربية يعتمد في المقام الأول على خبرة المربي، والمتابعة الميدانية المستمرة، والإشراف البيطري المختص."
+            ]
+          },
+          {
+            title: "ثانيًا: إخلاء المسؤولية عن البرامج العلاجية والوقائية (رعاية الدواجن)",
+            content: [
+              "طبيعة البرنامج: هذا البرنامج هو نموذج رعاية واسترشاد عام، أُعد لأغراض تعليمية وتثقيفية فقط؛ وليس أصلًا ملزمًا ولا يمتلك أي حجية علاجية أو وقائية بذاته، ولا يُعد مرجعًا طبيًا معتمدًا يمكن الاكتفاء به.",
+              "وجوب التشخيص والملاحظة: يلتزم المستخدم التزامًا تامًا بعدم الاعتماد على هذا البرنامج بمفرده في اتخاذ أي قرارات علاجية أو وقائية. بل يجب الاعتماد الكامل على الملاحظة الميدانية المباشرة لسلوك الطيور، وحركتها، واستهلاكها للماء والعلف، وشكل الزرق، والعمل تحت الإشراف المباشر والمستمر لطبيب بيطري مؤهل للمعاينة والتشخيص الدقيق وتحديد الجرعات والبروتوكولات الطبية المناسبة لكل حالة على حدة، ولا يتحمل التطبيق أو مطوروه أو الشركة المالكة أي مسؤولية عن أي قرارات علاجية أو وقائية تُتخذ بناءً على هذا البرنامج."
+            ]
+          },
+          {
+            title: "ثالثًا: إخلاء المسؤولية عن الحسابات الفنية والهندسية",
+            content: [
+              "صفة الحسابات: جميع الحسابات المتعلقة بـ (التهوية، التدفئة، التبريد، السعة الاستيعابية، والأحمال البيئية، وضبط الرطوبة)، أو أي عمليات تقديرية أخرى يقدمها التطبيق، هي حسابات تقديرية عامة بُنيت على الممارسات الهندسية والمعايير الشائعة المتعارف عليها.",
+              "أولوية المعاينة الميدانية: لا يجوز الاعتماد على هذه الحسابات كأرقام قطعية؛ إذ تظل الملاحظة الميدانية المباشرة داخل العنبر لانتشار الطيور ومدى شعورها بالحرارة أو البرودة هي المرجع الأول والأدق لتحديد مدى ملاءمة درجات الحرارة والتهوية والرطوبة. يلتزم المستخدم بمطابقة نتائج التطبيق مع المعاينة الفعلية، وكتالوج السلالة، وتوجيهات المهندس أو الطبيب المشرف قبل إجراء أي تعديل تشغيلي، ولا يتحمل التطبيق أي مسؤولية عن أخطاء التطبيق الفني."
+            ]
+          },
+          {
+            title: "رابعًا: إخلاء المسؤولية عن دراسات الجدوى التقديرية",
+            content: [
+              "طبيعة البيانات: إن جميع نماذج دراسات الجدوى والبيانات المالية أو الإنتاجية المتاحة عبر التطبيق هي مجرد تقديرات وافتراضات أولية وتحليلات مبنية على مؤشرات عامة، ولا تقدم الشركة أي ضمانات بشأن دقتها أو صحتها.",
+              "تغير الأسواق والفرضيات: تستند هذه الدراسات إلى فرضيات اقتصادية وفنية متغيرة؛ وأي تغير في ظروف السوق أو في المؤشرات الإنتاجية الفعلية داخل العنبر (مثل معدلات النفق، واستهلاك العلف والماء، وأوزان القطيع) يؤدي حتمًا إلى نتائج مغايرة تماماً عن الدراسة التقديرية.",
+              "المسؤولية الاستثمارية: لا يتحمل التطبيق أو مطوروه أي مسؤولية عن أي خسائر مادية أو تراجع في الأرباح. يقع على عاتق المستخدم وحده إجراء تحليل مستقل يربط بين الفرضيات المالية والمعاينة الميدانية للواقع الإنتاجي واستشارة الخبراء قبل اتخاذ القرارات الاستثمارية."
+            ]
+          },
+          {
+            title: "خامسًا: إخلاء المسؤولية عن الأسعار وبورصة الدواجن",
+            content: [
+              "صفة التطبيق: يعمل التطبيق كناقل ومجمع للأسعار والأخبار اليومية فقط، ومن مصادر خارجية متعددة، ولا يُعتبر بأي حال من الأحوال مصدرًا أصليًا أو متحكمًا في تحديد أسعار السوق أو بورصة الدواجن.",
+              "التحديث والتوقيت: قد تشهد الأسعار تحديثات متسارعة أو فروقات بين المحافظات والمناطق، لذا فإن المعلومات المعروضة تُعرض لأغراض استرشادية واستشارية فقط، ولا تغني عن التواصل المباشر مع حركة السوق الفعليه.",
+              "القرارات التجارية والمرونة الميدانية: يُخلي التطبيق مسؤوليته التامة عن أي قرارات بيع أو شراء أو تسويق؛ إذ يخضع قرار البيع أو التسكين لتقدير المربي الميداني بناءً على حالة القطيع، وأوزانه الفعلية، وصحته العامة داخل العنبر، ويتحمل المستخدم وحده كامل المسؤولية عن تعاملاته التجارية."
+            ]
+          },
+          {
+            title: "سادسًا: الملاحظة الميدانية والمرجعية الفعلية للقطيع",
+            content: [
+              "المرجع الميداني الأساسي: تذكّر دائمًا أن الملاحظة الميدانية المباشرة داخل العنبر هي المرجع الأول والأدق لتقييم حالة القطيع.",
+              "المؤشرات العملية: يُعد سلوك الطيور، وانتشارها، وحركتها، واستهلاكها للعلف والماء، وطريقة تنفسها، وحالة الفرشة والزرق، من أهم المؤشرات العملية لتحديد مدى ملاءمة درجات الحرارة والتهوية والرطوبة، وتقييم الحاجة إلى أي تدخل إداري أو وقائي أو علاجي.",
+              "حدود بيانات التطبيق: جميع البيانات والحسابات والتوصيات الواردة في التطبيق هي نماذج استرشادية عامة، ولا تُغني بأي حال من الأحوال عن المعاينة الميدانية الفعلية أو التقييم والإشراف البيطري المختص."
+            ]
+          },
+          {
+            title: "سابعًا: شرط الاستخدام على المسؤولية الشخصية الكاملة (As Is)",
+            content: [
+              "انتفاء المسؤولية: يتم تقديم كافة خدمات التطبيق \"كما هي\"، ولا يتحمل مطورو التطبيق أو مالكوه تحت أي ظرف من الظروف المسؤولية عن أي أضرار (مباشرة، أو غير مباشرة، أو عرضية، أو تبعية) تشمل ولا تقتصر على: حالات نفوق الطيور، الخسائر المالية، أو تلف البيانات.",
+              "ربط المسؤولية بالمعاينة: ينشأ هذا الإخلاء التام للمسؤولية نتيجة أن التطبيق يوفر أدوات استرشادية فقط، ويقع العبء الكامل على المستخدم في إجراء المعاينة الميدانية المباشرة، ومراقبة سلوك الطيور داخل العنبر، والعمل تحت الإشراف المباشر للطبيب البيطري ومراجعة الأدلة الفنية للشركة المنتجة للسلالة."
+            ]
+          }
+        ].map((sec, idx) => (
+          <Card key={idx} className="bg-slate-900/40 border border-white/5 p-5 sm:p-6 rounded-2xl relative overflow-hidden shadow-lg hover:border-white/10 transition-colors">
+            <h3 className="text-sm font-black text-amber-400 mb-3 border-b border-white/5 pb-2">
+              {sec.title}
+            </h3>
+            <div className="space-y-3">
+              {sec.content.map((pText, pIdx) => (
+                <p key={pIdx} className="text-xs text-slate-300 font-bold leading-relaxed">
+                  {pText}
+                </p>
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const formatExchangeRate = (rawVal: any, maxDecimals: number = 4): string => {
+  if (rawVal === undefined || rawVal === null || rawVal === '' || rawVal === '--.--') return '--.--';
+  const num = Number(rawVal);
+  if (isNaN(num) || num === 0) return '--.--';
+  if (Number.isInteger(num)) return num.toString();
+  return parseFloat(num.toFixed(maxDecimals)).toString();
+};
+
 const MarketScreen = ({ 
   sellingPrice, 
   prevSellingPrice,
@@ -1133,7 +1267,7 @@ const MarketScreen = ({
   const activeTabData = tabs.find(t => t.id === activeTab);
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32">
+    <div className="market-screen-wrapper space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-32">
       <div className="flex items-center justify-end px-2">
         <button 
           onClick={onRefresh}
@@ -1178,8 +1312,8 @@ const MarketScreen = ({
             key={activeTab + "-label"}
             className="space-y-1"
           >
-            <span className="text-amber-400/80 text-[10px] font-black uppercase tracking-[0.4em] block mb-2">قطاع التداول والبورصة</span>
-            <h2 className="text-4xl sm:text-6xl font-bold text-white tracking-tight leading-none drop-shadow-2xl">
+            <span className="market-gold-title text-amber-400/80 text-[10px] font-black uppercase tracking-[0.4em] block mb-2">قطاع التداول والبورصة</span>
+            <h2 className="market-card-title text-4xl sm:text-6xl font-bold text-white tracking-tight leading-none drop-shadow-2xl">
               {activeTabData?.label}
             </h2>
           </motion.div>
@@ -1243,7 +1377,7 @@ const MarketScreen = ({
                 </div>
                 
                 <div className="space-y-4">
-                  <h4 className="text-amber-500/60 text-[10px] font-black uppercase tracking-[0.4em]">سعر التنفيذ اليوم - أرض المزرعة</h4>
+                  <h4 className="text-golden-yellow daylight-bright-gold-text text-[10px] font-black uppercase tracking-[0.4em]">سعر التنفيذ اليوم - أرض المزرعة</h4>
                   <div className="flex flex-col sm:flex-row items-baseline justify-center gap-2">
                     <h1 className={cn(
                        "text-[8rem] sm:text-[12rem] font-bold tabular-nums leading-none tracking-tighter transition-all duration-1000",
@@ -1281,7 +1415,7 @@ const MarketScreen = ({
                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px]" />
                <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
                   <div className="text-right">
-                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة البيض</h3>
+                    <h3 className="text-white daylight-dark-navy-text font-bold text-3xl sm:text-4xl tracking-tight">بورصة البيض</h3>
                     <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">تحديث أسعار كراتين البيض اليومي</p>
                   </div>
                   <div className="p-4 bg-orange-500/10 rounded-2xl text-orange-500 border border-orange-500/20">
@@ -1301,7 +1435,7 @@ const MarketScreen = ({
                           </div>
                           <div className="text-right">
                             <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase block mb-1">كرتونة بيض</span>
-                            <h4 className="text-slate-200 font-bold text-lg sm:text-xl group-hover:text-white transition-colors">{egg.label}</h4>
+                            <h4 className={cn("text-lg sm:text-xl font-black transition-colors", egg.label.includes("بلدي") ? "daylight-black-text text-white" : (egg.label.includes("أحمر") ? "daylight-red-text text-red-600 dark:text-red-400" : "daylight-white-gray-text text-slate-300 dark:text-slate-300"))}>{egg.label}</h4>
                           </div>
                         </div>
                         
@@ -1346,7 +1480,7 @@ const MarketScreen = ({
 
                <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
                   <div className="text-right">
-                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الكتاكيت البيضاء</h3>
+                    <h3 className="text-white daylight-dark-navy-text font-bold text-3xl sm:text-4xl tracking-tight">بورصة الكتاكيت البيضاء</h3>
                     <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار كتاكيت أبيض عمر يوم - كبرى الشركات</p>
                   </div>
                   <div className="p-4 bg-yellow-500/10 backdrop-blur-md rounded-2xl text-yellow-500 border border-yellow-500/10">
@@ -1366,7 +1500,7 @@ const MarketScreen = ({
                       return (
                         <div key={idx} className="grid grid-cols-2 hover:bg-white/[0.08] transition-all duration-300 group">
                           <div className="p-5 sm:p-6 text-right border-l border-white">
-                            <span className="text-white font-bold text-base sm:text-xl group-hover:text-yellow-400 transition-colors duration-500 font-bold">{chick.company}</span>
+                            <span className="daylight-red-text text-white font-black text-base sm:text-xl transition-colors duration-500">{chick.company}</span>
                           </div>
                           <div className="p-5 sm:p-6 flex items-center justify-center gap-4 bg-white/[0.02]">
                             <span className={cn(
@@ -1408,7 +1542,7 @@ const MarketScreen = ({
 
                <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-8">
                   <div className="text-right">
-                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الأعلاف</h3>
+                    <h3 className="text-white daylight-dark-navy-text font-bold text-3xl sm:text-4xl tracking-tight">بورصة الأعلاف</h3>
                     <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار قناديل الذرة والقمح (سعر الطن اليومي)</p>
                   </div>
                   <div className="p-4 bg-emerald-500/10 backdrop-blur-md rounded-2xl text-emerald-400 border border-emerald-500/10">
@@ -1432,10 +1566,10 @@ const MarketScreen = ({
                         <tbody className="divide-y divide-white">
                             {feedPrices.map((feed, idx) => (
                               <tr key={idx} className="hover:bg-white/[0.08] transition-all duration-300 group">
-                                <td className="py-7 pl-2 pr-8 text-white font-bold text-xl font-bold bg-white/[0.01] group-hover:text-emerald-400 transition-colors border-l border-white">{feed.company}</td>
+                                <td className="py-7 pl-2 pr-8 daylight-black-text text-white font-black text-xl bg-white/[0.01] transition-colors border-l border-white">{feed.company}</td>
                                 <td className="py-7 px-2 text-center text-emerald-400 font-black tabular-nums font-bold text-xl bg-white/[0.02] border-l border-white">{feed.starter?.toLocaleString() || '--'}</td>
                                 <td className="py-7 px-2 text-center text-emerald-300 font-black tabular-nums font-bold text-xl bg-white/[0.01] border-l border-white">{feed.grower?.toLocaleString() || '--'}</td>
-                                <td className="py-7 px-2 text-center text-emerald-200 font-black tabular-nums font-bold text-xl">{feed.finisher?.toLocaleString() || '--'}</td>
+                                <td className="py-7 px-2 text-center text-emerald-200 nahy-finisher-number font-black tabular-nums font-bold text-xl">{feed.finisher?.toLocaleString() || '--'}</td>
                               </tr>
                             ))}
                         </tbody>
@@ -1449,7 +1583,7 @@ const MarketScreen = ({
                       <div key={idx} className="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 space-y-6 shadow-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl" />
                         <div className="flex items-center justify-between flex-row-reverse border-b border-white pb-4">
-                           <h4 className="text-white font-bold text-xl font-black">{feed.company}</h4>
+                           <h4 className="daylight-black-text text-white font-black text-xl">{feed.company}</h4>
                            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
                              <Wheat size={16} />
                            </div>
@@ -1465,7 +1599,7 @@ const MarketScreen = ({
                            </div>
                            <div className="flex flex-col items-center">
                               <span className="text-[10px] text-slate-500 font-black uppercase mb-2">ناهي 19%</span>
-                              <span className="text-lg font-bold font-black text-emerald-200 tabular-nums">{feed.finisher?.toLocaleString() || '--'}</span>
+                              <span className="text-lg font-bold font-black text-emerald-200 nahy-finisher-number tabular-nums">{feed.finisher?.toLocaleString() || '--'}</span>
                            </div>
                         </div>
                       </div>
@@ -1486,7 +1620,7 @@ const MarketScreen = ({
                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/[0.03] via-transparent to-transparent" />
                <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-10">
                   <div className="text-right">
-                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">بورصة الذهب</h3>
+                    <h3 className="text-golden-yellow daylight-dark-navy-text font-bold text-3xl sm:text-4xl tracking-tight">بورصة الذهب</h3>
                     <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">أسعار الذهب والسبائك محلياً</p>
                   </div>
                   <div className="p-4 bg-amber-500/10 rounded-2xl text-amber-500 border border-amber-500/20">
@@ -1501,7 +1635,7 @@ const MarketScreen = ({
                     return (
                       <div key={key} className="p-6 rounded-3xl bg-white/[0.02] border border-white hover:border-amber-500/60 transition-all duration-500 group group-hover:translate-y-[-4px]">
                         <div className="flex items-center justify-between flex-row-reverse mb-6">
-                          <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">{key === 'unit' ? 'العيار' : 'الوزن'}</span>
+                          <span className="text-[10px] daylight-black-text text-white font-black tracking-widest uppercase">{key === 'unit' ? 'العيار' : 'الوزن'}</span>
                           <div className={cn(
                             "flex items-center gap-1 text-[10px] font-black",
                             sellDiff > 0 ? "text-emerald-400" : (sellDiff < 0 ? "text-red-500" : "text-slate-500")
@@ -1511,7 +1645,7 @@ const MarketScreen = ({
                           </div>
                         </div>
                         
-                        <h4 className="text-slate-200 font-bold text-xl mb-4 group-hover:text-amber-400 transition-colors text-right">{data.label || key}</h4>
+                        <h4 className="text-golden-yellow font-bold text-xl mb-4 transition-colors text-right">{data.label || key}</h4>
                         
                         <div className="flex items-center justify-between gap-4 border-t border-white pt-4">
                           <div className="text-center group-hover:scale-110 transition-transform flex-1">
@@ -1542,7 +1676,7 @@ const MarketScreen = ({
                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px]" />
                <div className="flex items-center justify-between flex-row-reverse relative z-10 px-4 mb-10">
                   <div className="text-right">
-                    <h3 className="text-white font-bold text-3xl sm:text-4xl tracking-tight">أسعار الصرف</h3>
+                    <h3 className="text-white daylight-dark-navy-text font-bold text-3xl sm:text-4xl tracking-tight">أسعار الصرف</h3>
                     <p className="text-slate-500 text-[10px] sm:text-xs font-bold mt-1">تحديث لحظي لأسعار العملات مقابل الجنيه</p>
                   </div>
                   <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 border border-indigo-500/20">
@@ -1552,9 +1686,9 @@ const MarketScreen = ({
                
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 relative z-10">
                   {[
-                    { label: 'دولار / جنيه', pair: 'USD / EGP', value: exchangeRates?.EGP_USD ? Number(exchangeRates.EGP_USD).toFixed(2) : (exchangeRates?.EGP ? Number(exchangeRates.EGP).toFixed(2) : '--.--'), prev: prevExchangeRates?.EGP_USD || prevExchangeRates?.EGP, icon: <Globe size={24} /> },
-                    { label: 'ريال / جنيه', pair: 'SAR / EGP', value: exchangeRates?.EGP_SAR ? Number(exchangeRates.EGP_SAR).toFixed(2) : (exchangeRates?.EGP && exchangeRates?.SAR ? (exchangeRates.EGP / exchangeRates.SAR).toFixed(2) : '--.--'), prev: prevExchangeRates?.EGP_SAR, icon: <MapPin size={24} /> },
-                    { label: 'ريال / دولار', pair: 'SAR / USD', value: exchangeRates?.SAR_USD ? Number(exchangeRates.SAR_USD).toFixed(4) : (exchangeRates?.SAR ? Number(exchangeRates.SAR).toFixed(4) : '--.--'), prev: prevExchangeRates?.SAR_USD, icon: <RefreshCw size={24} /> },
+                    { label: 'دولار / جنيه', pair: 'USD / EGP', value: formatExchangeRate(exchangeRates?.EGP_USD ?? exchangeRates?.EGP, 2), prev: prevExchangeRates?.EGP_USD || prevExchangeRates?.EGP, icon: <Globe size={24} /> },
+                    { label: 'ريال / جنيه', pair: 'SAR / EGP', value: formatExchangeRate(exchangeRates?.EGP_SAR ?? (exchangeRates?.EGP && exchangeRates?.SAR ? exchangeRates.EGP / exchangeRates.SAR : null), 2), prev: prevExchangeRates?.EGP_SAR, icon: <MapPin size={24} /> },
+                    { label: 'ريال / دولار', pair: 'SAR / USD', value: formatExchangeRate(exchangeRates?.SAR_USD ?? exchangeRates?.SAR, 4), prev: prevExchangeRates?.SAR_USD, icon: <RefreshCw size={24} /> },
                   ].map((rate, i) => {
                     const priceDiff = rate.prev ? toNum(rate.value) - toNum(rate.prev) : 0;
                     return (
@@ -1567,7 +1701,15 @@ const MarketScreen = ({
                          </div>
                          
                          <div className="text-right mb-4">
-                            <h4 className="text-slate-200 font-bold text-lg group-hover:text-white transition-colors">{rate.label}</h4>
+                            {rate.label.includes('/') ? (
+                              <h4 className="font-bold text-lg text-right">
+                                <span className="daylight-black-text text-white font-black">{rate.label.split('/')[0].trim()}</span>
+                                <span className="daylight-black-text text-white font-black"> / </span>
+                                <span className="daylight-red-text text-red-500 dark:text-red-400 font-black">{rate.label.split('/')[1].trim()}</span>
+                              </h4>
+                            ) : (
+                              <h4 className="text-slate-200 font-bold text-lg group-hover:text-white transition-colors">{rate.label}</h4>
+                            )}
                          </div>
                          
                          <div className="flex items-center justify-between flex-row-reverse border-t border-white/[0.03] pt-4">
@@ -1593,18 +1735,7 @@ const MarketScreen = ({
       </div>
 
       {/* Warning/Source Info */}
-      <div className="p-6 bg-slate-900/60 rounded-[3rem] border border-white/5 flex gap-4 items-start backdrop-blur-xl relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-[60px]" />
-         <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 relative z-10">
-           <Info size={20} />
-         </div>
-         <div className="flex-1 text-right relative z-10">
-            <h4 className="text-white font-black text-sm mb-1">توضيح هام</h4>
-            <p className="text-slate-500 text-xs font-bold leading-relaxed">
-              جميع الأسعار المعروضة هي أسعار استرشادية يتم تحديثها دورياً من كبرى شركات التداول، وقد تختلف الأسعار التنفيذية في أرض الواقع قليلاً حسب المنطقة وتكلفة النقل وحجم العرض والطلب.
-            </p>
-          </div>
-       </div>
+      <PriceDisclaimerNotice />
     </div>
   );
 };
@@ -1719,7 +1850,14 @@ interface AppState {
   barnHeight: number | string;
   tungstenBulbCount?: number | string;
   tungstenBulbPower?: number | string;
+  tungstenBulbHeightCm?: number | string;
   tungstenBulbColor?: string;
+  tungstenCalcRoomTemp?: number | string;
+  tungstenCalcBulbCount?: number | string;
+  tungstenCalcBulbPower?: number | string;
+  tungstenCalcBulbHeightCm?: number | string;
+  tungstenCalcBatteryArea?: number | string;
+  tungstenCalcVentilationCoeff?: number;
   heaterCount?: number | string;
   heaterPower?: number | string;
   heatingMethod?: 'bulb' | 'heater' | 'both';
@@ -1781,8 +1919,18 @@ interface AppState {
   medDataOverrides?: Record<string, { name?: string, doseValue?: number | string, unit?: string, duration?: number | string, order?: number, isDeleted?: boolean }>;
   dailyInternalTemp?: Record<string, number | string>;
   dailyHumidity?: Record<string, number | string>;
+  isCoolingVentActive?: boolean;
+  dailyCoolingVentActive?: Record<string, boolean>;
+  isHeatingBoostActive?: boolean;
+  dailyHeatingBoostActive?: Record<string, boolean>;
+  isManualVentOverride?: boolean;
+  dailyManualVentOverride?: Record<string, boolean>;
+  customVentOnSeconds?: number | string;
+  dailyCustomVentOnSeconds?: Record<string, number | string>;
   environmentalLoadDeltaT?: number | string;
+  isDeltaTManual?: boolean;
   environmentalLoadDensity?: number | string;
+  isDensityManual?: boolean;
   environmentalLoadInsulation?: boolean;
   feedType?: string;
   dailyFeedTypes?: Record<string, string>;
@@ -1816,6 +1964,26 @@ const Card: React.FC<CardProps> = ({ children, className, id, onClick }) => (
   <div id={id} className={cn("bento-card group relative overflow-hidden", className)} onClick={onClick}>
     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
     <div className="relative z-10">{children}</div>
+  </div>
+);
+
+const CalculationDisclaimerNotice = () => (
+  <div className="mt-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 flex items-start gap-3 text-right shadow-lg backdrop-blur-sm">
+    <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+    <p className="text-xs font-bold leading-relaxed">
+      <strong className="font-black text-amber-400 ms-1">تنبيه هام:</strong>
+      تذكّر دائمًا: تبقى الملاحظة الميدانية المباشرة داخل العنبر هي المرجع الأول والأدق لتقييم حالة القطيع. ويُعد سلوك الطيور، وانتشارها، وحركتها، واستهلاكها للعلف والماء، وطريقة تنفسها، وحالة الفرشة والزرق، من أهم المؤشرات العملية لتحديد مدى ملاءمة درجات الحرارة والتهوية والرطوبة، وتقييم الحاجة إلى أي تدخل إداري أو وقائي أو علاجي. أما جميع البيانات والحسابات والتوصيات الواردة في التطبيق فهي نماذج استرشادية عامة، ولا تُغني بأي حال من الأحوال عن المعاينة الميدانية الفعلية أو التقييم والإشراف البيطري المختص.
+    </p>
+  </div>
+);
+
+const PriceDisclaimerNotice = () => (
+  <div className="mt-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 flex items-start gap-3 text-right shadow-lg backdrop-blur-sm">
+    <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+    <p className="text-xs font-bold leading-relaxed">
+      <strong className="font-black text-amber-400 ms-1">تنبيه هام:</strong>
+      جميع الأسعار المعروضة داخل التطبيق هي أسعار استرشادية تقريبية يتم تحديثها دوريًا حسب الأسعار المتداولة في السوق، لذا قد تختلف الأسعار الفعلية وقت البيع أو الشراء من منطقة إلى أخرى وفقًا لتكاليف النقل، وحجم العرض والطلب، وسياسات التسعير لدى كل شركة أو تاجر. لذلك، لا تُعد الأسعار المعروضة سعرًا نهائيًا أو ملزمًا، ويُنصح بالتأكد من السعر الفعلي لدى جهة الشراء أو البيع قبل إتمام أي معاملة.
+    </p>
   </div>
 );
 
@@ -1906,7 +2074,7 @@ const INITIAL_STATE: AppState = {
   isManualTimerRunning: false,
   coolingPadsCount: 1,
   coolingPads: [
-    { id: 'cp-1', name: 'خلية التبريد الرئيسية', area: 5 }
+    { id: 'cp-1', name: 'خلية 1', area: 1 }
   ],
   emergencyMeds: [],
   barnLength: 100,
@@ -1914,7 +2082,14 @@ const INITIAL_STATE: AppState = {
   barnHeight: 3,
   tungstenBulbCount: 20,
   tungstenBulbPower: 200,
+  tungstenBulbHeightCm: 45,
   tungstenBulbColor: 'أصفر داكن',
+  tungstenCalcRoomTemp: 28,
+  tungstenCalcBulbCount: 4,
+  tungstenCalcBulbPower: 60,
+  tungstenCalcBulbHeightCm: 40,
+  tungstenCalcBatteryArea: 3,
+  tungstenCalcVentilationCoeff: 0.3,
   heaterCount: 2,
   heaterPower: 15000,
   heatingMethod: 'both',
@@ -1954,9 +2129,19 @@ const INITIAL_STATE: AppState = {
   dailyLogs: [],
   dailyInternalTemp: {},
   dailyHumidity: {},
+  isCoolingVentActive: false,
+  dailyCoolingVentActive: {},
+  isHeatingBoostActive: false,
+  dailyHeatingBoostActive: {},
+  isManualVentOverride: false,
+  dailyManualVentOverride: {},
+  customVentOnSeconds: 0,
+  dailyCustomVentOnSeconds: {},
   otherExpenses: [],
   environmentalLoadDeltaT: 3,
+  isDeltaTManual: false,
   environmentalLoadDensity: 30,
+  isDensityManual: false,
   environmentalLoadInsulation: false,
   cycleName: '',
   startDate: new Date().toISOString().split('T')[0],
@@ -2057,6 +2242,505 @@ const calculateExactNewRH = (
   return newRH > 100 ? 100 : parseFloat(newRH.toFixed(1));
 };
 
+const DEFAULT_PACKAGES = [
+  {
+    id: '45_days',
+    name: 'الباقة الاقتصادية',
+    currentPrice: 280,
+    originalPrice: 400,
+    offerText: 'خصم %30 لفترة محدودة',
+    duration: '45 يوم',
+    desc: 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.'
+  },
+  {
+    id: '3_months',
+    name: 'الباقة الفضية',
+    currentPrice: 490,
+    originalPrice: 700,
+    offerText: 'خصم %30 لفترة محدودة',
+    duration: '3 شهور',
+    desc: 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.'
+  },
+  {
+    id: '6_months',
+    name: 'الباقة الذهبية',
+    currentPrice: 910,
+    originalPrice: 1300,
+    offerText: 'خصم %30 لفترة محدودة',
+    duration: '6 شهور',
+    desc: 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.'
+  },
+  {
+    id: '1_year',
+    name: 'الباقة البلاتينية',
+    currentPrice: 1400,
+    originalPrice: 2000,
+    offerText: 'خصم %30 لفترة محدودة',
+    duration: '1 سنة',
+    desc: 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.'
+  }
+];
+
+/* Scientific Heat Balance Model Component for Poultry Farm Heaters */
+function ScientificHeatBalanceCard({ state, setState }: { state: AppState, setState: React.Dispatch<React.SetStateAction<AppState>> }) {
+  const ageNum = toNum(state.age || 1);
+  const currentAgeStr = String(state.age || 1);
+
+  // Default bird weight linked directly to control panel daily stats (including manual weight edits & projected factors)
+  const dailyStats = useMemo(() => {
+    const currentAge = ageNum;
+    const standardStats = getDailyStats(state.strain, currentAge);
+    
+    const weightLogs = state.weightLogs || {};
+    const manualWeight = toNum(weightLogs[String(currentAge)]);
+
+    // If we have an exact entry for TODAY, that is our "Actual" weight
+    if (manualWeight > 0) {
+      return { 
+        ...standardStats, 
+        weight: manualWeight,
+        standardWeight: standardStats.weight,
+        isScientific: false,
+        status: manualWeight >= standardStats.weight ? 'excellent' : 'behind'
+      };
+    }
+
+    // Find previous manual entries to calculate a performance factor
+    const manualDays = Object.keys(weightLogs)
+      .map(Number)
+      .filter(day => day > 0 && toNum(weightLogs[String(day)]) > 0)
+      .sort((a, b) => a - b);
+
+    if (manualDays.length > 0) {
+      const pastManualDays = manualDays.filter(day => day < currentAge);
+      if (pastManualDays.length > 0) {
+        const lastManualDay = Math.max(...pastManualDays);
+        const lastManualWeight = toNum(weightLogs[String(lastManualDay)]);
+        const standardWeightAtThatDay = getDailyStats(state.strain, lastManualDay).weight;
+        
+        const performanceFactor = lastManualWeight / standardWeightAtThatDay;
+        const projectedWeight = Math.round(standardStats.weight * performanceFactor);
+        
+        return { 
+          ...standardStats, 
+          weight: projectedWeight,
+          standardWeight: standardStats.weight,
+          isProjected: true,
+          isScientific: false,
+          status: projectedWeight >= standardStats.weight ? 'excellent' : 'behind'
+        };
+      }
+    }
+    
+    // Default: Pure Scientific Standard
+    return { 
+      ...standardStats, 
+      standardWeight: standardStats.weight,
+      isScientific: true 
+    };
+  }, [state.strain, ageNum, state.weightLogs]);
+
+  const defaultWeight = useMemo(() => {
+    return (dailyStats.weight || (ageNum <= 3 ? 45 : ageNum <= 7 ? 180 : ageNum <= 14 ? 450 : ageNum <= 21 ? 900 : ageNum <= 28 ? 1400 : 2100)) / 1000;
+  }, [dailyStats, ageNum]);
+
+  // Standard target temperature based on chick age (°C)
+  const ageTargetTemp = useMemo(() => {
+    if (ageNum <= 3) return 33;
+    if (ageNum <= 7) return 31;
+    if (ageNum <= 14) return 28;
+    if (ageNum <= 21) return 25;
+    if (ageNum <= 28) return 22;
+    return 20;
+  }, [ageNum]);
+
+  // Current indoor temperature inside barn
+  const currentIndoorTemp = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp) || 28;
+
+  // Local state parameters for scientific simulation
+  const [eta, setEta] = useState<number>(0.85); // Heater efficiency (0 to 1)
+  const [birdWeightKg, setBirdWeightKg] = useState<number | string>(defaultWeight);
+  const [uValue, setUValue] = useState<number>(1.0); // W/m²·K (Insulation)
+  const [airExchangeM3h, setAirExchangeM3h] = useState<number | string>(2000); // m³/h (Ventilation)
+  const [targetTemp, setTargetTemp] = useState<number>(ageTargetTemp);
+  const [outdoorTemp, setOutdoorTemp] = useState<number>(toNum(state.externalTemp || 15));
+
+  // Sync default weight, target temp, and outdoor temp when age or externalTemp changes
+  useEffect(() => {
+    setBirdWeightKg(defaultWeight);
+    setTargetTemp(ageTargetTemp);
+  }, [defaultWeight, ageTargetTemp]);
+
+  useEffect(() => {
+    setOutdoorTemp(toNum(state.externalTemp || 15));
+  }, [state.externalTemp]);
+
+  const heatingMethod = state.heatingMethod || 'both';
+  const isHeaterActive = heatingMethod === 'heater' || heatingMethod === 'both';
+  const isBulbActive = heatingMethod === 'bulb' || heatingMethod === 'both';
+
+  // 1. Gas/Diesel Heaters Heat Input: Ph * eta
+  const heaterCount = isHeaterActive ? toNum(state.heaterCount ?? 2) : 0;
+  const heaterPowerEach = toNum(state.heaterPower ?? 15000); // Watts
+  const heaterPowerWatts = heaterCount * heaterPowerEach; // Ph
+  const heaterEffectiveWatts = heaterPowerWatts * eta; // Ph * eta
+
+  // 2. Tungsten Lamp Heat Input: Pl * 0.90
+  const tungstenBulbCount = isBulbActive ? toNum(state.tungstenBulbCount ?? 20) : 0;
+  const tungstenBulbPowerEach = toNum(state.tungstenBulbPower ?? 200); // Watts
+  const tungstenBulbPowerWatts = tungstenBulbCount * tungstenBulbPowerEach;
+  const tungstenBulbEffectiveWatts = tungstenBulbPowerWatts * 0.90; // ~90% radiant heat
+
+  // 3. Bird Sensible Heat Input: N * Qb
+  // Qb = 10.6 * W^0.75 (Watts per bird)
+  const birdCount = Math.max(0, toNum(state.totalChicks || 10000));
+  const wKg = Math.max(0.01, toNum(birdWeightKg || 0.045));
+  const qb = 10.6 * Math.pow(wKg, 0.75); // Watts/bird
+  const birdTotalWatts = birdCount * qb; // N * Qb
+
+  // Heat Input (Watts)
+  const totalEquipmentHeatWatts = heaterEffectiveWatts + tungstenBulbEffectiveWatts;
+  const heatInputWatts = totalEquipmentHeatWatts + birdTotalWatts;
+
+  // 4. Barn Physical Geometry
+  const length = Math.max(1, toNum(state.barnLength || 100));
+  const width = Math.max(1, toNum(state.barnWidth || 12));
+  const height = Math.max(1, toNum(state.barnHeight || 3));
+
+  const roomVolume = length * width * height; // V (m³)
+  const surfaceArea = 2 * (length * height) + 2 * (width * height) + (length * width); // A (m²)
+
+  const [isAutoSyncVentilation, setIsAutoSyncVentilation] = useState<boolean>(true);
+
+  // Active fans calculation
+  const activeFans = state.fans && state.fans.length > 0 ? state.fans.filter(f => f.isActive) : [];
+  const totalActiveFanCapacity = activeFans.length > 0 
+    ? activeFans.reduce((acc, f) => acc + (toNum(f.capacity) * toNum(f.count || 1)), 0)
+    : toNum(state.fanCapacity || 5000);
+
+  const cyclesPerHour = Math.max(1, toNum(state.cyclesPerHour || 4));
+  const cycleSecs = 3600 / cyclesPerHour;
+  const cycleMins = cycleSecs / 60;
+
+  // Minimum required ventilation calculation based on biomass
+  const herdBiomassTons = (birdCount * wKg) / 1000;
+  const minVentilationM3h = Math.round(herdBiomassTons * 1000); // ~1 m³/h per kg live weight
+
+  const isManualVent = state.dailyManualVentOverride?.[currentAgeStr] ?? (state.isManualVentOverride ?? false);
+  const customVentSecsStored = toNum(state.dailyCustomVentOnSeconds?.[currentAgeStr] ?? state.customVentOnSeconds);
+
+  const autoOnRatio = Math.max(0, Math.min(1, minVentilationM3h / Math.max(1, totalActiveFanCapacity)));
+  const autoOnSecs = Math.min(cycleSecs, Math.max(0, autoOnRatio * cycleSecs));
+
+  const onSecs = isManualVent && customVentSecsStored > 0
+    ? Math.min(cycleSecs, Math.max(0, customVentSecsStored))
+    : autoOnSecs;
+
+  const dutyCycleRatio = cycleSecs > 0 ? onSecs / cycleSecs : 1;
+  const calculatedAirExchangeM3h = Math.round(totalActiveFanCapacity * dutyCycleRatio);
+
+  const effectiveAirExchangeM3h = isAutoSyncVentilation 
+    ? calculatedAirExchangeM3h 
+    : toNum(airExchangeM3h || 2000);
+
+  const airFlowM3s = Math.max(0, effectiveAirExchangeM3h) / 3600; // m³/s
+  const rho = 1.20; // kg/m³
+  const cp = 1005; // J/(kg·°C)
+
+  // 5. Heat Loss Coefficient (W/°C) and Heat Losses
+  const deltaT = Math.max(0, targetTemp - outdoorTemp);
+  const qConduction = uValue * surfaceArea * deltaT;
+  const qVentilation = rho * cp * airFlowM3s * deltaT;
+  const totalHeatLossCoeff = (uValue * surfaceArea) + (rho * cp * airFlowM3s); // W/°C
+  
+  // Heat loss at current indoor temp
+  const deltaTLossCurrent = Math.max(0, currentIndoorTemp - outdoorTemp);
+  const currentHeatLossWatts = totalHeatLossCoeff * deltaTLossCurrent;
+
+  // Heat loss required at target temp
+  const deltaTLossTarget = Math.max(0, targetTemp - outdoorTemp);
+  const requiredHeatLossWattsAtTarget = totalHeatLossCoeff * deltaTLossTarget;
+
+  // 6. Net Thermal Balance at current indoor temp:
+  const netBalanceWatts = heatInputWatts - currentHeatLossWatts;
+  const netBalanceKw = netBalanceWatts / 1000;
+
+  // 7. Max continuous un-thermostatted equilibrium temp (theoretical maximum if run continuously)
+  const maxContinuousTemp = totalHeatLossCoeff > 0 
+    ? outdoorTemp + (heatInputWatts / totalHeatLossCoeff) 
+    : outdoorTemp;
+
+  // Real indoor deficit / status relative to barn thermometer
+  const indoorDeficit = targetTemp - currentIndoorTemp; // Positive if cold deficit (e.g. 33.5 - 26 = +7.5)
+  const equilibriumTemp = indoorDeficit > 0.5 ? targetTemp : currentIndoorTemp;
+
+  // 8. Temperature Change Rate per Minute (°C/min):
+  const thermalCapacityJules = rho * roomVolume * cp; // J/°C
+  const deltaTPerMinute = thermalCapacityJules > 0 
+    ? (netBalanceWatts * 60) / thermalCapacityJules 
+    : 0;
+
+  // 9. Total Required Heating Power (kW) to achieve targetTemp:
+  const requiredHeatingWatts = Math.max(0, requiredHeatLossWattsAtTarget - birdTotalWatts);
+  const requiredHeaterKw = (requiredHeatingWatts / Math.max(0.1, eta)) / 1000;
+
+  // Percentage heat contribution
+  const totalWattsCalc = Math.max(1, heatInputWatts);
+  const heaterPct = Math.round((heaterEffectiveWatts / totalWattsCalc) * 100);
+  const bulbPct = Math.round((tungstenBulbEffectiveWatts / totalWattsCalc) * 100);
+  const birdPct = Math.round((birdTotalWatts / totalWattsCalc) * 100);
+
+  return (
+    <Card className="bg-slate-900 border border-red-500/30 rounded-3xl p-6 text-right font-sans relative overflow-hidden shadow-2xl space-y-6">
+      <div className="absolute top-0 right-0 w-80 h-80 bg-red-500/5 blur-3xl rounded-full pointer-events-none" />
+
+      {/* Card Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-red-500/15 rounded-2xl flex items-center justify-center text-red-400 shrink-0 border border-red-500/30 shadow-inner">
+            <Activity size={24} className="animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-white flex items-center gap-2 flex-wrap">
+              نموذج الاتزان الحراري والربط بالحرارة المستهدفة
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Primary Linked Temperature & Heat Sources Section */}
+      <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/30 space-y-4 relative z-10 shadow-inner">
+        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <Thermometer size={18} className="text-amber-400 animate-pulse" />
+            <h4 className="text-xs font-black text-white uppercase tracking-wider">
+              وحدة ربط الحرارة الحالية بالعنبر والحرارة الناتجة بالحرارة المستهدفة
+            </h4>
+          </div>
+          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-bold">
+            عمر القطيع: {state.age || 1} يوم
+          </span>
+        </div>
+
+
+
+        {/* Breakdown of Heat Sources Contribution */}
+        {(() => {
+          const currentHeatingMethod = state.heatingMethod || 'both';
+          const showHeaterBox = currentHeatingMethod === 'heater' || currentHeatingMethod === 'both';
+          const showBulbBox = currentHeatingMethod === 'bulb' || currentHeatingMethod === 'both';
+          const visibleCount = (showHeaterBox ? 1 : 0) + (showBulbBox ? 1 : 0) + 1;
+
+          return (
+            <div className="bg-slate-900/80 p-4 rounded-xl border border-white/5 space-y-3">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                توزيع وتفكيك الحرارة المكتسبة من المصادر المختلفة:
+              </span>
+
+              <div className={`grid grid-cols-1 ${visibleCount === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-2 text-xs`}>
+                {/* Heaters */}
+                {showHeaterBox && (
+                  <div className="bg-slate-950 p-2.5 rounded-lg border border-red-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Flame size={14} className="text-red-400" />
+                      <span className="font-black text-white daylight-black-text">الدفايات والأنظمة:</span>
+                    </div>
+                    <div className="text-left font-mono">
+                      <span className="font-black text-red-400 block">{(heaterEffectiveWatts / 1000).toFixed(2)} kW</span>
+                      <span className="text-[9px] text-slate-500 font-bold">({heaterPct}% من الإجمالي)</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bulbs */}
+                {showBulbBox && (
+                  <div className="bg-slate-950 p-2.5 rounded-lg border border-amber-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={14} className="text-amber-400" />
+                      <span className="font-black text-white daylight-black-text">اللمبات والتنجستين:</span>
+                    </div>
+                    <div className="text-left font-mono">
+                      <span className="font-black text-amber-400 block">{(tungstenBulbEffectiveWatts / 1000).toFixed(2)} kW</span>
+                      <span className="text-[9px] text-slate-500 font-bold">({bulbPct}% من الإجمالي)</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Birds */}
+                <div className="bg-slate-950 p-2.5 rounded-lg border border-yellow-500/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap size={14} className="text-yellow-400" />
+                    <span className="font-black text-white daylight-black-text">حرارة الطيور والخيارات:</span>
+                  </div>
+                  <div className="text-left font-mono">
+                    <span className="font-black text-yellow-400 block">{(birdTotalWatts / 1000).toFixed(2)} kW</span>
+                    <span className="text-[9px] text-slate-500 font-bold">({birdPct}% من الإجمالي)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contribution Progress Bar */}
+              <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex border border-white/10 p-0.5">
+                {showHeaterBox && (
+                  <div style={{ width: `${heaterPct}%` }} className="bg-red-500 h-full rounded-l transition-all" title={`الدفايات: ${heaterPct}%`} />
+                )}
+                {showBulbBox && (
+                  <div style={{ width: `${bulbPct}%` }} className="bg-amber-400 h-full transition-all" title={`اللمبات: ${bulbPct}%`} />
+                )}
+                <div style={{ width: `${birdPct}%` }} className="bg-yellow-500 h-full rounded-r transition-all" title={`حرارة القطيع: ${birdPct}%`} />
+              </div>
+            </div>
+          );
+        })()}
+
+      </div>
+
+      {/* Interactive Controls Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+        
+        {/* 1. Heater Efficiency (η) */}
+        <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-2.5">
+          <div className="flex justify-between items-center">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
+              1. كفاءة الدفايات الحرارية (η)
+            </label>
+            <span className="text-xs font-black font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+              {(eta * 100).toFixed(0)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0.50"
+            max="1.00"
+            step="0.05"
+            value={eta}
+            onChange={e => setEta(parseFloat(e.target.value))}
+            className="w-full accent-rose-500 bg-slate-800 h-2 rounded-lg cursor-pointer my-1"
+          />
+          <div className="grid grid-cols-3 gap-1">
+            {[
+              { val: 0.70, label: '70% قديمة' },
+              { val: 0.85, label: '85% نموذجية' },
+              { val: 0.95, label: '95% نفاثة حديثة' }
+            ].map(item => (
+              <button
+                key={item.val}
+                type="button"
+                onClick={() => setEta(item.val)}
+                className={`py-1 px-1 rounded-lg text-[9px] font-bold border text-center transition-all cursor-pointer ${
+                  eta === item.val ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-inner font-black' : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium pt-1">
+            صافي حرارة الهيترات الفعلية: <span className="text-white font-mono font-bold">{(heaterEffectiveWatts / 1000).toFixed(1)} kW</span>
+          </p>
+        </div>
+
+        {/* 2. Building Insulation (U Value) */}
+        <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-2.5">
+          <div className="flex justify-between items-center">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">
+              2. معامل انتقال الحرارة للجدران (U)
+            </label>
+            <span className="text-xs font-black font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+              {uValue} W/m²K
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {[
+              { u: 0.4, label: '0.4 ممتاز (بانل)' },
+              { u: 1.0, label: '1.0 متوسط (طوب)' },
+              { u: 2.2, label: '2.2 ضعيف (ستائر)' }
+            ].map(item => (
+              <button
+                key={item.u}
+                type="button"
+                onClick={() => setUValue(item.u)}
+                className={`py-1 px-1 rounded-lg text-[9px] font-bold border text-center transition-all cursor-pointer ${
+                  uValue === item.u ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-inner font-black' : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium pt-1">
+            مساحة الأسطح المعرضة للخارج (A): <span className="text-white font-mono font-bold">{surfaceArea.toFixed(0)} م²</span>
+          </p>
+          <p className="text-[10px] text-slate-400 font-medium">
+            الفقد الحراري عبر المبنى: <span className="text-cyan-300 font-mono font-bold">{(qConduction / 1000).toFixed(2)} kW</span>
+          </p>
+        </div>
+
+      </div>
+
+      {/* Output Results Dashboard Cards */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-red-950/30 p-5 rounded-2xl border border-red-500/30 relative overflow-hidden shadow-inner space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Card 1: Heat Balance */}
+          <div className={`p-4 rounded-2xl border ${
+            netBalanceWatts < 0 
+              ? 'bg-red-500/10 border-red-500/30' 
+              : currentIndoorTemp > targetTemp + 1.0 
+              ? 'bg-rose-500/10 border-rose-500/30' 
+              : 'bg-emerald-500/10 border-emerald-500/30'
+          } flex flex-col justify-between space-y-2 shadow-md`}>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-black text-white daylight-black-text uppercase tracking-wider">صافي اتزان الطاقة (Heat Balance)</span>
+              <Zap size={16} className={netBalanceWatts < 0 ? 'text-rose-400' : currentIndoorTemp > targetTemp + 1.0 ? 'text-rose-400' : 'text-emerald-400'} />
+            </div>
+            <div>
+              <span className={`text-2xl font-black font-mono tracking-tight ${
+                netBalanceWatts < 0 ? 'text-rose-400' : currentIndoorTemp > targetTemp + 1.0 ? 'text-rose-400' : 'text-emerald-400'
+              }`}>
+                {netBalanceWatts >= 0 ? '+' : ''}{netBalanceKw.toFixed(2)} kW
+              </span>
+              <p className="text-[10px] text-white daylight-black-text font-black mt-1">
+                {netBalanceWatts < 0 
+                  ? '🔴 عجز حراري (الفقد أكبر من التدفئة)' 
+                  : indoorDeficit > 0.5 
+                  ? '🟢 فائض إيجابي لرفع الحرارة تعويضياً' 
+                  : currentIndoorTemp > targetTemp + 1.0
+                  ? '⚠️ فائض حراري مرتفع بالعنبر'
+                  : '🟢 فائض حراري متزن ومؤمن'}
+              </p>
+            </div>
+            <div className="text-[9px] text-white daylight-black-text font-mono font-black border-t border-slate-200 dark:border-white/5 pt-1.5 flex justify-between">
+              <span className="text-white daylight-black-text font-black">المكتسب: <strong className="text-white daylight-black-text font-black">{(heatInputWatts / 1000).toFixed(1)} kW</strong></span>
+              <span className="text-white daylight-black-text font-black">المفقود: <strong className="text-white daylight-black-text font-black">{(currentHeatLossWatts / 1000).toFixed(1)} kW</strong></span>
+            </div>
+          </div>
+
+          {/* Card 2: Temperature Rate of Change per Minute */}
+          <div className="p-4 rounded-2xl bg-slate-900/90 border border-white/10 flex flex-col justify-between space-y-2 shadow-md">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-black text-white daylight-black-text uppercase tracking-wider">معدل التغير الحراري (ΔT/min)</span>
+              <Flame size={16} className="text-orange-400" />
+            </div>
+            <div>
+              <span className={`text-2xl font-black font-mono tracking-tight ${deltaTPerMinute >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {deltaTPerMinute >= 0 ? '+' : ''}{deltaTPerMinute.toFixed(2)}°م/دقيقة
+              </span>
+              <p className="text-[10px] text-white daylight-black-text font-black mt-1">
+                سرعة رفع/انخفاض الحرارة في العنبر بالدقيقة
+              </p>
+            </div>
+            <div className="text-[9px] text-white daylight-black-text font-mono font-black border-t border-slate-200 dark:border-white/5 pt-1.5 flex justify-between">
+              <span className="text-white daylight-black-text font-black">السعة الحرارية: <strong className="text-white daylight-black-text font-black">{(thermalCapacityJules / 1000).toFixed(0)} kJ/°C</strong></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function App() {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
@@ -2084,20 +2768,64 @@ export default function App() {
     if (saved === 'setup' || !saved) return 'landing';
     return (saved as Screen) || 'landing';
   });
-  const [selectedPlanId, setSelectedPlanId] = useState<'45_days' | '3_months' | '6_months' | '1_year'>('6_months');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('6_months');
   
+  const timelineCache = useRef<Record<number, any[]>>({});
+  timelineCache.current = {}; // Clear cache on every single render to keep updates accurate
+  
+  const getPackagePriceInfo = (pkg: any) => {
+    const curr = pkg?.currentPrice !== undefined && pkg?.currentPrice !== null && pkg?.currentPrice !== '' ? Number(pkg.currentPrice) : 0;
+    const orig = pkg?.originalPrice !== undefined && pkg?.originalPrice !== null && pkg?.originalPrice !== '' ? Number(pkg.originalPrice) : (pkg?.price !== undefined && pkg?.price !== null && pkg?.price !== '' ? Number(pkg.price) : 0);
+    
+    const hasOffer = curr > 0 && orig > 0 && curr < orig;
+    const displayPrice = hasOffer ? curr : (orig > 0 ? orig : (curr > 0 ? curr : (pkg?.price ? Number(pkg.price) : 0)));
+    
+    return {
+      hasOffer,
+      currentPrice: curr,
+      originalPrice: orig,
+      displayPrice
+    };
+  };
+
   const getSelectedPlanName = (id: string) => {
-    if (id === '45_days') return 'باقة 45 يوم';
-    if (id === '3_months') return 'باقة 3 شهور';
-    if (id === '6_months') return 'باقة 6 شهور';
-    return 'باقة سنة كاملة';
+    const found = packages.find(p => p.id === id);
+    if (found) return found.name;
+    if (id === '45_days') return 'الباقة الاقتصادية';
+    if (id === '3_months') return 'الباقة الفضية';
+    if (id === '6_months') return 'الباقة الذهبية';
+    return 'الباقة البلاتينية';
   };
 
   const getSelectedPlanPrice = (id: string) => {
-    if (id === '45_days') return '500';
-    if (id === '3_months') return '800';
-    if (id === '6_months') return '1200';
-    return '2000';
+    const found = packages.find(p => p.id === id);
+    if (found) {
+      const { displayPrice } = getPackagePriceInfo(found);
+      return String(displayPrice);
+    }
+    if (id === '45_days') return '280';
+    if (id === '3_months') return '490';
+    if (id === '6_months') return '910';
+    return '1400';
+  };
+
+  const getWhatsappHref = () => {
+    const activePkg = packages.find(p => p.id === selectedPlanId) || packages[0] || DEFAULT_PACKAGES[2];
+    const { hasOffer, currentPrice, originalPrice, displayPrice } = getPackagePriceInfo(activePkg);
+    const priceText = hasOffer 
+      ? `${currentPrice} جنيه مصري بدلاً من ${originalPrice} جنيه`
+      : `${displayPrice} جنيه مصري`;
+    
+    return `https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
+أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
+📋 تفاصيل الطلب:
+الباقة المطلوبة: ${activePkg.name} (صلاحية: ${activePkg.duration || 'غير محددة'})
+السعر: ${priceText}
+بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
+💳 تفاصيل الدفع:
+سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
+سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
+أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`;
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -2274,22 +3002,24 @@ export default function App() {
 
   const sidebarLinks = [
     { id: 'dashboard', label: "لوحة التحكم الرئيسية", icon: LayoutDashboard, color: "text-[#00dfa2]", onClick: () => { setScreen('dashboard'); setIsNavVisible(true); } },
+    { id: 'barn_readings', label: "قراءة العنبر", icon: Gauge, color: "text-amber-400", onClick: () => { setScreen('barn_readings'); setIsNavVisible(true); } },
     { id: 'landing', label: "الدورات الحالية والإنتاج", icon: RefreshCw, color: "text-emerald-400", onClick: () => { setScreen('landing'); setIsNavVisible(true); } },
     { id: 'setup', label: "إدارة العنبر والتجهيز", icon: Home, color: "text-blue-400", onClick: () => { setScreen('setup'); setIsNavVisible(true); } },
     { id: 'medication', label: "برنامج الأدوية والتحصينات", icon: Stethoscope, color: "text-indigo-400", onClick: () => { setScreen('medication'); setIsNavVisible(true); } },
     { id: 'battery', label: "إدارة البطاريات والأدوار", icon: Layers, color: "text-purple-400", onClick: () => { setScreen('battery'); setIsNavVisible(true); } },
-    { id: 'ventilation', label: "مراوح التهوية والشفاطات", icon: Wind, color: "text-cyan-400", onClick: () => { setScreen('ventilation'); setIsNavVisible(true); } },
+    { id: 'ventilation', label: "نظام التهوية", icon: Wind, color: "text-cyan-400", onClick: () => { setScreen('ventilation'); setIsNavVisible(true); } },
     { id: 'heating', label: "نظام التدفئة والدفايات", icon: Flame, color: "text-rose-400", onClick: () => { setScreen('heating'); setIsNavVisible(true); } },
-    { id: 'humidity', label: "الرطوبة والتبخير والتبريد", icon: Droplets, color: "text-blue-400", onClick: () => { setScreen('humidity'); setIsNavVisible(true); } },
+    { id: 'humidity', label: "نظام الرطوبة", icon: Droplets, color: "text-blue-400", onClick: () => { setScreen('humidity'); setIsNavVisible(true); } },
     { id: 'climate', label: "تشخيص جودة الهواء والمناخ", icon: Thermometer, color: "text-amber-400", onClick: () => { setScreen('climate'); setIsNavVisible(true); } },
-    { id: 'weather', label: "محطة الطقس ومؤشر THI", icon: Cloud, color: "text-sky-400", onClick: () => { setScreen('weather'); setIsNavVisible(true); } },
+    { id: 'weather', label: "الطقس والأرصاد الجوية", icon: Cloud, color: "text-sky-400", onClick: () => { setScreen('weather'); setIsNavVisible(true); } },
     { id: 'environmental_load', label: "الحمل الحراري والفسيولوجي", icon: Activity, color: "text-teal-400", onClick: () => { setScreen('environmental_load'); setIsNavVisible(true); } },
-    { id: 'finances', label: "الحسابات والأرباح والمصاريف", icon: Wallet, color: "text-emerald-400", onClick: () => { handleRequestScreen('finances', () => { setScreen('finances'); setIsNavVisible(true); }); } },
+    { id: 'finances', label: "التكاليف والأرباح", icon: Wallet, color: "text-emerald-400", onClick: () => { handleRequestScreen('finances', () => { setScreen('finances'); setIsNavVisible(true); }); } },
     { id: 'market', label: "بورصة الدواجن والأعلاف", icon: TrendingUp, color: "text-amber-500", onClick: () => { setScreen('market'); setIsNavVisible(true); } },
-    { id: 'charts', label: "التقارير والإحصاءات البيانية", icon: BarChart2, color: "text-[#00b0ff]", onClick: () => { setScreen('charts'); setIsNavVisible(true); } },
+    { id: 'charts', label: "البيانات والإحصاءات", icon: BarChart2, color: "text-[#00b0ff]", onClick: () => { setScreen('charts'); setIsNavVisible(true); } },
     { id: 'expert', label: "الخبير الذكيّ والاستشارة", icon: MessageSquare, color: "text-violet-400", onClick: () => { setScreen('expert'); setIsNavVisible(true); } },
     { id: 'workshop', label: "خدمة العملاء والدعم الفني", icon: Wrench, color: "text-pink-400", onClick: () => { setScreen('workshop'); setIsNavVisible(true); } },
-    { id: 'profile', label: "بيانات الحساب الشخصي", icon: User, color: "text-[#00b0ff]", onClick: () => { setScreen('profile'); setIsNavVisible(true); } }
+    { id: 'profile', label: "بيانات الحساب الشخصي", icon: User, color: "text-[#00b0ff]", onClick: () => { setScreen('profile'); setIsNavVisible(true); } },
+    { id: 'disclaimer', label: "إخلاء المسؤولية", icon: ShieldAlert, color: "text-amber-500", onClick: () => { setScreen('disclaimer'); setIsNavVisible(true); } }
   ];
 
   const [selectedComparisonIds, setSelectedComparisonIds] = useState<string[]>([]);
@@ -2358,6 +3088,12 @@ export default function App() {
 
   const [isNamingNewCycle, setIsNamingNewCycle] = useState(false);
   const [newCycleNameInput, setNewCycleNameInput] = useState('');
+  const [selectedMedForDistribution, setSelectedMedForDistribution] = useState<{
+    medName: string;
+    calculatedWater: number;
+    doseValue: number | string;
+    unit: string;
+  } | null>(null);
   const [prevSellingPrice, setPrevSellingPrice] = useState<number | string | null>(null);
   const [exchangeRates, setExchangeRates] = useState<any>(null);
   const [prevExchangeRates, setPrevExchangeRates] = useState<any>(null);
@@ -2371,6 +3107,32 @@ export default function App() {
   const [prevChickPrices, setPrevChickPrices] = useState<any[]>([]);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState<string | null>(null);
+
+  const [isDaylightMode, setIsDaylightMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('is_daylight_mode') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isDaylightMode) {
+      document.body.classList.add('daylight-mode');
+    } else {
+      document.body.classList.remove('daylight-mode');
+    }
+  }, [isDaylightMode]);
+
+  const toggleDaylightMode = () => {
+    setIsDaylightMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('is_daylight_mode', String(next));
+      } catch (e) {}
+      return next;
+    });
+  };
 
   const [weather, setWeather] = useState<any>(null);
 
@@ -2918,10 +3680,91 @@ export default function App() {
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isLimitedLoginModalOpen, setIsLimitedLoginModalOpen] = useState(false);
+  const [packages, setPackages] = useState<any[]>(DEFAULT_PACKAGES);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState('');
   const [humidityTotalBirds, setHumidityTotalBirds] = useState('360');
   const [humidityAvgWeight, setHumidityAvgWeight] = useState('180');
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const fetchPackagesFromSheet = useCallback(async () => {
+    const url = "https://script.google.com/macros/s/AKfycbwi6ULcFjjzm204cQQG8pzMgx16lzsscfbiBab2NVFGBZNZg7Qq7jSEglnL2kTDSTnEEA/exec";
+    setPackagesLoading(true);
+    setPackagesError(null);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const json = await response.json();
+      if (json && json.status === "success" && Array.isArray(json.packages) && json.packages.length > 0) {
+        const mapped = json.packages.map((pkg: any, idx: number) => {
+          const finalId = idx === 0 ? '45_days' : idx === 1 ? '3_months' : idx === 2 ? '6_months' : idx === 3 ? '1_year' : `pkg-${idx}`;
+          
+          // Google Sheets mapping:
+          // Column A (اسم الباقة): mapped by GAS as `id`
+          // Column B (مدة الباقة): mapped by GAS as `name`
+          // Column E (نص العرض): mapped by GAS as `duration`
+          // Let's remap them to the expected UI fields:
+          const finalName = pkg.id !== undefined && pkg.id !== null ? String(pkg.id) : '';
+          const finalDuration = pkg.name !== undefined && pkg.name !== null ? String(pkg.name) : '';
+          const finalOfferText = pkg.duration !== undefined && pkg.duration !== null ? String(pkg.duration) : '';
+          
+          let desc = pkg.desc;
+          if (!desc) {
+            if (idx === 0 || finalDuration.includes('45') || finalName.includes('دورة')) {
+              desc = 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.';
+            } else if (idx === 1 || finalDuration.includes('3') || finalName.includes('المميزة') || finalName.includes('مميزة')) {
+              desc = 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.';
+            } else if (idx === 2 || finalDuration.includes('6') || finalName.includes('طلبا') || finalName.includes('طلب')) {
+              desc = 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.';
+            } else if (idx === 3 || finalDuration.includes('سنة') || finalDuration.includes('1') || finalName.includes('الذهبية')) {
+              desc = 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.';
+            } else {
+              desc = 'تمتع بكافة مميزات البرنامج وخدمات الذكاء الاصطناعي طوال فترة الصلاحية.';
+            }
+          }
+
+          return {
+            ...pkg,
+            id: finalId,
+            name: finalName,
+            duration: finalDuration,
+            offerText: finalOfferText,
+            desc
+          };
+        });
+
+        setPackages(mapped);
+        
+        const hasCurrent = mapped.some((p: any) => p.id === selectedPlanId);
+        if (!hasCurrent) {
+          const defaultPkg = mapped.find((p: any) => p.id === '6_months') || mapped[2] || mapped[0];
+          if (defaultPkg) {
+            setSelectedPlanId(defaultPkg.id);
+          }
+        }
+        setPackagesError(null);
+      } else {
+        setPackages(DEFAULT_PACKAGES);
+        setPackagesError("فشل تحميل العروض بتنسيق صحيح من الشيت. تم عرض الباقات الافتراضية.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setPackages(DEFAULT_PACKAGES);
+      setPackagesError("تعذر الاتصال بجدول الباقات المباشر. تم تحميل الباقات الافتراضية.");
+    } finally {
+      setPackagesLoading(false);
+    }
+  }, [selectedPlanId]);
+
+  useEffect(() => {
+    if (isSubscriptionModalOpen) {
+      fetchPackagesFromSheet();
+    }
+  }, [isSubscriptionModalOpen, fetchPackagesFromSheet]);
 
   // --- Day Navigation Logic ---
   const goToNextDay = () => {
@@ -3199,18 +4042,35 @@ export default function App() {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // مزامنة الحرارة الخارجية مع شاشة الطقس تلقائياً
+  // مزامنة الحرارة الخارجية وحساب فرق الحرارة الفعلي (Delta T) تلقائياً
   useEffect(() => {
-    if (weather?.current_weather?.temperature !== undefined) {
-      const wTemp = Math.round(weather.current_weather.temperature);
-      setState(prev => {
-        if (Number(prev.externalTemp) !== wTemp) {
-          return { ...prev, externalTemp: wTemp };
+    const extT = weather?.current_weather?.temperature !== undefined 
+      ? Math.round(weather.current_weather.temperature)
+      : toNum(state.externalTemp ?? 25);
+    const ageStr = String(state.age || 1);
+    const barnT = Math.round(toNum(state.dailyInternalTemp?.[ageStr] ?? state.internalTemp ?? 30));
+    const actualDiff = Math.max(1, Math.abs(barnT - extT));
+
+    setState(prev => {
+      let updated = { ...prev };
+      let changed = false;
+
+      if (weather?.current_weather?.temperature !== undefined && Number(prev.externalTemp) !== extT) {
+        updated.externalTemp = extT;
+        changed = true;
+      }
+
+      // تلقائياً: إذا لم يكن المستخدم قد عدّل Delta T يدوياً أو إذا كان الفارق مفقوداً، نقوم بتحديثه ليعكس الفارق الفعلي الميداني
+      if (prev.isDeltaTManual !== true) {
+        if (Number(prev.environmentalLoadDeltaT) !== actualDiff) {
+          updated.environmentalLoadDeltaT = actualDiff;
+          changed = true;
         }
-        return prev;
-      });
-    }
-  }, [weather?.current_weather?.temperature]);
+      }
+
+      return changed ? updated : prev;
+    });
+  }, [weather?.current_weather?.temperature, state.internalTemp, state.dailyInternalTemp, state.age, state.externalTemp]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -3348,11 +4208,6 @@ export default function App() {
     localStorage.setItem('poultry_app_all_cycles', JSON.stringify(allCycles));
     alert('تم حفظ كافة بيانات البرنامج بنجاح');
   };
-
-  // Scroll to top on screen change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [screen]);
 
   const exportCSV = () => {
     const headers = ['Day', 'Weight (g)', 'Daily Feed (g)', 'Mortality', 'Notes', 'Meds Used'];
@@ -3792,14 +4647,14 @@ export default function App() {
         });
 
         localStorage.setItem('poultry_gateway_passed', 'true');
-        setScreen('landing');
-        alert("الحساب غير مسجل كعضو مشترك نشط. تم تسجيل الدخول كحساب تجريبي بميزات محدودة (يرجى الاشتراك لتفعيل كافة الشاشات).");
+        setIsLimitedLoginModalOpen(true);
+        fetchPackagesFromSheet();
       }
     } catch (error: any) {
       console.error("Sheets Login Error:", error);
       // Fallback to restricted user session on connection or script errors
       const demoUser = {
-        username: "مستكشف تجريبي (غير مشترك)",
+        username: "مستكشف تجريبي (تسجيل دخول محدود)",
         email: loginEmail,
         phone: "",
         password: loginPassword,
@@ -3815,8 +4670,8 @@ export default function App() {
       });
 
       localStorage.setItem('poultry_gateway_passed', 'true');
-      setScreen('landing');
-      alert("تعذر التحقق من الاشتراك عبر الإنترنت. تم الدخول بوضع الحساب التجريبي المحدود (يرجى الاشتراك لتفعيل الشاشات المغلقة).");
+      setIsLimitedLoginModalOpen(true);
+      fetchPackagesFromSheet();
     } finally {
       setIsLoginLoading(false);
     }
@@ -3906,14 +4761,14 @@ export default function App() {
         });
 
         localStorage.setItem('poultry_gateway_passed', 'true');
-        setScreen('landing');
-        alert("بيانات الدخول غير مسجلة كعضو مشترك نشط. تم السماح بالدخول كحساب تجريبي بميزات محدودة (يرجى الاشتراك لتفعيل كافة الشاشات).");
+        setIsLimitedLoginModalOpen(true);
+        fetchPackagesFromSheet();
       }
     } catch (error: any) {
       console.error("Sheets Gateway Error:", error);
       // Fallback to restricted user session on connection or script errors
       const demoUser = {
-        username: "مستكشف تجريبي (غير مشترك)",
+        username: "مستكشف تجريبي (تسجيل دخول محدود)",
         email: gatewayEmail,
         phone: "",
         password: gatewayPassword,
@@ -3929,8 +4784,8 @@ export default function App() {
       });
 
       localStorage.setItem('poultry_gateway_passed', 'true');
-      setScreen('landing');
-      alert("تعذر التحقق من الاشتراك عبر الإنترنت. تم الدخول بوضع الحساب التجريبي المحدود (يرجى الاشتراك لتفعيل الشاشات المغلقة).");
+      setIsLimitedLoginModalOpen(true);
+      fetchPackagesFromSheet();
     } finally {
       setIsLoginLoading(false);
     }
@@ -4497,12 +5352,43 @@ export default function App() {
       weightKg: dailyStats.weight / 1000,
       birdsCount: finances.birdsAlive,
       temperatureC: toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp),
+      outdoorTemp: toNum(state.externalTemp ?? weather?.current_weather?.temperature ?? 25),
       deltaT: toNum(state.environmentalLoadDeltaT || 3),
       targetTemp: targetTemp,
       densityKgM2: toNum(state.environmentalLoadDensity || 30),
       poorInsulation: state.environmentalLoadInsulation || false,
     });
-  }, [dailyStats.weight, finances.birdsAlive, state.dailyInternalTemp, currentAgeStr, state.internalTemp, state.environmentalLoadDeltaT, targetTemp, state.environmentalLoadDensity, state.environmentalLoadInsulation]);
+  }, [dailyStats.weight, finances.birdsAlive, state.dailyInternalTemp, currentAgeStr, state.internalTemp, state.externalTemp, weather?.current_weather?.temperature, state.environmentalLoadDeltaT, targetTemp, state.environmentalLoadDensity, state.environmentalLoadInsulation]);
+
+  // حساب الكثافة الفعلية (كجم/م²) تلقائياً بناءً على نظام التربية (أرضي vs بطاريات)
+  const liveCalculatedDensity = useMemo(() => {
+    const totalMeat = (finances.birdsAlive * dailyStats.weight) / 1000;
+    let area = 0;
+
+    if (state.breedingSystem !== 'Floor') {
+      const batArea = (state.batteryGroups || []).reduce(
+        (acc, g) => acc + (toNum(g.length) * toNum(g.width) * toNum(g.tiers) * toNum(g.count)),
+        0
+      );
+      area = batArea > 0 ? batArea : (toNum(state.batteryLength || 0.6) * toNum(state.batteryWidth || 0.5) * toNum(state.batteryTiers || 3) * toNum(state.batteriesCount || 1));
+    }
+
+    if (!area || area <= 0) {
+      const bLen = toNum(state.barnLength || 100);
+      const bWid = toNum(state.barnWidth || 12);
+      area = bLen * bWid;
+    }
+
+    return area > 0 ? Math.round((totalMeat / area) * 10) / 10 : 30;
+  }, [state.breedingSystem, state.batteryGroups, state.batteryLength, state.batteryWidth, state.batteryTiers, state.batteriesCount, state.barnLength, state.barnWidth, finances.birdsAlive, dailyStats.weight]);
+
+  useEffect(() => {
+    if (state.isDensityManual !== true && liveCalculatedDensity > 0) {
+      if (Number(state.environmentalLoadDensity) !== liveCalculatedDensity) {
+        setState(prev => ({ ...prev, environmentalLoadDensity: liveCalculatedDensity }));
+      }
+    }
+  }, [liveCalculatedDensity, state.isDensityManual, state.environmentalLoadDensity]);
 
   const climateInfo = CLIMATE_FACTORS[state.climate];
 
@@ -5149,6 +6035,9 @@ export default function App() {
   }, [state.age, state.isCustomDarkness, state.darknessHours, state.darknessStart, state.isDarknessLinkedToTemp, state.internalTemp, targetTemp]);
 
   const getUnifiedTimelineForAge = useCallback((age: number) => {
+    if (timelineCache.current[age]) {
+      return timelineCache.current[age];
+    }
     const isOverlappingDarkness = (startStr: string | null | undefined, duration: number, darkStart: string, darkHours: number) => {
       if (!startStr) return false;
       const [h, m] = startStr.split(':').map(Number);
@@ -5631,6 +6520,7 @@ export default function App() {
       });
     });
 
+    timelineCache.current[age] = finalResolvedItems;
     return finalResolvedItems;
   }, [state.medDataOverrides, state.medicationLogs, state.emergencyMeds, state.climate, getLightingScheduleForAge, dailyWaterTotalLiters]);
 
@@ -6530,17 +7420,17 @@ export default function App() {
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
-            className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
+            className="bg-white border border-slate-200 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
           >
-            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'}`}>
+            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'}`}>
               <AlertTriangle size={40} className="animate-pulse" />
             </div>
 
             <div className="space-y-2" dir="rtl">
-              <h3 className="text-2xl font-black text-white">
+              <h3 className="text-2xl font-black text-black">
                 {deleteStep === 1 ? 'تحذير مسح الدورة' : 'تأكيد الحذف النهائي'}
               </h3>
-              <p className="text-slate-400 font-medium">
+              <p className="text-slate-900 font-bold leading-relaxed">
                 {deleteStep === 1 
                   ? 'هل أنت متأكد من رغبتك في حذف هذه الدورة؟ لا يمكن التراجع عن هذا العمل.' 
                   : 'هذا الإجراء سيمسح جميع بيانات هذه الدورة نهائياً من جزيئات التطبيق. هل أنت متأكد تماماً؟'}
@@ -6556,7 +7446,7 @@ export default function App() {
               </button>
               <button 
                 onClick={cancelDelete}
-                className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 font-black transition-all"
+                className="w-full py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-black font-black transition-all"
               >
                 إلغاء
               </button>
@@ -6610,9 +7500,312 @@ export default function App() {
     );
   }
 
+  const handleCloseSubscriptionModal = () => {
+    setIsSubscriptionModalOpen(false);
+    if (screen === 'gateway' || screen === 'login') {
+      setScreen('landing');
+    }
+  };
+
+  const renderLimitedLoginModal = () => {
+    if (!isLimitedLoginModalOpen) return null;
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => {
+            setIsLimitedLoginModalOpen(false);
+            setScreen('landing');
+          }}
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 20 }}
+          className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl z-[10000] text-right overflow-hidden"
+        >
+          {/* Top Accent Line */}
+          <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-amber-500" />
+          
+          {/* Header Icon & Title */}
+          <div className="flex flex-col items-center text-center gap-3.5 mb-5">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+              <Lock size={32} className="animate-pulse" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-white leading-snug">
+              🔒 حسابك غير مُفعل: أنت تستخدم النسخة المحدودة
+            </h3>
+            <p className="text-slate-400 font-bold text-xs sm:text-sm leading-relaxed max-w-md">
+              بيانات تسجيل الدخول التي أدخلتها غير مسجلة كعضوية نشطة، سيتم منحك إذن الدخول بوضع النسخة المحدودة لتجربة واستكشاف مميزات البرنامج.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLimitedLoginModalOpen(false);
+                setIsSubscriptionModalOpen(true);
+                fetchPackagesFromSheet();
+              }}
+              className="w-full sm:flex-1 py-4 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <CreditCard size={18} />
+              اشترك الآن
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsLimitedLoginModalOpen(false);
+                setScreen('landing');
+              }}
+              className="w-full sm:flex-1 py-4 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold rounded-2xl border border-white/10 transition-all active:scale-95 text-xs sm:text-sm text-center cursor-pointer"
+            >
+              متابعة بالنسخة المحدودة
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  const renderSubscriptionModal = () => {
+    const isLockedScreen = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen);
+    if (!isSubscriptionModalOpen && !isLockedScreen) return null;
+    return (
+      <div className="fixed inset-0 z-[10000] w-full h-full bg-slate-900 flex flex-col overflow-hidden" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={handleCloseSubscriptionModal}
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.99 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.99 }}
+          className="relative w-full h-full bg-slate-900 flex flex-col z-[10001] overflow-hidden"
+          dir="rtl"
+        >
+          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 z-20" />
+          
+          {/* Header */}
+          <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-slate-900/95 backdrop-blur-md z-10 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <Sparkles size={22} className="animate-pulse" />
+              </div>
+              <div className="text-right">
+                <h3 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                  باقات الاشتراك 👑
+                  {isLockedScreen && (
+                    <span className="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                      شاشة مغلقة 🔒
+                    </span>
+                  )}
+                </h3>
+                <p className="text-slate-400 text-xs sm:text-sm font-bold mt-1">
+                  {isLockedScreen
+                    ? 'عذراً، هذه الشاشة تتطلب اشتراكاً نشطاً. اختر الباقة المناسبة لتفعيل كافة الخصائص وإدارة عنبرك بالكامل.'
+                    : 'اختر الباقة المناسبة لتفعيل كافة الخصائص، والأنظمة المتقدمة، وإدارة عنبرك بالكامل'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsSubscriptionModalOpen(false);
+                  setScreen('landing');
+                }}
+                className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer border border-white/10 shadow-sm"
+              >
+                <RefreshCw size={13} />
+                <span className="hidden sm:inline">العودة للرئيسية</span>
+              </button>
+              <button 
+                onClick={handleCloseSubscriptionModal}
+                className="w-11 h-11 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center active:scale-95 cursor-pointer shadow-md"
+                title="إغلاق والعودة للرئيسية"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="p-4 sm:p-8 overflow-y-auto space-y-8 flex-grow">
+            {packagesError && (
+              <div className="bg-amber-500/10 px-5 py-3.5 rounded-2xl border border-amber-500/20 mb-6 text-right flex items-center justify-between" dir="rtl">
+                <span className="text-[11px] text-amber-500 font-bold">
+                  ⚠️ {packagesError}
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-4 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {packages.map((item, idx) => {
+                  const { hasOffer, originalPrice, displayPrice } = getPackagePriceInfo(item);
+                  const isSelected = selectedPlanId === item.id;
+
+                  const nameLower = (item.name || '').toLowerCase();
+                  const idLower = (item.id || '').toLowerCase();
+
+                  const isEconomic = idx === 0 || idLower === '45_days' || nameLower.includes('اقتصاد');
+                  const isSilver = idx === 1 || idLower === '3_months' || nameLower.includes('فض') || nameLower.includes('مميز');
+                  const isGold = idx === 2 || idLower === '6_months' || nameLower.includes('ذهب') || nameLower.includes('طلب');
+                  const isPlatinum = idx === 3 || idLower === '1_year' || nameLower.includes('بلاتين') || nameLower.includes('سنو') || nameLower.includes('عام');
+
+                  let titleClass = "";
+                  if (isSelected) {
+                    titleClass = "text-emerald-400 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(52,211,153,0.9)]";
+                  } else if (isEconomic) {
+                    titleClass = "text-white font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]";
+                  } else if (isSilver) {
+                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-300 to-slate-100 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_10px_rgba(226,232,240,0.7)]";
+                  } else if (isGold) {
+                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-300 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(245,158,11,0.85)]";
+                  } else if (isPlatinum) {
+                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-cyan-200 to-teal-200 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(186,230,253,0.85)]";
+                  } else {
+                    titleClass = "text-slate-100 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all";
+                  }
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedPlanId(item.id)}
+                      className={cn(
+                        "relative rounded-3xl p-6 border transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none min-h-[220px]",
+                        isSelected
+                          ? "bg-slate-900 border-emerald-400 ring-2 ring-emerald-400/60 shadow-[0_0_35px_rgba(16,185,129,0.45)] translate-y-[-4px] scale-[1.02]"
+                          : "bg-slate-950/40 border-white/20 hover:border-white/50 hover:bg-slate-950/60 hover:translate-y-[-2px]"
+                      )}
+                    >
+                      {isSelected ? (
+                        <div className="absolute inset-0 bg-emerald-500/10 rounded-3xl pointer-events-none ring-1 ring-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]" />
+                      ) : (
+                        <div className="absolute inset-0 bg-white/[0.01] rounded-3xl pointer-events-none" />
+                      )}
+                      
+                      {item.offerText ? (
+                        <div 
+                          className="absolute top-4 left-4 bg-amber-400/10 border border-amber-400/30 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(251,191,36,0.15)]"
+                          style={{ color: '#FBBF24' }}
+                        >
+                          <Sparkles size={10} className="animate-pulse" style={{ color: '#FBBF24' }} />
+                          {item.offerText}
+                        </div>
+                      ) : isSelected ? (
+                        <div className="absolute top-4 left-4 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.4)] animate-pulse">
+                          <Check size={10} strokeWidth={3} className="text-emerald-400" />
+                          <span>محددة</span>
+                        </div>
+                      ) : null}
+
+                      <div className="pt-4">
+                        <h4 className={titleClass}>{item.name}</h4>
+                        
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-white/5 text-[10px] font-black text-slate-300 mb-3 shadow-inner">
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full animate-pulse",
+                            isSelected ? "bg-emerald-400" : "bg-sky-400"
+                          )} />
+                          <span>الصلاحية: {item.duration || 'غير محددة'}</span>
+                        </div>
+
+                        <p className="text-xs text-slate-300 font-bold leading-relaxed min-h-[44px] line-clamp-3">
+                          {item.desc || `تمتع بكافة مميزات البرنامج وخدمات الذكاء الاصطناعي طوال فترة الصلاحية.`}
+                        </p>
+                      </div>
+
+                      <div className={cn(
+                        "border-t pt-4 mt-4 flex items-center justify-between flex-row-reverse transition-colors",
+                        isSelected ? "border-emerald-500/30" : "border-white/10"
+                      )}>
+                        <div className="text-[10px] text-slate-400 font-black tracking-wider">قيمة الاشتراك</div>
+                        <div className="flex items-center gap-2 flex-row-reverse">
+                          {hasOffer && (
+                            <span className="relative text-xs text-slate-400 font-bold opacity-90 inline-block px-1">
+                              {originalPrice} ج.م
+                              <span className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-red-500/90 -rotate-12 transform origin-center rounded-full pointer-events-none shadow-[0_0_4px_rgba(239,68,68,0.5)]" />
+                            </span>
+                          )}
+                          <div className="flex items-baseline gap-0.5 flex-row-reverse">
+                            <span className={cn(
+                              "text-lg sm:text-xl font-black transition-colors tracking-tight",
+                              isSelected ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]" : "text-emerald-500"
+                            )}>
+                              {displayPrice}
+                            </span>
+                            <span className={cn(
+                              "text-[10px] font-black mr-1",
+                              isSelected ? "text-emerald-400/90" : "text-emerald-500/90"
+                            )}>ج.م</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Steps and Action CTA */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-slate-950/50 border border-white/5 p-6 rounded-3xl text-right">
+              <div className="md:col-span-2 space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-black text-sm">
+                  <Wallet size={16} className="animate-pulse text-amber-400" />
+                  <span>خطوات إتمام الاشتراك والتفعيل الفوري:</span>
+                </div>
+                <p className="text-[11px] text-slate-300 font-bold leading-relaxed space-y-1">
+                  ١. حدد الباقة المفضلة من العروض الحيّة الموضحة بالأعلى.<br />
+                  ٢. اضغط على الزر الأخضر بالأسفل للتواصل عبر واتساب مع خدمة العملاء والمبيعات.<br />
+                  ٣. إرسال البريد الإلكتروني الخاص بك عبر واتساب، وصورة تحويل الاشتراك على الرقم المذكور في واتساب.<br />
+                  ٤. ستقوم خدمة العملاء بتفعيل البريد الإلكتروني، وإرسال كود التفعيل لتنشيط الحساب والتمتع بجميع الخدمات داخل تطبيق مدير المزارع الذكي.
+                </p>
+                <div className="flex flex-col gap-1 mt-3">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-black">
+                    <span className="text-amber-400">●</span>
+                    <span>البريد الإلكتروني الخاص بك الذي سيتم تفعيل حساب عليه:</span>
+                  </div>
+                  <div className="mr-4 mt-1">
+                    <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-xs inline-block">
+                      {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full flex justify-end">
+                <a
+                  href={getWhatsappHref()}
+                  target="_blank"
+                  referrerPolicy="no-referrer"
+                  className="w-full py-4 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 active:scale-95 cursor-pointer"
+                >
+                  <Sparkles size={16} className="animate-pulse" />
+                  تفعيل الباقة المحددة الآن عبر واتساب 💬
+                </a>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   if (screen === 'gateway') {
     return (
       <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative overflow-hidden" dir="rtl">
+        {renderLimitedLoginModal()}
+        {renderSubscriptionModal()}
         {/* Decorative background elements */}
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full" />
@@ -6629,348 +7822,105 @@ export default function App() {
             <div className="text-center">
               <h1 className="text-2xl font-black text-white mb-1 uppercase tracking-tight">مدير مزارع الدواجن</h1>
               <p className="text-slate-400 font-bold text-sm">
-                {authMode === 'login' ? 'برجاء تسجيل الدخول للمتابعة' : 'إنشاء حساب جديد للمتابعة'}
+                برجاء تسجيل الدخول للمتابعة
               </p>
             </div>
           </div>
 
-          {/* Toggle Tab */}
-          <div className="flex flex-row bg-slate-950/60 p-1.5 rounded-2xl gap-2 mb-8 border border-white/5">
-            <button
-              onClick={() => setAuthMode('login')}
-              className={cn(
-                "flex-1 py-3 px-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2",
-                authMode === 'login'
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
-                  : "text-slate-400 hover:text-white"
-              )}
+          <form onSubmit={handleGatewayLogin} className="space-y-5">
+            <div className="space-y-2 text-right">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">البريد الإلكتروني</label>
+              <div className="relative">
+                <input 
+                  type="email"
+                  value={gatewayEmail}
+                  onChange={(e) => setGatewayEmail(e.target.value)}
+                  placeholder="example@email.com"
+                  required
+                  autoCapitalize="none"
+                  className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
+                />
+                <Mail size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
+              </div>
+            </div>
+            
+            <div className="space-y-2 text-right relative">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">كلمة المرور</label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  value={gatewayPassword}
+                  onChange={(e) => setGatewayPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 pl-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
+                />
+                <Lock size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between px-2 pt-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
+                  <input 
+                    type="checkbox" 
+                    className="peer hidden" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)} 
+                  />
+                  <div className={cn(
+                    "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
+                    rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                  )}>
+                    <Check size={16} className="text-white" strokeWidth={4} />
+                  </div>
+                </div>
+                <span className="text-slate-400 font-bold text-sm select-none">تذكرني</span>
+              </label>
+            </div>
+
+            <motion.button 
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isLoginLoading}
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
             >
-              <ShieldCheck size={18} />
-              تسجيل الدخول
-            </button>
-            <button
-              onClick={() => setAuthMode('register')}
-              className={cn(
-                "flex-1 py-3 px-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2",
-                authMode === 'register'
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              <Sparkles size={18} />
-              إنشاء حساب
-            </button>
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={authMode}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {authMode === 'login' ? (
-                <form onSubmit={handleGatewayLogin} className="space-y-5">
-                  <div className="space-y-2 text-right">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">البريد الإلكتروني</label>
-                    <div className="relative">
-                      <input 
-                        type="email"
-                        value={gatewayEmail}
-                        onChange={(e) => setGatewayEmail(e.target.value)}
-                        placeholder="example@email.com"
-                        required
-                        autoCapitalize="none"
-                        className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
-                      />
-                      <Mail size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-right relative">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest me-2">كلمة المرور</label>
-                    <div className="relative">
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        value={gatewayPassword}
-                        onChange={(e) => setGatewayPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="w-full bg-slate-950/50 border-2 border-white/5 rounded-2xl px-6 py-5 pr-14 pl-14 focus:border-blue-600 focus:outline-none font-bold text-white transition-all placeholder:text-slate-700 text-right"
-                      />
-                      <Lock size={22} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between px-2 pt-2">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className="relative w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
-                        <input 
-                          type="checkbox" 
-                          className="peer hidden" 
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)} 
-                        />
-                        <div className={cn(
-                          "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
-                          rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                        )}>
-                          <Check size={16} className="text-white" strokeWidth={4} />
-                        </div>
-                      </div>
-                      <span className="text-slate-400 font-bold text-sm select-none">تذكرني</span>
-                    </label>
-                  </div>
-
-                  <motion.button 
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={isLoginLoading}
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
-                  >
-                    {isLoginLoading ? (
-                      <RefreshCw size={24} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Zap size={24} fill="currentColor" />
-                        دخول آمن
-                      </>
-                    )}
-                  </motion.button>
-
-                  {/* توضيح نوع الدخول (تجريبي vs بريميوم) */}
-                  <div className="mt-6 p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-3 text-right">
-                    <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
-                      <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
-                      <span>نظام تصنيف الحسابات عند الدخول:</span>
-                    </div>
-                    <ul className="text-[11px] text-slate-400 font-bold space-y-2 list-disc list-inside leading-relaxed">
-                      <li>
-                        <span className="text-amber-400 font-extrabold">الحساب التجريبي المحدود 🔒:</span> دخول فوري بأي بريد إلكتروني وكلمة مرور لتصفح الدورات وتجربة لوحة التحكم الرئيسية بميزات محدودة.
-                      </li>
-                      <li>
-                        <span className="text-emerald-400 font-extrabold">عضوية بريميوم نشطة ⭐:</span> اشترك الآن للوصول إلى جميع خدمات ومميزات التطبيق دون أي قيود، لإدارة مزرعتك باحترافية وكفاءة عالية.
-                      </li>
-                    </ul>
-                  </div>
-                </form>
+              {isLoginLoading ? (
+                <RefreshCw size={24} className="animate-spin" />
               ) : (
-                <form onSubmit={handleEmailRegister} className="space-y-5 text-right" dir="rtl">
-                  {/* Username Field */}
-                  <div className="space-y-1.5 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">اسم المستخدم</label>
-                      {registerUsername && (
-                        <span className={cn(
-                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
-                          isUsernameValid(registerUsername) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
-                        )}>
-                          {isUsernameValid(registerUsername) ? "مقبول" : "قصير جداً"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="text"
-                        value={registerUsername}
-                        onChange={(e) => setRegisterUsername(e.target.value)}
-                        placeholder="أدخل اسمك بالكامل (ثنائي أو ثلاثي)"
-                        required
-                        className={cn(
-                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
-                          registerUsername 
-                            ? (isUsernameValid(registerUsername) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-amber-500/30 focus:border-amber-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
-                        )}
-                      />
-                      <User size={20} className={cn(
-                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
-                        registerUsername && isUsernameValid(registerUsername) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerUsername && isUsernameValid(registerUsername) && (
-                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Email Field */}
-                  <div className="space-y-1.5 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">البريد الإلكتروني</label>
-                      {registerEmail && (
-                        <span className={cn(
-                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
-                          isEmailValid(registerEmail) ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
-                        )}>
-                          {isEmailValid(registerEmail) ? "بريد صالح" : "صيغة غير صالحة"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="email"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        placeholder="example@email.com"
-                        required
-                        autoCapitalize="none"
-                        className={cn(
-                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
-                          registerEmail 
-                            ? (isEmailValid(registerEmail) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-rose-500/30 focus:border-rose-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
-                        )}
-                      />
-                      <Mail size={20} className={cn(
-                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
-                        registerEmail && isEmailValid(registerEmail) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerEmail && isEmailValid(registerEmail) && (
-                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Phone Field */}
-                  <div className="space-y-1.5 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">رقم الهاتف</label>
-                      <div className="flex items-center gap-1.5">
-                        {registerPhone && getPhoneOperator(registerPhone) && (
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-md border",
-                            getPhoneOperator(registerPhone)?.color
-                          )}>
-                            {getPhoneOperator(registerPhone)?.name}
-                          </span>
-                        )}
-                        {registerPhone && (
-                          <span className={cn(
-                            "text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-all",
-                            isPhoneValid(registerPhone) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
-                          )}>
-                            {isPhoneValid(registerPhone) ? "مكتمل" : `${registerPhone.length}/11 رقم`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="tel"
-                        value={registerPhone}
-                        onChange={(e) => setRegisterPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="01xxxxxxxxx"
-                        maxLength={11}
-                        required
-                        className={cn(
-                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 focus:outline-none font-bold text-white transition-all text-right",
-                          registerPhone 
-                            ? (isPhoneValid(registerPhone) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-amber-500/30 focus:border-amber-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
-                        )}
-                      />
-                      <Phone size={20} className={cn(
-                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
-                        registerPhone && isPhoneValid(registerPhone) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerPhone && isPhoneValid(registerPhone) && (
-                        <Check size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Password Field */}
-                  <div className="space-y-1.5 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest me-1">كلمة المرور</label>
-                      {registerPassword && (
-                        <span className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-full transition-all text-slate-300"
-                        )}>
-                          {getPasswordStrength(registerPassword).text}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        placeholder="أدخل كلمة مرور قوية (6 أحرف أو أكثر)"
-                        required
-                        className={cn(
-                          "w-full bg-slate-950/50 border-2 rounded-2xl px-6 py-4.5 pr-14 pl-14 focus:outline-none font-bold text-white transition-all text-right",
-                          registerPassword 
-                            ? (isPasswordValid(registerPassword) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-rose-500/30 focus:border-rose-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_15px_rgba(37,99,235,0.15)]"
-                        )}
-                      />
-                      <Lock size={20} className={cn(
-                        "absolute right-5 top-1/2 -translate-y-1/2 transition-colors",
-                        registerPassword && isPasswordValid(registerPassword) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-
-                    {/* Dynamic Password Strength Bar */}
-                    {registerPassword && (
-                      <div className="mt-2 px-1 space-y-1">
-                        <div className="flex gap-1 h-1 w-full rounded-full bg-slate-950 overflow-hidden">
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 1 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 1 ? "w-1/3" : "w-0"
-                          )}></div>
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 2 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 2 ? "w-1/3" : "w-0"
-                          )}></div>
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 3 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 3 ? "w-1/3" : "w-0"
-                          )}></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <motion.button 
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={isLoginLoading}
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-sky-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-3 text-lg mt-8"
-                  >
-                    {isLoginLoading ? (
-                      <RefreshCw size={24} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Sparkles size={24} />
-                        إنشاء حساب جديد
-                      </>
-                    )}
-                  </motion.button>
-                </form>
+                <>
+                  <Zap size={24} fill="currentColor" />
+                  دخول آمن
+                </>
               )}
-            </motion.div>
-          </AnimatePresence>
+            </motion.button>
+
+            {/* توضيح نظام تسجيل الدخول */}
+            <div className="mt-6 p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-3 text-right">
+              <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
+                <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
+                <span>نظام تسجيل الدخول:</span>
+              </div>
+              <ul className="text-[11px] text-slate-400 font-bold space-y-2.5 list-none p-0 m-0 leading-relaxed">
+                <li>
+                  <div className="text-amber-400 font-extrabold mb-0.5">تسجيل دخول محدود 🔒:</div>
+                  <div className="text-slate-300">في حال أدخلت بريدًا إلكترونيًا أو رقم هاتف و كلمة مرور غير مفعلة، سيتم دخولك تلقائيًا بوضع الحساب المحدود.</div>
+                </li>
+                <li>
+                  <div className="text-emerald-400 font-extrabold mb-0.5">عضوية بريميوم نشطة ⭐:</div>
+                  <div className="text-slate-300">عند تسجيل الدخول بالبريد الإلكتروني أو رقم الهاتف وكلمة السر المفعلة من قبل الإدارة، سيتم منحك صلاحيات الوصول الكاملة والتمتع بجميع مميزات وخدمات التطبيق.</div>
+                </li>
+              </ul>
+            </div>
+          </form>
 
           <p className="text-center text-slate-600 font-bold text-[10px] mt-10 uppercase tracking-[0.2em] select-none">
             POULTRY MANAGER v5.0 • PROTECTED ACCESS
@@ -6983,6 +7933,8 @@ export default function App() {
   if (screen === 'login') {
     return (
       <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
+        {renderLimitedLoginModal()}
+        {renderSubscriptionModal()}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -6991,7 +7943,7 @@ export default function App() {
           <div className="flex flex-row items-center justify-start gap-4 mb-10">
             <Logo size={64} iconSize={32} className="rounded-2xl" />
             <div className="flex flex-col items-center select-none min-w-0 flex-1">
-              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
+              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] daylight-blue-text drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
                 مدير مزارع
               </h1>
               <h2 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight leading-tight -mt-0.5 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] whitespace-nowrap">
@@ -6999,7 +7951,7 @@ export default function App() {
               </h2>
               <div className="w-full mt-1.5 pb-0.5 border-t border-white/5 pt-1.5 flex justify-center">
                 <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none whitespace-nowrap">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#047857] to-[#0f766e] daylight-janzari-green-text">إدارة ذكية</span>
                   <span className="text-white/40 font-bold mx-0.5">..</span>
                   <span className="text-white">إنتاج أفضل</span>
                 </p>
@@ -7007,343 +7959,100 @@ export default function App() {
             </div>
           </div>
 
-          {/* Toggle Tab */}
-          <div className="flex flex-row bg-slate-900/60 p-1 rounded-xl gap-1 mb-6 border border-white/5">
-            <button
-              onClick={() => setAuthMode('login')}
-              className={cn(
-                "flex-1 py-2 rounded-lg font-black text-xs transition-all duration-300 flex items-center justify-center gap-2",
-                authMode === 'login'
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              <ShieldCheck size={16} />
-              تسجيل الدخول
-            </button>
-            <button
-              onClick={() => setAuthMode('register')}
-              className={cn(
-                "flex-1 py-2 rounded-lg font-black text-xs transition-all duration-300 flex items-center justify-center gap-2",
-                authMode === 'register'
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "text-slate-400 hover:text-white"
-              )}
-            >
-              <Sparkles size={16} />
-              إنشاء حساب
-            </button>
-          </div>
-
           <div className="space-y-6">
             <h2 className="text-2xl font-black text-white text-center mb-4">
-              {authMode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+              تسجيل الدخول
             </h2>
             
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={authMode}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div className="relative">
+                <input 
+                  name="email"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="البريد الإلكتروني"
+                  required
+                  className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
+                />
+                <Mail size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              </div>
+              
+              <div className="relative group">
+                <input 
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="كلمة المرور"
+                  required
+                  className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 pl-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
+                />
+                <Lock size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between px-2">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative w-5 h-5 rounded-md border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
+                    <input 
+                      type="checkbox" 
+                      className="peer hidden" 
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)} 
+                    />
+                    <div className={cn(
+                      "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
+                      rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                    )}>
+                      <Check size={14} className="text-white" strokeWidth={4} />
+                    </div>
+                  </div>
+                  <span className="text-slate-400 font-bold text-xs select-none">تذكرني</span>
+                </label>
+              </div>
+
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={isLoginLoading}
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
               >
-                {authMode === 'login' ? (
-                  <form onSubmit={handleEmailLogin} className="space-y-4">
-                    <div className="relative">
-                      <input 
-                        name="email"
-                        type="email"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        placeholder="البريد الإلكتروني"
-                        required
-                        className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
-                      />
-                      <Mail size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                    </div>
-                    
-                    <div className="relative group">
-                      <input 
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="كلمة المرور"
-                        required
-                        className="w-full bg-slate-900 border-2 border-white/5 rounded-xl px-4 py-4 pr-12 pl-12 focus:border-blue-600 focus:outline-none font-bold text-white transition-all text-right animate-none"
-                      />
-                      <Lock size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between px-2">
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="relative w-5 h-5 rounded-md border-2 border-white/10 group-hover:border-blue-500/50 transition-colors flex items-center justify-center overflow-hidden">
-                          <input 
-                            type="checkbox" 
-                            className="peer hidden" 
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)} 
-                          />
-                          <div className={cn(
-                            "w-full h-full bg-blue-600 flex items-center justify-center transition-all duration-300",
-                            rememberMe ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                          )}>
-                            <Check size={14} className="text-white" strokeWidth={4} />
-                          </div>
-                        </div>
-                        <span className="text-slate-400 font-bold text-xs select-none">تذكرني</span>
-                      </label>
-                    </div>
-
-                    <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={isLoginLoading}
-                      type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
-                    >
-                      {isLoginLoading ? (
-                        <RefreshCw size={20} className="animate-spin" />
-                      ) : (
-                        <>
-                          <ShieldCheck size={20} />
-                          دخول آمن
-                        </>
-                      )}
-                    </motion.button>
-
-                    {/* توضيح نوع الدخول (تجريبي vs بريميوم) */}
-                    <div className="mt-6 p-4 rounded-2xl bg-slate-900/80 border border-white/5 space-y-3 text-right">
-                      <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
-                        <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
-                        <span>نظام تصنيف الحسابات عند الدخول:</span>
-                      </div>
-                      <ul className="text-[11px] text-slate-400 font-bold space-y-2 list-disc list-inside leading-relaxed">
-                        <li>
-                          <span className="text-amber-400 font-extrabold">الحساب التجريبي المحدود 🔒:</span> دخول فوري بأي بريد إلكتروني وكلمة مرور لتصفح الدورات وتجربة لوحة التحكم الرئيسية بميزات محدودة.
-                        </li>
-                        <li>
-                          <span className="text-emerald-400 font-extrabold">عضوية بريميوم نشطة ⭐:</span> اشترك الآن للوصول إلى جميع خدمات ومميزات التطبيق دون أي قيود، لإدارة مزرعتك باحترافية وكفاءة عالية.
-                        </li>
-                      </ul>
-                    </div>
-                  </form>
+                {isLoginLoading ? (
+                  <RefreshCw size={20} className="animate-spin" />
                 ) : (
-                <form onSubmit={handleEmailRegister} className="space-y-4 text-right" dir="rtl">
-                  {/* Username Field */}
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">اسم المستخدم</label>
-                      {registerUsername && (
-                        <span className={cn(
-                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
-                          isUsernameValid(registerUsername) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
-                        )}>
-                          {isUsernameValid(registerUsername) ? "مقبول" : "قصير جداً"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="text"
-                        value={registerUsername}
-                        onChange={(e) => setRegisterUsername(e.target.value)}
-                        placeholder="أدخل اسمك بالكامل (ثنائي أو ثلاثي)"
-                        required
-                        className={cn(
-                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
-                          registerUsername 
-                            ? (isUsernameValid(registerUsername) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-amber-500/30 focus:border-amber-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
-                        )}
-                      />
-                      <User size={18} className={cn(
-                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
-                        registerUsername && isUsernameValid(registerUsername) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerUsername && isUsernameValid(registerUsername) && (
-                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Email Field */}
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">البريد الإلكتروني</label>
-                      {registerEmail && (
-                        <span className={cn(
-                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
-                          isEmailValid(registerEmail) ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
-                        )}>
-                          {isEmailValid(registerEmail) ? "بريد صالح" : "صيغة غير صالحة"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="email"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        placeholder="example@email.com"
-                        required
-                        autoCapitalize="none"
-                        className={cn(
-                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
-                          registerEmail 
-                            ? (isEmailValid(registerEmail) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-rose-500/30 focus:border-rose-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
-                        )}
-                      />
-                      <Mail size={18} className={cn(
-                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
-                        registerEmail && isEmailValid(registerEmail) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerEmail && isEmailValid(registerEmail) && (
-                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Phone Field */}
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">رقم الهاتف</label>
-                      <div className="flex items-center gap-1.5">
-                        {registerPhone && getPhoneOperator(registerPhone) && (
-                          <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded border",
-                            getPhoneOperator(registerPhone)?.color
-                          )}>
-                            {getPhoneOperator(registerPhone)?.name}
-                          </span>
-                        )}
-                        {registerPhone && (
-                          <span className={cn(
-                            "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
-                            isPhoneValid(registerPhone) ? "text-emerald-400 bg-emerald-500/10" : "text-amber-400 bg-amber-500/10"
-                          )}>
-                            {isPhoneValid(registerPhone) ? "مكتمل" : `${registerPhone.length}/11 رقم`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="tel"
-                        value={registerPhone}
-                        onChange={(e) => setRegisterPhone(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="01xxxxxxxxx"
-                        maxLength={11}
-                        required
-                        className={cn(
-                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
-                          registerPhone 
-                            ? (isPhoneValid(registerPhone) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-amber-500/30 focus:border-amber-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
-                        )}
-                      />
-                      <Phone size={18} className={cn(
-                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
-                        registerPhone && isPhoneValid(registerPhone) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      {registerPhone && isPhoneValid(registerPhone) && (
-                        <Check size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400" strokeWidth={3} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Password Field */}
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest me-1">كلمة المرور</label>
-                      {registerPassword && (
-                        <span className={cn(
-                          "text-[9px] font-bold px-2 py-0.5 rounded-full transition-all text-slate-300"
-                        )}>
-                          {getPasswordStrength(registerPassword).text}
-                        </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        placeholder="أدخل كلمة مرور قوية (6 أحرف أو أكثر)"
-                        required
-                        className={cn(
-                          "w-full bg-slate-900 border-2 rounded-xl px-4 py-3.5 pr-12 pl-12 focus:outline-none font-bold text-white transition-all text-right animate-none",
-                          registerPassword 
-                            ? (isPasswordValid(registerPassword) ? "border-emerald-500/30 focus:border-emerald-500 focus:shadow-[0_0_12px_rgba(16,185,129,0.12)]" : "border-rose-500/30 focus:border-rose-500")
-                            : "border-white/5 focus:border-blue-600 focus:shadow-[0_0_12px_rgba(37,99,235,0.12)]"
-                        )}
-                      />
-                      <Lock size={18} className={cn(
-                        "absolute right-4 top-1/2 -translate-y-1/2 transition-colors",
-                        registerPassword && isPasswordValid(registerPassword) ? "text-emerald-400" : "text-slate-500"
-                      )} />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-
-                    {/* Dynamic Password Strength Bar */}
-                    {registerPassword && (
-                      <div className="mt-1.5 px-1 space-y-1">
-                        <div className="flex gap-1 h-1 w-full rounded-full bg-slate-950 overflow-hidden">
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 1 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 1 ? "w-1/3" : "w-0"
-                          )}></div>
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 2 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 2 ? "w-1/3" : "w-0"
-                          )}></div>
-                          <div className={cn(
-                            "h-full rounded-full transition-all duration-300",
-                            getPasswordStrength(registerPassword).score >= 3 ? getPasswordStrength(registerPassword).color : "bg-transparent",
-                            getPasswordStrength(registerPassword).score >= 3 ? "w-1/3" : "w-0"
-                          )}></div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={isLoginLoading}
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 mt-4"
-                  >
-                    {isLoginLoading ? (
-                      <RefreshCw size={20} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Sparkles size={20} />
-                        إنشاء حساب جديد
-                      </>
-                    )}
-                  </motion.button>
-                </form>
+                  <>
+                    <ShieldCheck size={20} />
+                    دخول آمن
+                  </>
                 )}
-              </motion.div>
-            </AnimatePresence>
+              </motion.button>
+
+              {/* توضيح نظام تسجيل الدخول */}
+              <div className="mt-6 p-4 rounded-2xl bg-slate-900/80 border border-white/5 space-y-3 text-right">
+                <div className="flex items-center gap-2 text-[#00b0ff] font-black text-xs">
+                  <ShieldAlert size={14} className="text-amber-500 animate-pulse" />
+                  <span>نظام تسجيل الدخول:</span>
+                </div>
+                <ul className="text-[11px] text-slate-400 font-bold space-y-2.5 list-none p-0 m-0 leading-relaxed">
+                  <li>
+                    <div className="text-amber-400 font-extrabold mb-0.5">تسجيل دخول محدود 🔒:</div>
+                    <div className="text-slate-300">في حال أدخلت بريدًا إلكترونيًا أو رقم هاتف و كلمة مرور غير مفعلة، سيتم دخولك تلقائيًا بوضع الحساب المحدود.</div>
+                  </li>
+                  <li>
+                    <div className="text-emerald-400 font-extrabold mb-0.5">عضوية بريميوم نشطة ⭐:</div>
+                    <div className="text-slate-300">عند تسجيل الدخول بالبريد الإلكتروني أو رقم الهاتف وكلمة السر المفعلة من قبل الإدارة، سيتم منحك صلاحيات الوصول الكاملة والتمتع بجميع مميزات وخدمات التطبيق.</div>
+                  </li>
+                </ul>
+              </div>
+            </form>
 
             <div className="relative flex items-center gap-4 py-2">
               <div className="h-px bg-white/10 flex-1"></div>
@@ -7393,17 +8102,17 @@ export default function App() {
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
+                className="bg-white border border-slate-200 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
               >
-                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'}`}>
                   <AlertTriangle size={40} className="animate-pulse" />
                 </div>
 
                 <div className="space-y-2" dir="rtl">
-                  <h3 className="text-2xl font-black text-white">
+                  <h3 className="text-2xl font-black text-black">
                     {deleteStep === 1 ? 'تحذير مسح الدورة' : 'تأكيد الحذف النهائي'}
                   </h3>
-                  <p className="text-slate-400 font-medium">
+                  <p className="text-slate-900 font-bold leading-relaxed">
                     {deleteStep === 1 
                       ? 'هل أنت متأكد من رغبتك في حذف هذه الدورة؟ لا يمكن التراجع عن هذا العمل.' 
                       : 'هذا الإجراء سيمسح جميع بيانات هذه الدورة نهائياً من جزيئات التطبيق. هل أنت متأكد تماماً؟'}
@@ -7419,7 +8128,7 @@ export default function App() {
                   </button>
                   <button 
                     onClick={cancelDelete}
-                    className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 font-black transition-all"
+                    className="w-full py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-black font-black transition-all"
                   >
                     إلغاء
                   </button>
@@ -7458,7 +8167,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-4xl md:text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-sky-300 via-sky-400 to-blue-600 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)] filter contrast-125"
+                className="text-4xl md:text-6xl font-black tracking-tighter daylight-blue-text bg-clip-text text-transparent bg-gradient-to-b from-sky-300 via-sky-400 to-blue-600 drop-shadow-[0_0_15px_rgba(56,189,248,0.3)] filter contrast-125"
               >
                 مدير مزارع
               </motion.h1>
@@ -7479,7 +8188,7 @@ export default function App() {
                 transition={{ delay: 0.8 }}
                 className="text-xs md:text-sm font-black mt-2 text-center flex items-center justify-center gap-1.5"
               >
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">إدارة ذكية</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 daylight-janzari-green-text">إدارة ذكية</span>
                 <span className="text-slate-400">..</span>
                 <span className="text-white">إنتاج أفضل</span>
               </motion.p>
@@ -7601,21 +8310,21 @@ export default function App() {
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.9, y: 20 }}
-                  className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl flex flex-col items-center text-center gap-6"
+                  className="bg-white border border-slate-200 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl flex flex-col items-center text-center gap-6"
                 >
-                  <div className="w-20 h-20 bg-rose-500/20 rounded-3xl flex items-center justify-center text-rose-500 mb-2">
+                  <div className="w-20 h-20 bg-rose-500/10 rounded-3xl flex items-center justify-center text-rose-600 mb-2">
                     <LogOut size={40} className="rotate-180" />
                   </div>
                   
                   <div>
-                    <h3 className="text-2xl font-black text-white mb-2">تسجيل الخروج</h3>
-                    <p className="text-slate-400 font-medium">هل أنت متأكد من رغبتك في تسجيل الخروج من البرنامج؟</p>
+                    <h3 className="text-2xl font-black text-black mb-2">تسجيل الخروج</h3>
+                    <p className="text-slate-900 font-bold">هل أنت متأكد من رغبتك في تسجيل الخروج من البرنامج؟</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 w-full">
                     <button 
                       onClick={() => setIsLogoutConfirming(false)}
-                      className="bg-slate-800 text-white py-4 rounded-2xl font-black transition-all active:scale-95 border border-white/5"
+                      className="bg-slate-200 hover:bg-slate-300 text-black py-4 rounded-2xl font-black transition-all active:scale-95"
                     >
                       إلغاء
                     </button>
@@ -7639,20 +8348,20 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-6"
+                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 new-cycle-modal-overlay"
               >
                 <motion.div 
                   initial={{ scale: 0.9, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.9, y: 20 }}
-                  className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl space-y-6"
+                  className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl space-y-6 new-cycle-modal-card"
                 >
                   <div className="text-center space-y-2">
-                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 new-cycle-modal-icon">
                       <Edit3 size={32} className="text-emerald-500" />
                     </div>
-                    <h3 className="text-2xl font-black text-white">تسمية الدورة</h3>
-                    <p className="text-slate-400 text-sm font-bold">أدخل اسماً يميز هذه الدورة في السجل</p>
+                    <h3 className="text-2xl font-black text-white new-cycle-modal-title">تسمية الدورة</h3>
+                    <p className="text-slate-400 text-sm font-bold new-cycle-modal-subtitle">أدخل اسماً يميز هذه الدورة في السجل</p>
                   </div>
 
                   <input 
@@ -7660,21 +8369,21 @@ export default function App() {
                     type="text"
                     value={newCycleNameInput}
                     onChange={(e) => setNewCycleNameInput(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-center text-xl font-black text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-center text-xl font-black text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all new-cycle-modal-input"
                     placeholder="مثلاً: دورة شتاء 2024"
                   />
 
                   <div className="flex gap-4">
                     <button 
                       onClick={() => confirmNewCycle(newCycleNameInput)}
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 new-cycle-modal-submit"
                     >
                       حفظ والبدء
                       <Check size={20} />
                     </button>
                     <button 
                       onClick={() => setIsNamingNewCycle(false)}
-                      className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 font-black py-4 rounded-2xl transition-all"
+                      className="flex-1 bg-white/5 hover:bg-white/10 text-slate-400 font-black py-4 rounded-2xl transition-all new-cycle-modal-cancel"
                     >
                       إلغاء
                     </button>
@@ -7740,7 +8449,7 @@ export default function App() {
 
   if (screen === 'setup') {
     return (
-      <div className="min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative" dir="rtl">
+      <div className={`setup-screen-wrapper min-h-screen bg-[#061e27] flex flex-col items-center justify-center p-6 font-sans antialiased text-right relative ${isDaylightMode ? 'daylight-mode' : ''}`} dir="rtl">
         <AnimatePresence>
           {deleteStep > 0 && (
             <motion.div 
@@ -7753,17 +8462,17 @@ export default function App() {
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
-                className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
+                className="bg-white border border-slate-200 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
               >
-                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'}`}>
+                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'}`}>
                   <AlertTriangle size={40} className="animate-pulse" />
                 </div>
 
                 <div className="space-y-2" dir="rtl">
-                  <h3 className="text-2xl font-black text-white">
+                  <h3 className="text-2xl font-black text-black">
                     {deleteStep === 1 ? 'تحذير مسح الدورة' : 'تأكيد الحذف النهائي'}
                   </h3>
-                  <p className="text-slate-400 font-medium">
+                  <p className="text-slate-900 font-bold leading-relaxed">
                     {deleteStep === 1 
                       ? 'هل أنت متأكد من رغبتك في حذف هذه الدورة؟ لا يمكن التراجع عن هذا العمل.' 
                       : 'هذا الإجراء سيمسح جميع بيانات هذه الدورة نهائياً من جزيئات التطبيق. هل أنت متأكد تماماً؟'}
@@ -7779,7 +8488,7 @@ export default function App() {
                   </button>
                   <button 
                     onClick={cancelDelete}
-                    className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 font-black transition-all"
+                    className="w-full py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-black font-black transition-all"
                   >
                     إلغاء
                   </button>
@@ -7793,10 +8502,51 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md bento-card p-8 border-white/10 relative"
         >
+          {/* Top Bar: Return to Main Home Screen & Day/Night Mode Toggle */}
+          <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-white/10 daylight-border-slate">
+            {/* Button: Return to Main Home Screen */}
+            <button
+              type="button"
+              onClick={() => {
+                setScreen('landing');
+                setIsNavVisible(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white border border-white/10 transition-all active:scale-95 text-xs font-black shadow-md cursor-pointer daylight-btn-home"
+              title="العودة إلى الشاشة الرئيسية"
+            >
+              <Home size={16} className="text-[#00b0ff] shrink-0" />
+              <span>العودة للرئيسية</span>
+            </button>
+
+            {/* Button: Day / Night Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleDaylightMode}
+              title={isDaylightMode ? "التحويل إلى وضع الليل 🌙" : "التحويل إلى وضع النهار ☀️"}
+              className={`setup-night-toggle-btn flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all active:scale-95 text-xs font-black shadow-md cursor-pointer border shrink-0 ${
+                isDaylightMode 
+                  ? 'bg-[#0f766e] border-[#14b8a6]/40 text-white hover:bg-[#0d9488]' 
+                  : 'bg-slate-800/80 border-white/10 text-amber-300 hover:bg-slate-700/80'
+              }`}
+            >
+              {isDaylightMode ? (
+                <>
+                  <Moon size={16} className="text-white shrink-0" />
+                  <span className="text-white font-black">وضع الليل</span>
+                </>
+              ) : (
+                <>
+                  <Sun size={16} className="text-amber-400 animate-spin-slow shrink-0" />
+                  <span className="text-amber-300 font-black">وضع النهار</span>
+                </>
+              )}
+            </button>
+          </div>
+
           <div className="flex flex-row items-center justify-start gap-4 mb-10">
             <Logo size={64} iconSize={32} className="rounded-2xl" />
             <div className="flex flex-col items-center select-none min-w-0 flex-1">
-              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
+              <h1 className="text-[13px] sm:text-[14px] font-black tracking-widest text-[#00b0ff] daylight-blue-text drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase">
                 مدير مزارع
               </h1>
               <h2 className="text-[28px] sm:text-[32px] font-extrabold text-white tracking-tight leading-tight -mt-0.5 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] whitespace-nowrap">
@@ -7804,7 +8554,7 @@ export default function App() {
               </h2>
               <div className="w-full mt-1.5 pb-0.5 border-t border-white/5 pt-1.5 flex justify-center">
                 <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none whitespace-nowrap">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#047857] to-[#0f766e] daylight-janzari-green-text">إدارة ذكية</span>
                   <span className="text-white/40 font-bold mx-0.5">..</span>
                   <span className="text-white">إنتاج أفضل</span>
                 </p>
@@ -7825,7 +8575,9 @@ export default function App() {
                       className={cn(
                         "py-3 px-4 rounded-xl text-xs font-black transition-all border-2",
                         state.strain === s 
-                          ? "bg-blue-600/20 border-blue-600 text-blue-400" 
+                          ? (isDaylightMode
+                              ? "bg-emerald-500/15 border-emerald-600 text-emerald-900 daylight-strain-selected" 
+                              : "bg-blue-600/20 border-blue-600 text-blue-400")
                           : "bg-slate-900 border-white/5 text-slate-500 hover:border-white/10"
                       )}
                     >
@@ -7850,9 +8602,9 @@ export default function App() {
                   >
                     <div className="flex items-center gap-2 w-full justify-between">
                        <LayoutGrid size={14} className={state.breedingSystem === 'Floor' ? "text-emerald-400" : "text-slate-600"} />
-                       <span className="font-black text-[11px]">تربية أرضي</span>
+                       <span className="font-black text-[11px] daylight-black-text">تربية أرضي</span>
                     </div>
-                    <p className="text-[8px] font-bold opacity-70 leading-tight">تربية تقليدية مفرودة على الأرض مع فرشة نشارة.</p>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight daylight-black-text">تربية تقليدية مفرودة على الأرض مع فرشة نشارة.</p>
                   </button>
                   <button
                     type="button"
@@ -7866,9 +8618,9 @@ export default function App() {
                   >
                     <div className="flex items-center gap-2 w-full justify-between">
                        <Layers size={14} className={state.breedingSystem === 'Battery-3' ? "text-blue-400" : "text-slate-600"} />
-                       <span className="font-black text-[11px]">تربية بطاريات</span>
+                       <span className="font-black text-[11px] daylight-black-text">تربية بطاريات</span>
                     </div>
-                    <p className="text-[8px] font-bold opacity-70 leading-tight">تربية حديثة داخل بطاريات معدنية رأسية متعددة الأدوار.</p>
+                    <p className="text-[8px] font-bold opacity-70 leading-tight daylight-black-text">تربية حديثة داخل بطاريات معدنية رأسية متعددة الأدوار.</p>
                   </button>
                 </div>
               </div>
@@ -7906,9 +8658,9 @@ export default function App() {
                     >
                       <div className="flex items-center gap-2 w-full justify-between">
                          <Zap size={14} className={state.distributionMode === 'sequential' ? "text-purple-400" : "text-slate-600"} fill="currentColor" />
-                         <span className="font-black text-[11px]">متسلسل (تحضين)</span>
+                         <span className="font-black text-[11px] daylight-black-text">متسلسل (تحضين)</span>
                       </div>
-                      <p className="text-[8px] font-bold opacity-70 leading-tight">ملأ البطاريات بالترتيب لتوفير التدفئة.</p>
+                      <p className="text-[8px] font-bold opacity-70 leading-tight daylight-black-text">ملأ البطاريات بالترتيب لتوفير التدفئة.</p>
                     </button>
                     <button
                       type="button"
@@ -7922,9 +8674,9 @@ export default function App() {
                     >
                       <div className="flex items-center gap-2 w-full justify-between">
                          <Activity size={14} className={state.distributionMode === 'equal' ? "text-emerald-400" : "text-slate-600"} />
-                         <span className="font-black text-[11px]">متساوي (توسعة)</span>
+                         <span className="font-black text-[11px] daylight-black-text">متساوي (توسعة)</span>
                       </div>
-                      <p className="text-[8px] font-bold opacity-70 leading-tight">توزيع متوازن لتحسين التهوية والنمو.</p>
+                      <p className="text-[8px] font-bold opacity-70 leading-tight daylight-black-text">توزيع متوازن لتحسين التهوية والنمو.</p>
                     </button>
                   </div>
                 </div>
@@ -8227,7 +8979,7 @@ export default function App() {
                                   batteryGroups: prev.batteryGroups.map(g => g.id === group.id ? { ...g, count: newCount } : g)
                                 }));
                               }}
-                              className="w-12 h-12 bg-slate-800 text-white rounded-2xl flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-90 border border-white/5 shadow-lg"
+                              className="w-12 h-12 bg-red-600 hover:bg-red-500 text-white rounded-2xl flex items-center justify-center transition-all active:scale-90 border border-white/10 shadow-lg shadow-red-600/30"
                             >
                               <Minus size={20} strokeWidth={3} />
                             </button>
@@ -8353,7 +9105,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#061e27] text-slate-200 font-sans antialiased pb-28 md:pb-8 selection:bg-blue-600 selection:text-white" dir="rtl">
+    <div className={`min-h-screen bg-[#061e27] text-slate-200 font-sans antialiased pb-28 md:pb-8 selection:bg-blue-600 selection:text-white ${isDaylightMode ? 'daylight-mode' : ''}`} dir="rtl">
       {/* Dynamic Background Patterns */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
@@ -8364,59 +9116,84 @@ export default function App() {
       <header className="relative z-50 border-b border-white/5 bg-slate-950/40 backdrop-blur-md px-4 sm:px-6 py-4 md:py-5 select-none">
         <div className="max-w-6xl mx-auto flex flex-col gap-4">
           
-          {/* Header row containing left, center, right columns */}
-          <div className="flex items-center justify-between w-full relative z-10 gap-3 md:gap-4">
+          {/* Header row containing left, center, right columns with exact mathematical symmetry */}
+          <div className="flex items-center justify-between w-full relative min-h-[52px]">
             
-            {/* Right Column (Hamburger/Menu on mobile, Notifications on desktop, or similar) */}
-            <div className="w-24 flex items-center gap-2">
+            {/* Side 1: Mobile Drawer Menu Toggle (Balanced width) */}
+            <div className="w-[90px] sm:w-[110px] flex items-center justify-start shrink-0">
               <button
                 type="button"
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden w-10 h-10 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center transition-all active:scale-95"
+                title="القائمة الرئيسية"
+                className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
               >
                 <Menu size={18} className="text-slate-300" />
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setShowNotificationsModal(true)}
-                className="relative w-10 h-10 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-white/5 flex items-center justify-center transition-all active:scale-95"
-              >
-                {inAppNotifications.some(n => !n.read) ? (
-                  <BellRing size={16} className="text-violet-400 animate-bounce" />
-                ) : (
-                  <Bell size={16} className="text-slate-400" />
-                )}
-                {inAppNotifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black flex items-center justify-center text-white ring-1 ring-slate-950 animate-pulse">
-                    {inAppNotifications.length}
-                  </span>
-                )}
               </button>
             </div>
 
             {/* Center Column: Title & Slogan perfectly centered mathematically */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center select-none min-w-0">
-              <div className="w-[140px] flex flex-col items-center justify-center">
-                <h1 className="text-[12px] font-black tracking-[0.14em] text-[#00b0ff] drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase text-center w-full">
+            <div className="flex-1 flex flex-col items-center justify-center text-center select-none min-w-0 px-1">
+              <div className="flex flex-col items-center justify-center">
+                <h1 className="text-[11px] sm:text-[13px] font-black tracking-[0.12em] sm:tracking-[0.14em] text-[#00b0ff] daylight-blue-text drop-shadow-[0_2px_8px_rgba(30,176,255,0.15)] leading-none uppercase text-center">
                    مدير مزارع
                 </h1>
-                <h2 className="text-[22px] font-black text-white tracking-[0.05em] leading-tight mt-1 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] text-center w-full">
+                <h2 className="text-[18px] sm:text-[24px] font-black text-white tracking-[0.04em] sm:tracking-[0.05em] leading-tight mt-0.5 drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)] text-center whitespace-nowrap">
                    الدواجن
                 </h2>
               </div>
-              <div className="mt-1.5 pb-0.5 border-t border-white/10 pt-1 w-[140px] flex justify-center">
-                <p className="text-[10px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none text-center w-full">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00dfa2] to-[#04dcd2]">إدارة ذكية</span>
+              <div className="mt-1 pb-0.5 border-t border-white/10 pt-1 w-[115px] sm:w-[145px] flex justify-center">
+                <p className="text-[9px] sm:text-[11px] font-black flex items-center justify-center gap-1 leading-none text-center whitespace-nowrap">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#047857] to-[#0f766e] daylight-janzari-green-text">إدارة ذكية</span>
                   <span className="text-white/40 font-bold mx-0.5">..</span>
                   <span className="text-white">إنتاج أفضل</span>
                 </p>
               </div>
             </div>
 
-            {/* Left Column (Logo) - Constrained to balance the layout, aligned to end/left */}
-            <div className="w-24 flex justify-end flex-shrink-0">
-              <Logo size={46} iconSize={23} className="rounded-xl shadow-[0_0_15px_rgba(30,111,253,0.25)]" />
+            {/* Side 2: Action Buttons Group (Daylight/Night Mode + Notifications Side-by-Side) */}
+            <div className="w-[90px] sm:w-[110px] flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0">
+              
+              {/* 1. Daylight / Night Mode Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleDaylightMode}
+                title={isDaylightMode ? "التحويل إلى وضع الليل 🌙" : "التحويل إلى وضع النهار ☀️"}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-md shrink-0 ${
+                  isDaylightMode 
+                    ? 'night-mode-btn-style' 
+                    : 'daylight-mode-btn-style'
+                }`}
+              >
+                {isDaylightMode ? (
+                  <Moon size={18} className="shrink-0 text-[#00dfa2]" />
+                ) : (
+                  <Sun size={18} className="text-slate-950 animate-spin-slow shrink-0" />
+                )}
+              </button>
+
+              {/* 2. Notifications Button */}
+              <button
+                type="button"
+                onClick={() => setShowNotificationsModal(true)}
+                title="مركز التنبيهات والإشعارات"
+                className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-all active:scale-95 shadow-md group cursor-pointer shrink-0 ${
+                  isDaylightMode
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+                    : 'bg-slate-900/70 hover:bg-slate-800/90 border-white/10 text-slate-300'
+                }`}
+              >
+                {inAppNotifications.some(n => !n.read) ? (
+                  <BellRing size={18} className="text-violet-500 animate-bounce" />
+                ) : (
+                  <Bell size={18} className={isDaylightMode ? "text-slate-800" : "text-slate-300 group-hover:text-white"} />
+                )}
+                {inAppNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black flex items-center justify-center text-white ring-2 ring-slate-950 animate-pulse">
+                    {inAppNotifications.length}
+                  </span>
+                )}
+              </button>
+
             </div>
 
           </div>
@@ -8480,7 +9257,7 @@ export default function App() {
                 key={link.id} 
                 {...link} 
                 activeId={screen as string} 
-                isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(link.id)}
+                isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
               />
             ))}
           </nav>
@@ -8489,7 +9266,7 @@ export default function App() {
         {/* MOBILE SIDEBAR DRAWER - Swipeable Menu */}
         <AnimatePresence>
           {isSidebarOpen && (
-            <div className="fixed inset-0 z-[160] lg:hidden flex justify-end">
+            <div className="fixed inset-0 z-[160] lg:hidden">
               {/* Backdrop */}
               <motion.div
                 key="sidebar-backdrop"
@@ -8497,16 +9274,16 @@ export default function App() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsSidebarOpen(false)}
-                className="absolute inset-0 bg-slate-950/90"
+                className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm"
               />
-              {/* Drawer Layout */}
+              {/* Drawer Layout - Aligned on the Right */}
               <motion.aside
                 key="mobile-sidebar-drawer"
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                className="relative w-80 max-w-[85%] h-full bg-[#0a0f1d] border-l border-white/10 p-6 pb-44 flex flex-col gap-5 shadow-2xl overflow-y-auto no-scrollbar"
+                className="absolute top-0 right-0 bottom-0 z-10 w-80 max-w-[85%] h-full bg-[#0a0f1d] border-l border-white/10 p-6 pb-44 flex flex-col gap-5 shadow-2xl overflow-y-auto no-scrollbar"
                 dir="rtl"
               >
                 <div className="flex items-center justify-between pb-4 border-b border-white/5">
@@ -8521,9 +9298,13 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setIsSidebarOpen(false)}
-                    className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-white/5 outline-none"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border outline-none close-x-btn ${
+                      isDaylightMode
+                        ? 'bg-black text-rose-500 border-rose-600/50 hover:bg-neutral-900 hover:text-rose-400'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-white/5'
+                    }`}
                   >
-                    <X size={14} />
+                    <X size={14} className={isDaylightMode ? 'text-rose-500 stroke-[2.5]' : ''} />
                   </button>
                 </div>
 
@@ -8533,7 +9314,7 @@ export default function App() {
                       key={link.id} 
                       {...link} 
                       activeId={screen as string} 
-                      isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(link.id)}
+                      isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
                       onClick={() => {
                         link.onClick();
                         setIsSidebarOpen(false);
@@ -8541,6 +9322,39 @@ export default function App() {
                     />
                   ))}
                 </nav>
+
+                {/* Daylight Mode High Contrast Toggle in Mobile Drawer */}
+                <div className="pt-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleDaylightMode();
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`w-full p-3 rounded-xl flex items-center justify-between transition-all text-xs font-bold cursor-pointer ${
+                      isDaylightMode
+                        ? 'night-mode-btn-style'
+                        : 'daylight-mode-btn-style'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isDaylightMode ? (
+                        <>
+                          <Moon size={18} className="text-[#00dfa2]" />
+                          <span>التحويل لوضع الليل 🌙</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sun size={18} className="animate-spin-slow text-slate-950" />
+                          <span>التحويل لوضع النهار ☀️</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/20 font-black">
+                      تبديل
+                    </span>
+                  </button>
+                </div>
               </motion.aside>
             </div>
           )}
@@ -8568,35 +9382,35 @@ export default function App() {
       {/* PIN Security Modal */}
       <AnimatePresence>
         {isPinModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 pin-security-modal-wrapper">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsPinModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-md pin-security-modal-overlay"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6 text-center"
+              className="relative w-full max-w-sm bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6 text-center pin-security-modal-card"
               dir="rtl"
             >
               {/* Header inside modal */}
               <div className="flex flex-col items-center space-y-2">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner pin-security-modal-icon">
                   <Lock size={22} className="animate-pulse" />
                 </div>
-                <h3 className="text-lg font-black text-white">
+                <h3 className="text-lg font-black text-white pin-security-modal-title">
                   {pinPurpose === 'set' && !tempNewPin && "إنشاء رمز PIN جديد"}
                   {pinPurpose === 'set' && tempNewPin && "تأكيد رمز PIN الجديد"}
-                  {pinPurpose === 'verify' && "تأمين الحسابات والأرباح"}
+                  {pinPurpose === 'verify' && "تأمين التكاليف والأرباح"}
                   {pinPurpose === 'change_verify' && "التحقق من الرمز الحالي"}
                   {pinPurpose === 'disable_verify' && "إلغاء قفل الـ PIN"}
                   {pinPurpose === 'delete_confirm' && "تأكيد الهوية للحذف الأمني 🔐"}
                 </h3>
-                <p className="text-xs text-slate-400 font-bold max-w-[280px] leading-relaxed mx-auto">
+                <p className="text-xs text-slate-400 font-bold max-w-[280px] leading-relaxed mx-auto pin-security-modal-subtitle">
                   {pinPurpose === 'set' && !tempNewPin && "أدخل 4 أرقام لتأمين شاشة الحسابات والمصاريف عن العمال"}
                   {pinPurpose === 'set' && tempNewPin && "أعد إدخال نفس الرمز للتأكيد والحفظ"}
                   {pinPurpose === 'verify' && "أدخل رمز PIN الخاص بصاحب المزرعة للاطلاع على الأرباح"}
@@ -8616,10 +9430,10 @@ export default function App() {
                       initial={false}
                       animate={{
                         scale: isFilled ? 1.25 : 1,
-                        backgroundColor: isFilled ? "#f59e0b" : "rgba(255, 255, 255, 0.1)"
+                        backgroundColor: isFilled ? (isDaylightMode ? "#dc2626" : "#f59e0b") : (isDaylightMode ? "#cbd5e1" : "rgba(255, 255, 255, 0.1)")
                       }}
                       className={cn(
-                        "w-3.5 h-3.5 rounded-full border border-white/5 shadow-inner transition-colors"
+                        "w-3.5 h-3.5 rounded-full border border-white/5 shadow-inner transition-colors pin-security-modal-dot"
                       )}
                     />
                   );
@@ -8631,7 +9445,7 @@ export default function App() {
                 <motion.p
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-rose-400 font-black leading-tight bg-rose-500/10 py-2 px-3 rounded-xl border border-rose-500/20"
+                  className="text-xs text-rose-400 font-black leading-tight bg-rose-500/10 py-2 px-3 rounded-xl border border-rose-500/20 pin-security-modal-error"
                 >
                   {pinError}
                 </motion.p>
@@ -8653,7 +9467,7 @@ export default function App() {
                         }
                       }
                     }}
-                    className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto"
+                    className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto pin-security-modal-key"
                   >
                     {num}
                   </button>
@@ -8663,7 +9477,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsPinModalOpen(false)}
-                  className="w-16 h-16 rounded-full bg-transparent text-slate-400 hover:text-white font-black text-sm flex items-center justify-center transition-all active:scale-90 cursor-pointer select-none mx-auto"
+                  className="w-16 h-16 rounded-full bg-slate-200 hover:bg-slate-300 text-black font-black text-xs flex items-center justify-center transition-all active:scale-90 cursor-pointer select-none mx-auto pin-security-modal-cancel"
                 >
                   إلغاء
                 </button>
@@ -8681,7 +9495,7 @@ export default function App() {
                       }
                     }
                   }}
-                  className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto"
+                  className="w-16 h-16 rounded-full bg-slate-800/60 hover:bg-slate-800 text-white font-black text-xl flex items-center justify-center transition-all border border-white/5 active:scale-90 cursor-pointer shadow-sm select-none mx-auto pin-security-modal-key"
                 >
                   0
                 </button>
@@ -8693,7 +9507,7 @@ export default function App() {
                     setPinInput(prev => prev.slice(0, -1));
                     setPinError('');
                   }}
-                  className="w-16 h-16 rounded-full bg-slate-800/40 hover:bg-slate-800 text-slate-300 font-bold text-lg flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-white/5 select-none mx-auto"
+                  className="w-16 h-16 rounded-full bg-slate-800/40 hover:bg-slate-800 text-slate-300 font-bold text-lg flex items-center justify-center transition-all active:scale-90 cursor-pointer border border-white/5 select-none mx-auto pin-security-modal-clear"
                 >
                   مسح
                 </button>
@@ -8777,383 +9591,13 @@ export default function App() {
           </div>
         )}
 
-        {isSubscriptionModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 pb-16 sm:pb-20">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsSubscriptionModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 30 }}
-              className="relative w-full max-w-5xl bg-slate-900 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl max-h-[82vh] flex flex-col z-[110] mb-6"
-              dir="rtl"
-            >
-              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
-              
-              {/* Header */}
-              <div className="p-6 sm:p-8 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                    <Sparkles size={24} className="animate-pulse" />
-                  </div>
-                  <div className="text-right">
-                    <h3 className="text-xl font-black text-white">باقات الاشتراك المعتمدة 👑</h3>
-                    <p className="text-slate-400 text-xs font-bold mt-1">
-                      اختر الباقة المناسبة لتفعيل كافة الخصائص، والأنظمة المتقدمة، وإدارة عنبرك بالكامل
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsSubscriptionModalOpen(false)}
-                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center active:scale-95"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="p-6 sm:p-8 overflow-y-auto space-y-8 flex-grow no-scrollbar">
-                {/* Pricing Packages Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    {
-                      id: '45_days',
-                      name: 'باقة 45 يوم',
-                      price: '500',
-                      badge: null,
-                      desc: 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.'
-                    },
-                    {
-                      id: '3_months',
-                      name: 'باقة 3 شهور',
-                      price: '800',
-                      badge: null,
-                      desc: 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.'
-                    },
-                    {
-                      id: '6_months',
-                      name: 'باقة 6 شهور',
-                      price: '1200',
-                      badge: 'أكثر طلباً 🔥',
-                      badgeColor: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
-                      desc: 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.'
-                    },
-                    {
-                      id: '1_year',
-                      name: 'باقة سنة كاملة',
-                      price: '2000',
-                      badge: 'أعلى قيمة 👑',
-                      badgeColor: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-                      desc: 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.'
-                    }
-                  ].map((plan) => {
-                    const isSelected = selectedPlanId === plan.id;
-                    return (
-                      <div
-                        key={plan.id}
-                        onClick={() => setSelectedPlanId(plan.id as any)}
-                        className={cn(
-                          "relative rounded-2xl p-5 border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none",
-                          isSelected
-                            ? "bg-emerald-950/20 border-emerald-500 ring-1 ring-emerald-500/20 shadow-xl shadow-emerald-500/10 translate-y-[-2px]"
-                            : "bg-slate-950/40 border-yellow-500/30 hover:border-yellow-500/60 hover:bg-slate-950/60"
-                        )}
-                      >
-                        {isSelected ? (
-                          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
-                        ) : (
-                          <div className="absolute inset-0 bg-yellow-500/[0.02] rounded-2xl pointer-events-none" />
-                        )}
-
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-4 mt-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <h4 className={cn(
-                                "text-xs sm:text-sm font-black transition-colors",
-                                isSelected ? "text-emerald-400" : "text-white"
-                              )}>{plan.name}</h4>
-                              {plan.badge && (
-                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm border", plan.badgeColor)}>
-                                  {plan.badge}
-                                </span>
-                              )}
-                            </div>
-                            <div className={cn(
-                              "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
-                              isSelected ? "border-emerald-500 bg-emerald-500" : "border-yellow-500/40 bg-transparent"
-                            )}>
-                              {isSelected && <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />}
-                            </div>
-                          </div>
-
-                          <p className="text-[11px] text-slate-400 font-bold leading-relaxed mb-6 min-h-[44px]">
-                            {plan.desc}
-                          </p>
-                        </div>
-
-                        <div className="border-t border-white/5 pt-4 mt-2 flex items-baseline justify-end">
-                          <div className="flex items-baseline gap-1">
-                            <span className={cn(
-                              "text-base sm:text-lg font-black transition-colors",
-                              isSelected ? "text-emerald-400" : "text-yellow-500/80"
-                            )}>
-                              {plan.price}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-black">ج.م</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Steps and Action CTA */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-slate-950/50 border border-white/5 p-6 rounded-3xl text-right">
-                  <div className="md:col-span-2 space-y-3">
-                    <div className="flex items-center gap-2 text-amber-400 font-black text-sm">
-                      <Wallet size={16} className="animate-pulse text-amber-400" />
-                      <span>خطوات إتمام الدفع والتفعيل الفوري:</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed">
-                      ١. حدد الباقة المفضلة من الأعلى.<br />
-                      ٢. قم بالتحويل لخدمة فودافون كاش على رقم المبيعات المعتمد.<br />
-                      ٣. اضغط على الزر الأخضر بالأسفل للتواصل عبر واتساب وإرسال البريد الخاص بك وصورة التحويل ليتم التفعيل مباشرة.
-                    </p>
-                    <div className="flex flex-col gap-1 mt-3">
-                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-black">
-                        <span className="text-amber-400">●</span>
-                        <span>البريد المعتمد للتفعيل التلقائي:</span>
-                      </div>
-                      <div className="mr-4 mt-1">
-                        <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-xs inline-block">
-                          {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="w-full flex justify-end">
-                    <a
-                      href={`https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
-أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
-📋 تفاصيل الطلب:
-الباقة المطلوبة: ${getSelectedPlanName(selectedPlanId)} (${getSelectedPlanPrice(selectedPlanId)} جنيه مصري)
-بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
-💳 تفاصيل الدفع:
-سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
-سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
-أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`}
-                      target="_blank"
-                      referrerPolicy="no-referrer"
-                      className="w-full py-4 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 active:scale-95 cursor-pointer"
-                    >
-                      <Sparkles size={16} className="animate-pulse" />
-                      تفعيل الباقة المحددة الآن عبر واتساب 💬
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
+        {renderLimitedLoginModal()}
+        {renderSubscriptionModal()}
       </AnimatePresence>
 
       <div className="relative w-full">
-        {/* Lock screen overlay for new restricted accounts */}
-        {localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(screen) && (
-          <div className="absolute inset-0 z-40 bg-slate-950/70 backdrop-blur-[8px] rounded-[2rem] flex flex-col items-center justify-start p-4 sm:p-6 text-center border-2 border-white/5 overflow-y-auto shadow-2xl min-h-[550px] animate-fade-in">
-            {/* Elegant warning dialog box sitting at the top, below the header */}
-            <div className="w-full max-w-4xl bg-slate-900/95 border border-white/10 rounded-3xl p-5 sm:p-7 mt-2 sm:mt-4 shadow-2xl relative overflow-hidden text-right" dir="rtl">
-              <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
-              
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-white/5 pb-5">
-                <div className="flex items-center gap-3.5 text-right w-full md:w-auto">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
-                    <Lock size={22} className="animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
-                      هذه الشاشة مغلقة - قم بالاشتراك لتفعيلها 🔒
-                    </h3>
-                    <p className="text-slate-400 font-bold text-xs leading-relaxed mt-1 max-w-xl">
-                      عذراً، هذه الشاشة تتطلب اشتراكاً نشطاً في ميزات مدير مزارع الدواجن الكاملة. يرجى اختيار الباقة الأنسب لك لتتمكن من فتح وإدارة كافة أنظمة العنبر والتجهيز الفني والمالي والتقارير.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Top quick navigation actions */}
-                <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-                  <button
-                    onClick={() => setScreen('landing')}
-                    className="py-2 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-[11px]"
-                  >
-                    <RefreshCw size={12} />
-                    العودة للرئيسية
-                  </button>
-                  <button
-                    onClick={confirmLogout}
-                    className="py-2 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-[11px] border border-red-500/10"
-                  >
-                    <LogOut size={12} />
-                    تسجيل الخروج
-                  </button>
-                </div>
-              </div>
-
-              {/* Pricing Packages Grid */}
-              <div className="mt-6">
-                <div className="text-slate-300 font-black text-xs mb-3 text-right">
-                  اختر باقة الاشتراك الأنسب لك من الخيارات التالية:
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    {
-                      id: '45_days',
-                      name: 'باقة 45 يوم',
-                      price: '500',
-                      badge: null,
-                      desc: 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.'
-                    },
-                    {
-                      id: '3_months',
-                      name: 'باقة 3 شهور',
-                      price: '800',
-                      badge: null,
-                      desc: 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.'
-                    },
-                    {
-                      id: '6_months',
-                      name: 'باقة 6 شهور',
-                      price: '1200',
-                      badge: 'أكثر طلباً 🔥',
-                      badgeColor: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
-                      desc: 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.'
-                    },
-                    {
-                      id: '1_year',
-                      name: 'باقة سنة كاملة',
-                      price: '2000',
-                      badge: 'أعلى قيمة 👑',
-                      badgeColor: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-                      desc: 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.'
-                    }
-                  ].map((plan) => {
-                    const isSelected = selectedPlanId === plan.id;
-                    return (
-                      <div
-                        key={plan.id}
-                        onClick={() => setSelectedPlanId(plan.id as any)}
-                        className={cn(
-                          "relative rounded-2xl p-4 border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none",
-                          isSelected
-                            ? "bg-emerald-950/20 border-emerald-500 ring-1 ring-emerald-500/20 shadow-xl shadow-emerald-500/10 translate-y-[-2px]"
-                            : "bg-slate-950/40 border-yellow-500/30 hover:border-yellow-500/60 hover:bg-slate-950/60"
-                        )}
-                      >
-                        {/* Selected Indicator Light Glow */}
-                        {isSelected ? (
-                          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
-                        ) : (
-                          <div className="absolute inset-0 bg-yellow-500/[0.02] rounded-2xl pointer-events-none" />
-                        )}
-
-                        <div>
-                          {/* Radio Button & Name / Badge */}
-                          <div className="flex items-center justify-between gap-2 mb-3 mt-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <h4 className={cn(
-                                "text-xs sm:text-sm font-black transition-colors",
-                                isSelected ? "text-emerald-400" : "text-white"
-                              )}>{plan.name}</h4>
-                              {plan.badge && (
-                                <span className={cn("px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm border", plan.badgeColor)}>
-                                  {plan.badge}
-                                </span>
-                              )}
-                            </div>
-                            <div className={cn(
-                              "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
-                              isSelected ? "border-emerald-500 bg-emerald-500" : "border-yellow-500/40 bg-transparent"
-                            )}>
-                              {isSelected && <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />}
-                            </div>
-                          </div>
-
-                          {/* Description */}
-                          <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-4 min-h-[44px]">
-                            {plan.desc}
-                          </p>
-                        </div>
-
-                        {/* Price Details */}
-                        <div className="border-t border-white/5 pt-3 mt-2 flex items-baseline justify-end">
-                          <div className="flex items-baseline gap-1">
-                            <span className={cn(
-                              "text-base sm:text-lg font-black transition-colors",
-                              isSelected ? "text-emerald-400" : "text-yellow-500/80"
-                            )}>
-                              {plan.price}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-black">ج.م</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Payment Details Callout & Action */}
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-center bg-slate-950/60 border border-white/5 p-4 rounded-2xl text-right">
-                <div className="md:col-span-2 space-y-2">
-                  <div className="flex items-center gap-2 text-amber-400 font-black text-xs">
-                    <Wallet size={14} className="animate-pulse text-amber-400" />
-                    <span>خطوات إتمام الدفع والتفعيل الفوري:</span>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2 text-right">
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-black">
-                      <span className="text-amber-400">●</span>
-                      <span>البريد المعتمد للتفعيل التلقائي:</span>
-                    </div>
-                    <div className="mr-4 mt-1">
-                      <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-2 py-1 rounded-lg border border-white/5 text-xs inline-block">
-                        {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-full flex justify-end">
-                  <a
-                    href={`https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
-أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
-📋 تفاصيل الطلب:
-الباقة المطلوبة: ${getSelectedPlanName(selectedPlanId)} (${getSelectedPlanPrice(selectedPlanId)} جنيه مصري)
-بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
-💳 تفاصيل الدفع:
-سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
-سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
-أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`}
-                    target="_blank"
-                    referrerPolicy="no-referrer"
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95 cursor-pointer"
-                  >
-                    <Sparkles size={14} className="animate-pulse" />
-                    تفعيل الباقة المحددة الآن عبر واتساب 💬
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className={cn(
-          (localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(screen))
+         <div className={cn(
+          (localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen))
             ? "filter blur-[8px] opacity-35 pointer-events-none select-none transition-all duration-300"
             : "transition-all duration-300"
         )}>
@@ -9187,7 +9631,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-6 pb-32"
+              className="management-screen-wrapper space-y-6 pb-32"
             >
               <header className="flex items-center justify-between px-2 mb-2">
                 <div className="flex items-center gap-3">
@@ -9461,7 +9905,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="space-y-6 pb-32"
+              className="space-y-6 pb-32 finances-screen-wrapper"
             >
               <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 mb-2">
                 <div className="flex items-center gap-3">
@@ -9523,7 +9967,7 @@ export default function App() {
               </header>
 
               {/* Input Prices Card */}
-              <Card className="bg-slate-900 border-white/5 p-6 space-y-6 text-right">
+              <Card className="bg-slate-900 border-white/5 p-6 space-y-6 text-right finances-input-prices-card">
                 <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 justify-end">
                   <Settings size={16} className="text-blue-400" />
                   مدخلات الأسعار
@@ -9613,7 +10057,7 @@ export default function App() {
               </Card>
 
               {/* Sales Management Section */}
-              <div className="bg-slate-900 border-white/5 p-6 rounded-3xl space-y-6 text-right">
+              <div className="bg-slate-900 border-white/5 p-6 rounded-3xl space-y-6 text-right sales-management-card">
                 <div className="flex items-center justify-between mb-2">
                   <button 
                     onClick={() => setState(prev => ({ 
@@ -9642,7 +10086,7 @@ export default function App() {
                 
                 <div className="space-y-4">
                   {state.salesRecords.map(sale => (
-                    <div key={sale.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-3">
+                    <div key={sale.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-3 sale-invoice-item">
                       <div className="flex items-center justify-between">
                         <button 
                           type="button"
@@ -9650,7 +10094,7 @@ export default function App() {
                             e.stopPropagation();
                             setBillToDelete({ id: sale.id, section: 'salesRecords', label: sale.label || 'سجل مبيعات' });
                           }}
-                          className="p-2 text-slate-600 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg"
+                          className="p-2 text-slate-600 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg trash-btn-black-red"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -9762,8 +10206,8 @@ export default function App() {
                           />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] font-black text-slate-500 uppercase">المبلغ المتبقي</label>
-                          <div className="bg-slate-900/50 border border-slate-800 rounded-xl px-1.5 py-2.5 text-xs font-black text-slate-400 text-center flex items-center justify-center min-h-[42px]">
+                          <label className="text-[10px] font-black text-slate-500 uppercase remaining-amount-label">المبلغ المتبقي</label>
+                          <div className="bg-slate-900/50 border border-slate-800 rounded-xl px-1.5 py-2.5 text-xs font-black text-slate-400 text-center flex items-center justify-center min-h-[42px] remaining-amount-value">
                             {(toNum(sale.amount) - toNum(sale.amountPaid)).toLocaleString()}
                           </div>
                         </div>
@@ -9776,7 +10220,7 @@ export default function App() {
                 </div>
               </div>
 
-              <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 p-8 relative overflow-visible text-right">
+              <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-white/10 p-8 relative overflow-visible text-right profit-summary-card">
                 <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
                   <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl -ml-16 -mt-16" />
                 </div>
@@ -9882,7 +10326,7 @@ export default function App() {
               </Card>
 
               {/* Feed Cost Management */}
-              <Card className="bg-slate-900 border-white/5 p-6 text-right">
+              <Card className="bg-slate-900 border-white/5 p-6 text-right feed-management-card">
                 <div className="flex items-center justify-end gap-3 mb-6">
                   <h4 className="text-xs font-black text-white uppercase tracking-widest">تكاليف الأعلاف</h4>
                   <div className="p-2 bg-slate-950 rounded-lg text-emerald-400">
@@ -9993,7 +10437,7 @@ export default function App() {
                 />
 
                 {/* Mortality Tracking Section */}
-                <div className="bg-slate-900 border-white/5 p-6 rounded-3xl space-y-6 text-right">
+                <div className="bg-slate-900 border-white/5 p-6 rounded-3xl space-y-6 text-right mortality-section-card">
                   <div className="flex items-center justify-between mb-2">
                     <button 
                       onClick={() => setState(prev => ({ 
@@ -10023,7 +10467,7 @@ export default function App() {
                       const totalLoss = individualCost * toNum(mort.count);
 
                       return (
-                        <div key={mort.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-3">
+                        <div key={mort.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-3 mortality-invoice-item">
                           <div className="flex items-center justify-between">
                             <button 
                               type="button"
@@ -10031,7 +10475,7 @@ export default function App() {
                                 e.stopPropagation();
                                 setBillToDelete({ id: mort.id, section: 'mortalityBills', label: mort.label || 'سجل نافق' });
                               }}
-                              className="p-2 text-slate-600 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg"
+                              className="p-2 text-slate-600 hover:text-red-500 transition-colors bg-white/5 hover:bg-white/10 rounded-lg trash-btn-black-red"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -10108,18 +10552,9 @@ export default function App() {
                     })}
                   </div>
 
-                  <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 flex gap-4 items-start">
-                     <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20">
-                        <AlertCircle size={20} />
-                     </div>
-                     <div className="text-right">
-                        <h4 className="text-xs font-black text-white mb-1">توجيهات المساحة والتهوية</h4>
-                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
-                          في النظم الحديثة ذات العلافات الخارجية وخطوط النبل المعلقة، تزداد السعة الاستيعابية للمساحة الصافية بنسبة 15% نظراً لعدم وجود إشغالات داخل الدور، مما يحسن من حركة الطيور وتوزيع الهواء.
-                        </p>
-                     </div>
-                  </div>
+
                </div>
+               <PriceDisclaimerNotice />
             </div>
           </motion.div>
         )}
@@ -10168,8 +10603,8 @@ export default function App() {
                 {/* Profile Card */}
                 <Card className="bg-slate-900 border-white/5 p-6 flex flex-col items-center justify-center">
                   <div className="flex flex-col items-center justify-center text-center w-full space-y-4">
-                    <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-[#00b0ff] to-[#00dfa2] p-[3px] shadow-lg shadow-[#00b0ff]/10">
-                      <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-3xl font-black text-white">
+                    <div className="w-24 h-24 mx-auto rounded-full profile-avatar-ring">
+                      <div className="w-full h-full rounded-full profile-avatar-inner flex items-center justify-center text-3xl font-black text-white daylight-dark-navy-text">
                         {((profileData?.name || localCurrentUser?.username)?.[0] || 'T').toUpperCase()}
                       </div>
                     </div>
@@ -10298,13 +10733,72 @@ export default function App() {
                   <div>
                     <h2 className="text-2xl font-black text-white tracking-tight leading-none">لوحة التحكم</h2>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5 grayscale opacity-70">
-                      نظرة عامة على أداء القطيع
+                      نظرة عامة على أداء القطيع وقراءات الحساسات والحرارة
                     </p>
                   </div>
                 </div>
                 <div className="px-4 sm:px-6 flex items-center gap-2">
                 </div>
               </header>
+
+              {/* بطاقة ملخص قراءة العنبر الحالية مع زر الانتقال لشاشة قراءة العنبر */}
+              <Card className="p-4 bg-gradient-to-r from-slate-900 via-amber-950/20 to-cyan-950/20 border border-amber-500/30 mb-6 relative overflow-hidden shadow-lg">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-amber-500/15 rounded-2xl text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                        <Gauge size={22} className="animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="dashboard-readings-title font-black text-sm text-white flex items-center gap-2">
+                          <span className="dashboard-readings-title-text">قراءات العنبر الحالية</span>
+                          <span className="text-[9px] bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
+                            محدثة لحظياً
+                          </span>
+                        </h3>
+                        <p className="dashboard-readings-subtitle text-[10px] text-slate-400 font-bold mt-0.5">الترمومتر والرطوبة النسبية داخل العنبر</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="flex items-center gap-3">
+                      {/* Thermometer pill */}
+                      {(() => {
+                        const ageKey = String(state.age || 1);
+                        const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                        return (
+                          <div className="bg-slate-950/80 px-3 py-1.5 rounded-xl border border-amber-500/20 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الترمومتر</span>
+                            <span className="text-sm font-black font-mono text-amber-400">{curTemp}°م</span>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Hygrometer pill */}
+                      {(() => {
+                        const ageKey = String(state.age || 1);
+                        const curRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+                        return (
+                          <div className="bg-slate-950/80 px-3 py-1.5 rounded-xl border border-cyan-500/20 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الرطوبة</span>
+                            <span className="text-sm font-black font-mono text-cyan-400">{curRH}%</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setScreen('barn_readings')}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+                    >
+                      <span>قراءة العنبر</span>
+                      <ChevronLeft size={14} />
+                    </button>
+                  </div>
+                </div>
+              </Card>
 
               {/* بطاقة نوع العلف المستخدم */}
               <Card className="p-5 bg-slate-900 border border-white/5 mb-6 relative overflow-hidden">
@@ -10738,38 +11232,60 @@ export default function App() {
                 </div>
               </Card>
 
-              <Card className="bg-slate-900/40 border-slate-800 overflow-hidden relative group text-right">
-                <div className="absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
+              <Card className="barn-dimensions-card bg-slate-900/40 border-slate-800 overflow-hidden relative group text-right">
+                <div className="dashboard-bg-icon absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
                   <LayoutDashboard size={80} />
                 </div>
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-6 opacity-60">
                     <LayoutDashboard size={16} className="text-blue-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">أبعاد العنبر</span>
+                    <span className="barn-dim-title text-[10px] font-black uppercase tracking-widest">أبعاد العنبر</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center">
-                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1">الطول</p>
-                      <p className="text-xl font-black text-white">{state.barnLength}م</p>
+                      <p className="barn-dim-label text-[8px] font-black text-slate-500 uppercase mb-1">الطول</p>
+                      <p className="barn-dim-value text-xl font-black text-white">{state.barnLength}م</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1">العرض</p>
-                      <p className="text-xl font-black text-white">{state.barnWidth}م</p>
+                      <p className="barn-dim-label text-[8px] font-black text-slate-500 uppercase mb-1">العرض</p>
+                      <p className="barn-dim-value text-xl font-black text-white">{state.barnWidth}م</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1">الارتفاع</p>
-                      <p className="text-xl font-black text-white">{state.barnHeight}م</p>
+                      <p className="barn-dim-label text-[8px] font-black text-slate-500 uppercase mb-1">الارتفاع</p>
+                      <p className="barn-dim-value text-xl font-black text-white">{state.barnHeight}م</p>
                     </div>
                   </div>
                   <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-3">
-                    <span className="text-[12px] font-black text-white">{(toNum(state.barnLength) * toNum(state.barnWidth) * toNum(state.barnHeight)).toLocaleString()} م³</span>
-                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">حجم الهواء الكلي</span>
+                    <span className="barn-dim-vol-value text-[12px] font-black text-white">{(toNum(state.barnLength) * toNum(state.barnWidth) * toNum(state.barnHeight)).toLocaleString()} م³</span>
+                    <span className="barn-dim-vol-label text-[8px] font-black text-slate-500 uppercase tracking-widest">حجم الهواء الكلي</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Barn Area Card (مساحة العنبر) */}
+              <Card className="barn-area-card bg-slate-900/40 border-slate-800 p-6 overflow-hidden relative group text-right">
+                <div className="dashboard-bg-icon absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
+                  <Maximize2 size={80} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4 opacity-60">
+                    <Maximize2 size={16} className="text-emerald-400" />
+                    <span className="barn-area-title text-[10px] font-black uppercase tracking-widest">مساحة العنبر</span>
+                  </div>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <p className="barn-area-value text-2xl font-black text-white">{(toNum(state.barnLength) * toNum(state.barnWidth)).toLocaleString()} م²</p>
+                      <p className="text-[9px] font-bold text-slate-400 mt-1">المساحة السطحية الكلية (الطول × العرض)</p>
+                    </div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-emerald-400 text-xs font-black">
+                      {(toNum(state.barnLength) * toNum(state.barnWidth)).toLocaleString()} متر مربع
+                    </div>
                   </div>
                 </div>
               </Card>
 
               <Card className="bg-slate-900/40 border-slate-800 p-8 overflow-hidden relative group text-right">
-                <div className="absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
+                <div className="dashboard-bg-icon absolute top-0 left-0 p-8 text-slate-800 group-hover:text-slate-700 transition-colors">
                   <Wind size={80} />
                 </div>
                 <div className="relative z-10 w-full space-y-4">
@@ -10794,6 +11310,8 @@ export default function App() {
                   </div>
                 </div>
               </Card>
+
+              <CalculationDisclaimerNotice />
             </motion.div>
             );
             
@@ -10802,6 +11320,363 @@ export default function App() {
             }
             return null;
           })()}
+
+          {screen === 'barn_readings' && (
+            <motion.div 
+              key="barn_readings"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="barn-readings-wrapper space-y-6 pb-32 text-right font-sans"
+              dir="rtl"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 p-6 rounded-3xl border border-amber-500/30 relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 blur-3xl pointer-events-none" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                  <div className="flex items-center gap-3.5">
+                    <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+                      <Gauge size={28} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="barn-main-title text-xl sm:text-2xl font-black text-white tracking-tight">قراءة العنبر (الحساسات الحالية)</h2>
+                      <p className="text-xs text-slate-300 font-bold mt-1">
+                        إدخال قراءات الترمومتر والرطوبة الحالية وربطهما اللحظي بجميع الأنظمة
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-950/80 px-3.5 py-2 rounded-2xl border border-white/10 text-xs font-mono font-black text-amber-300">
+                    <Calendar size={15} className="text-amber-400" />
+                    <span>عمر الدورة: {state.age} يوم</span>
+                  </div>
+                </div>
+              </div>
+
+
+
+              {/* Grid with 2 main reading cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Thermometer Card */}
+                {(() => {
+                  const ageKey = String(state.age || 1);
+                  const currentTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                  const tempDiff = currentTemp - targetTemp;
+
+                  return (
+                    <Card className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 border border-amber-500/30 relative overflow-hidden shadow-xl space-y-4">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl pointer-events-none" />
+                      
+                      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-amber-500/15 rounded-2xl text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                            <Thermometer size={24} className="animate-pulse" />
+                          </div>
+                          <div>
+                            <h3 className="thermometer-card-title font-black text-base text-white">قراءة الترمومتر الحالية</h3>
+                            <p className="thermometer-card-subtitle text-xs text-slate-400 font-bold mt-0.5">درجة الحرارة الفعلية داخل العنبر (°م)</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black text-amber-400 bg-amber-500/15 px-3 py-1 rounded-full border border-amber-500/30">
+                          إدخال يدوي مباشر ⚡
+                        </span>
+                      </div>
+
+                      {/* Input & Controls */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-slate-950/90 p-4 rounded-2xl border border-white/10 flex-wrap gap-3">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTemp = Math.max(0, Math.round((currentTemp - 0.5) * 10) / 10);
+                                setState(prev => ({
+                                  ...prev,
+                                  internalTemp: newTemp,
+                                  dailyInternalTemp: { ...(prev.dailyInternalTemp || {}), [ageKey]: newTemp }
+                                }));
+                              }}
+                              className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-black text-xl flex items-center justify-center border border-white/10 cursor-pointer transition-all active:scale-95 shadow-md"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={state.dailyInternalTemp?.[ageKey] ?? state.internalTemp ?? ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  setState(prev => ({
+                                    ...prev,
+                                    internalTemp: val,
+                                    dailyInternalTemp: { ...(prev.dailyInternalTemp || {}), [ageKey]: val }
+                                  }));
+                                }
+                              }}
+                              className="w-24 bg-transparent text-3xl font-black text-amber-400 font-mono text-center outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTemp = Math.round((currentTemp + 0.5) * 10) / 10;
+                                setState(prev => ({
+                                  ...prev,
+                                  internalTemp: newTemp,
+                                  dailyInternalTemp: { ...(prev.dailyInternalTemp || {}), [ageKey]: newTemp }
+                                }));
+                              }}
+                              className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 font-black text-xl flex items-center justify-center border border-white/10 cursor-pointer transition-all active:scale-95 shadow-md"
+                            >
+                              +
+                            </button>
+                            <span className="text-base font-bold text-slate-400 font-mono">°م</span>
+                          </div>
+
+                          {/* Quick Step Buttons */}
+                          <div className="flex items-center gap-1.5">
+                            {[-1, -0.5, +0.5, +1].map(delta => (
+                              <button
+                                key={delta}
+                                type="button"
+                                onClick={() => {
+                                  const newTemp = Math.max(0, Math.round((currentTemp + delta) * 10) / 10);
+                                  setState(prev => ({
+                                    ...prev,
+                                    internalTemp: newTemp,
+                                    dailyInternalTemp: { ...(prev.dailyInternalTemp || {}), [ageKey]: newTemp }
+                                  }));
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono font-bold text-amber-300 border border-white/10 transition-all cursor-pointer active:scale-95"
+                              >
+                                {delta > 0 ? `+${delta}` : delta}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Status Bar */}
+                        <div className="flex items-center justify-between text-xs font-bold pt-1">
+                          <span className="target-temp-text text-slate-300">المستهدفة لعمر {state.age} يوم: <span className="text-white font-mono text-sm">{targetTemp}°م</span></span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                            Math.abs(tempDiff) <= 1
+                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                              : tempDiff > 1
+                              ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+                              : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                          }`}>
+                            {Math.abs(tempDiff) <= 1
+                              ? '🟢 حرارة مثالية ومتزنة'
+                              : tempDiff > 1
+                              ? `🔥 مرتفعة (+${tempDiff.toFixed(1)}°م)`
+                              : `🥶 منخفضة (${tempDiff.toFixed(1)}°م)`}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 text-[11px] text-slate-300 font-medium space-y-1">
+                          <div className="flex items-center gap-1.5 text-amber-300 font-bold real-time-sync-title">
+                            <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                            <span>الربط اللحظي بالأنظمة:</span>
+                          </div>
+                          <p className="leading-relaxed text-slate-400">
+                            يتم تحديث معادلات التدفئة (شعلات الدفايات)، مراحل تشغيل الشفاطات، تحسس الإجهاد الحراري، وسجل الحرارة اليومي تلقائياً عند أي تعديل.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })()}
+
+                {/* Hygrometer Card */}
+                {(() => {
+                  const ageKey = String(state.age || 1);
+                  const currentRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+
+                  return (
+                    <Card className="p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/40 border border-cyan-500/30 relative overflow-hidden shadow-xl space-y-4">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-2xl pointer-events-none" />
+                      
+                      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-cyan-500/15 rounded-2xl text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                            <Droplets size={24} className="animate-pulse" />
+                          </div>
+                          <div>
+                            <h3 className="hygrometer-card-title font-black text-base text-white">قراءة الرطوبة الحالية</h3>
+                            <p className="hygrometer-card-subtitle text-xs text-slate-400 font-bold mt-0.5">الرطوبة النسبية داخل العنبر (%)</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black text-cyan-400 bg-cyan-500/15 px-3 py-1 rounded-full border border-cyan-500/30">
+                          إدخال يدوي مباشر ⚡
+                        </span>
+                      </div>
+
+                      {/* Input & Controls */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between bg-slate-950/90 p-4 rounded-2xl border border-white/10 flex-wrap gap-3">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newRH = Math.max(0, Math.min(100, Math.round(currentRH - 1)));
+                                setState(prev => ({
+                                  ...prev,
+                                  currentHumidity: newRH,
+                                  dailyHumidity: { ...(prev.dailyHumidity || {}), [ageKey]: newRH }
+                                }));
+                              }}
+                              className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-black text-xl flex items-center justify-center border border-white/10 cursor-pointer transition-all active:scale-95 shadow-md"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={state.dailyHumidity?.[ageKey] ?? state.currentHumidity ?? ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  setState(prev => ({
+                                    ...prev,
+                                    currentHumidity: val,
+                                    dailyHumidity: { ...(prev.dailyHumidity || {}), [ageKey]: val }
+                                  }));
+                                }
+                              }}
+                              className="w-24 bg-transparent text-3xl font-black text-cyan-400 font-mono text-center outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newRH = Math.min(100, Math.round(currentRH + 1));
+                                setState(prev => ({
+                                  ...prev,
+                                  currentHumidity: newRH,
+                                  dailyHumidity: { ...(prev.dailyHumidity || {}), [ageKey]: newRH }
+                                }));
+                              }}
+                              className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-black text-xl flex items-center justify-center border border-white/10 cursor-pointer transition-all active:scale-95 shadow-md"
+                            >
+                              +
+                            </button>
+                            <span className="text-base font-bold text-slate-400 font-mono">%</span>
+                          </div>
+
+                          {/* Quick Step Buttons */}
+                          <div className="flex items-center gap-1.5">
+                            {[-5, -2, +2, +5].map(delta => (
+                              <button
+                                key={delta}
+                                type="button"
+                                onClick={() => {
+                                  const newRH = Math.max(0, Math.min(100, Math.round(currentRH + delta)));
+                                  setState(prev => ({
+                                    ...prev,
+                                    currentHumidity: newRH,
+                                    dailyHumidity: { ...(prev.dailyHumidity || {}), [ageKey]: newRH }
+                                  }));
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono font-bold text-cyan-300 border border-white/10 transition-all cursor-pointer active:scale-95"
+                              >
+                                {delta > 0 ? `+${delta}` : delta}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Status Bar */}
+                        <div className="flex items-center justify-between text-xs font-bold pt-1">
+                          <span className="target-temp-text text-slate-300">المستهدفة لعمر {state.age} يوم: <span className="text-white font-mono text-sm">{targetHumidity.min}% - {targetHumidity.max}%</span></span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                            currentRH >= targetHumidity.min && currentRH <= targetHumidity.max
+                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                              : currentRH > targetHumidity.max
+                              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                              : 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
+                          }`}>
+                            {currentRH >= targetHumidity.min && currentRH <= targetHumidity.max
+                              ? '🟢 رطوبة متوازنة'
+                              : currentRH > targetHumidity.max
+                              ? '💦 رطوبة مرتفعة'
+                              : '🌵 رطوبة جافة'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 text-[11px] text-slate-300 font-medium space-y-1">
+                          <div className="flex items-center gap-1.5 text-cyan-300 font-bold real-time-sync-title">
+                            <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                            <span>الربط اللحظي بالأنظمة:</span>
+                          </div>
+                          <p className="leading-relaxed text-slate-400">
+                            يتم حساب كفاءة تبخير خلايا التبريد، الضباب، تهوية التخلص من الرطوبة، ومؤشر الفرشة الجافة تلقائياً وفقاً لهذه القراءة.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })()}
+              </div>
+
+              {/* Comprehensive Linked Systems Status Overview */}
+              <Card className="p-6 bg-slate-900 border border-white/10 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Activity size={20} className="text-emerald-400 animate-pulse" />
+                    <h3 className="font-black text-sm text-white">تأثير القراءات الحالية على أنظمة العنبر المختلفة</h3>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 font-bold">
+                    ربط حي مباشر ⚡
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-right">
+                  {(() => {
+                    const ageKey = String(state.age || 1);
+                    const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                    const curRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+                    const tempDiff = curTemp - targetTemp;
+
+                    return (
+                      <>
+                        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold block">🔥 نظام التدفئة</span>
+                          <span className={`text-xs font-black block ${tempDiff < -1 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {tempDiff < -1 ? `يعمل بجهد (عجز ${Math.abs(tempDiff).toFixed(1)}°م)` : 'مطفي / مستقر'}
+                          </span>
+                          <p className="text-[9px] text-slate-500">مربوط بشعلات الدفايات واللمبات</p>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold block">🌬️ نظام التهوية والشفاطات</span>
+                          <span className={`text-xs font-black block ${tempDiff > 1.5 ? 'text-amber-400' : 'text-cyan-400'}`}>
+                            {tempDiff > 1.5 ? 'تهوية تبريد إضافية مطلوبة' : 'تهوية دنيا قياسية'}
+                          </span>
+                          <p className="text-[9px] text-slate-500">مربوط بمراوح وشفاطات العنبر</p>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold block">🧊 خلايا التبريد والرشاشات</span>
+                          <span className={`text-xs font-black block ${curRH > 75 ? 'text-orange-400' : curRH < 50 ? 'text-blue-400' : 'text-emerald-400'}`}>
+                            {curRH > 75 ? 'توقف خلايا التبريد (رطوبة عالية)' : curRH < 50 ? 'تشغيل خلايا التبريد / الرشاشات' : 'متزنة تلقائياً'}
+                          </span>
+                          <p className="text-[9px] text-slate-500">مربوط بمضخات التبريد والفرشة</p>
+                        </div>
+
+                        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-white/5 space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold block">🐔 الإجهاد الحراري والـ THI</span>
+                          <span className={`text-xs font-black block ${curTemp > 30 && curRH > 65 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {curTemp > 30 && curRH > 65 ? 'خطر إجهاد حراري مرتفع' : 'مؤشر راحة حرارية ممتازة'}
+                          </span>
+                          <p className="text-[9px] text-slate-500">معامل درجة الحرارة مع الرطوبة</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </Card>
+
+              <CalculationDisclaimerNotice />
+            </motion.div>
+          )}
 
           {screen === 'battery' && (
             <motion.div 
@@ -11437,6 +12312,7 @@ export default function App() {
                   </div>
                 )}
               </AnimatePresence>
+              <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -11508,7 +12384,7 @@ export default function App() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="relative group/meds perspective-[2000px] pb-32"
+              className="medication-screen-wrapper relative group/meds perspective-[2000px] pb-32"
             >
               <AnimatePresence mode="wait" initial={false} custom={flipDirection}>
                 <motion.div 
@@ -11539,13 +12415,14 @@ export default function App() {
                       إجمالي المياه {dailyWaterTotalLiters} لتر
                     </div>
                     {activeBatteriesCount >= 2 && (
-                      <div className="flex flex-wrap items-center justify-end gap-1 text-[10px] font-bold text-slate-400 bg-slate-900/40 px-2.5 py-1 rounded-xl border border-white/5 mt-1">
-                        <span className="text-slate-500 text-[9px] ml-1">توزيع المياه الفعلي:</span>
+                      <div className="flex flex-wrap items-center justify-end gap-1 text-[10px] font-bold px-2.5 py-1 rounded-xl mt-1 water-actual-dist-card">
+                        <span className="text-[9px] ml-1 font-black water-actual-dist-label">توزيع المياه الفعلي:</span>
                         {batteryWaterDistribution.units.filter(u => u.birdsCount > 0).map((unit, idx) => {
                           const name = unit.unitName.includes(' - ') ? unit.unitName.split(' - ')[1] : unit.unitName;
                           return (
-                            <span key={idx} className="bg-slate-950 px-1.5 py-0.5 rounded text-cyan-400 font-black font-mono">
-                              {name}: {unit.waterLiters} لتر
+                            <span key={idx} className="px-1.5 py-0.5 rounded font-black font-mono flex items-center gap-1 water-actual-dist-badge">
+                              <span className="unit-name">{name}:</span>
+                              <span className="unit-val">{unit.waterLiters} لتر</span>
                             </span>
                           );
                         })}
@@ -11639,7 +12516,7 @@ export default function App() {
 
                 <div className="bg-slate-900/50 border border-white/5 p-5 rounded-3xl">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                    <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight sm:tracking-widest block leading-tight">البرنامج العلاجي الموحد (مجدول + إضافي)</span>
+                    <span className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-tight sm:tracking-widest block leading-tight">البرنامج العلاجي الاسترشادي العام</span>
                     <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-widest text-right self-end sm:self-auto">
                        <div className="flex items-center gap-1.5" title={state.isManualOverride ? "تم التعديل يدوياً" : "يتم التحديث تلقائياً"}>
                           {state.isManualOverride ? <Edit3 size={10} className="text-amber-500" /> : <RefreshCw size={10} className="text-blue-400 animate-spin-slow" />}
@@ -12085,19 +12962,24 @@ export default function App() {
                                                </span>
                                             </div>
                                             {activeBatteriesCount >= 2 && (
-                                              <div className="flex flex-col gap-1 px-2 pt-1.5 border-t border-white/5 mt-1">
-                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-right block mb-1">المياه لكل بطارية (حسب عدد الطيور):</span>
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                  {batteryWaterDistribution.units.map((unit, uIdx) => {
-                                                    const unitMedWater = ((unit.birdsCount / (batteryWaterDistribution.totalBirdsAcrossAllBatteries || 1)) * med.calculatedWater).toFixed(1);
-                                                    return (
-                                                      <div key={uIdx} className="bg-slate-950/40 px-2.5 py-1.5 rounded-lg border border-white/5 flex items-center justify-between text-[10px]">
-                                                        <span className="text-slate-400 font-bold">{unit.unitName.includes(' - ') ? unit.unitName.split(' - ')[1] : unit.unitName}</span>
-                                                        <span className="text-cyan-400 font-black font-mono">{unitMedWater} لتر</span>
-                                                      </div>
-                                                    );
-                                                  })}
-                                                </div>
+                                              <div className="pt-2 border-t border-white/5 mt-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedMedForDistribution({
+                                                      medName: med.name || 'الجرعة الحالية',
+                                                      calculatedWater: med.calculatedWater,
+                                                      doseValue: med.doseValue,
+                                                      unit: med.unit || ''
+                                                    });
+                                                  }}
+                                                  className="w-full py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all hover:scale-[1.01] active:scale-[0.99] water-actual-dist-btn shadow-md"
+                                                >
+                                                  <Droplets size={15} className="text-cyan-400 daylight-icon-white flex-shrink-0" />
+                                                  <span>عرض التفاصيل</span>
+                                                  <ChevronLeft size={14} className="rotate-180 flex-shrink-0" />
+                                                </button>
                                               </div>
                                             )}
                                             <div className="hidden">
@@ -12592,19 +13474,24 @@ export default function App() {
                                           </span>
                                         </div>
                                         {activeBatteriesCount >= 2 && (
-                                          <div className="flex flex-col gap-1 px-2 pt-1.5 border-t border-white/5 mt-1">
-                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-right block mb-1">المياه لكل بطارية (حسب عدد الطيور):</span>
-                                            <div className="grid grid-cols-2 gap-1.5">
-                                              {batteryWaterDistribution.units.map((unit, uIdx) => {
-                                                const unitMedWater = ((unit.birdsCount / (batteryWaterDistribution.totalBirdsAcrossAllBatteries || 1)) * med.calculatedWater).toFixed(1);
-                                                return (
-                                                  <div key={uIdx} className="bg-slate-950/40 px-2.5 py-1.5 rounded-lg border border-white/5 flex items-center justify-between text-[10px]">
-                                                    <span className="text-slate-400 font-bold">{unit.unitName.includes(' - ') ? unit.unitName.split(' - ')[1] : unit.unitName}</span>
-                                                    <span className="text-cyan-400 font-black font-mono">{unitMedWater} لتر</span>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
+                                          <div className="pt-2 border-t border-white/5 mt-1">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedMedForDistribution({
+                                                  medName: med.name || 'الجرعة اليومية',
+                                                  calculatedWater: med.calculatedWater,
+                                                  doseValue: med.doseValue,
+                                                  unit: med.unit || ''
+                                                });
+                                              }}
+                                              className="w-full py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all hover:scale-[1.01] active:scale-[0.99] water-actual-dist-btn shadow-md"
+                                            >
+                                              <Droplets size={15} className="text-cyan-400 daylight-icon-white flex-shrink-0" />
+                                              <span>عرض التفاصيل</span>
+                                              <ChevronLeft size={14} className="rotate-180 flex-shrink-0" />
+                                            </button>
                                           </div>
                                         )}
                                         <div className="hidden">
@@ -12806,9 +13693,9 @@ export default function App() {
                         </div>
                       </div>
                       
-                      <div className="bg-slate-950/50 px-5 py-3 border-t border-white/5 grid grid-cols-2 gap-4">
+                      <div className="bg-slate-950/50 px-5 py-3 border-t border-white/5 grid grid-cols-2 gap-4 med-bottom-info-cards">
                         <div 
-                          className="space-y-1 cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                          className="space-y-1 cursor-help active:bg-white/5 p-1 rounded-lg transition-colors med-info-card-block"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedMedInfo({ 
@@ -12817,14 +13704,14 @@ export default function App() {
                             });
                           }}
                         >
-                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">التفسير العلمي</span>
-                          <p className="text-[10px] font-bold text-slate-300 leading-relaxed italic line-clamp-3">
+                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block med-info-label">التفسير العلمي</span>
+                          <p className="text-[10px] font-bold text-slate-300 leading-relaxed italic line-clamp-3 med-info-val">
                             {med.scientificExplanation || med.benefits}
                           </p>
                         </div>
                         <div className="space-y-2">
                            <div 
-                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors med-info-card-block"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedMedInfo({ 
@@ -12833,14 +13720,14 @@ export default function App() {
                                 });
                               }}
                            >
-                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">قواعد الخلط</span>
-                              <p className="text-[10px] font-bold text-white flex items-center gap-1.5">
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block med-info-label">قواعد الخلط</span>
+                              <p className="text-[10px] font-bold text-white flex items-center gap-1.5 med-info-val">
                                 <Droplets size={10} className="text-cyan-500 flex-shrink-0" />
                                 <span className="truncate">{med.mixingRules || med.mixing}</span>
                               </p>
                            </div>
                            <div 
-                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors med-info-card-block"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedMedInfo({ 
@@ -12849,13 +13736,13 @@ export default function App() {
                                 });
                               }}
                            >
-                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">التتابع الفني</span>
-                              <p className="text-[10px] font-bold text-slate-400 truncate">
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block med-info-label">التتابع الفني</span>
+                              <p className="text-[10px] font-bold text-slate-400 truncate med-info-val">
                                 {med.technicalSequence || med.sequence}
                               </p>
                            </div>
                            <div 
-                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors"
+                              className="cursor-help active:bg-white/5 p-1 rounded-lg transition-colors med-info-card-block"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedMedInfo({ 
@@ -12864,8 +13751,8 @@ export default function App() {
                                 });
                               }}
                            >
-                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">أسماء الأدوية المقترحة</span>
-                              <p className="text-[10px] font-bold text-amber-500 truncate">
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block med-info-label">أسماء الأدوية المقترحة</span>
+                              <p className="text-[10px] font-bold text-amber-500 truncate med-info-val">
                                 {med.tradeNames || "بدائل تجارية"}
                               </p>
                            </div>
@@ -12950,33 +13837,35 @@ export default function App() {
                </header>
                
                {/* Main Performance Curve */}
-               <Card className="h-[320px] md:h-[400px] border-white/5 pt-6 bg-slate-900/40 relative overflow-hidden group shadow-2xl">
+               <Card className="min-h-[380px] sm:min-h-[420px] md:min-h-[460px] w-full border-white/5 p-5 sm:p-6 md:p-8 bg-slate-900/40 relative overflow-hidden group shadow-2xl flex flex-col justify-between rounded-3xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/40 via-indigo-500/40 to-emerald-500/40" />
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-10 px-4 md:px-6 gap-3">
-                  <div className="space-y-0.5">
-                    <h3 className="text-base md:text-lg font-black text-white">معدل تحويل الوزن</h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 md:mb-6 gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-base sm:text-lg md:text-xl font-black text-white daylight-black-text">معدل تحويل الوزن</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-400 font-medium">منحنى نمو الوزن الفعلي مقارنة بالمؤشر المعياري للسلالة</p>
                   </div>
-                  <div className="flex items-center gap-3 bg-slate-950/50 p-2 rounded-xl border border-white/5 backdrop-blur-sm">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase">الفعلي</span>
+                  <div className="flex items-center gap-3 bg-slate-950/60 p-2.5 px-3 rounded-2xl border border-white/5 backdrop-blur-md self-end sm:self-auto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                      <span className="text-[10px] font-black text-emerald-400 uppercase">الفعلي</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-indigo-500/40"></div>
-                      <span className="text-[9px] font-black text-slate-500 uppercase">المعيار</span>
+                    <div className="w-px h-3 bg-white/10" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500/60"></div>
+                      <span className="text-[10px] font-black text-indigo-300 uppercase">المعيار</span>
                     </div>
                   </div>
                 </div>
-                <div className="h-[210px] md:h-[280px] w-full">
+                <div className="h-[250px] sm:h-[300px] md:h-[340px] w-full flex-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 7, 45))} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                    <AreaChart data={chartData.slice(0, Math.min(toNum(state.age) + 7, 45))} margin={{ top: 15, right: 15, left: -5, bottom: 10 }}>
                       <defs>
                         <linearGradient id="mainWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="stdWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.05}/>
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
                           <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
@@ -12984,9 +13873,9 @@ export default function App() {
                       <XAxis 
                         dataKey="day" 
                         stroke="#475569" 
-                        fontSize={9} 
+                        fontSize={10} 
                         tickFormatter={(tick) => `يوم ${tick}`}
-                        tick={{ fill: '#64748b', fontWeight: 600 }}
+                        tick={{ fill: '#64748b', fontWeight: 700 }}
                         axisLine={false}
                         tickLine={false}
                         dy={8}
@@ -12994,10 +13883,10 @@ export default function App() {
                       />
                       <YAxis 
                         stroke="#475569" 
-                        fontSize={9} 
-                        width={50}
+                        fontSize={10} 
+                        width={55}
                         tickFormatter={(tick) => `${tick}ج`}
-                        tick={{ fill: '#64748b', fontWeight: 600 }}
+                        tick={{ fill: '#64748b', fontWeight: 700 }}
                         axisLine={false}
                         tickLine={false}
                         dx={-5}
@@ -13242,6 +14131,7 @@ export default function App() {
                     </motion.div>
                   ))}
                </div>
+               <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -13274,6 +14164,166 @@ export default function App() {
                 </div>
               </header>
 
+              {/* Live Connected Barn Readings Header Bar for Heating */}
+              {(() => {
+                const ageKey = String(state.age || 1);
+                const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                const curRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+                const targetTemp = getTargetTemperature(toNum(state.age));
+                const tempDiff = Math.round((curTemp - targetTemp) * 10) / 10;
+                const isLowTemp = tempDiff < 0;
+                const isHeatingBoostActive = state.dailyHeatingBoostActive?.[ageKey] ?? (state.isHeatingBoostActive || isLowTemp);
+
+                return (
+                  <Card className="p-4 bg-gradient-to-r from-slate-900 via-rose-950/30 to-amber-950/30 border border-rose-500/30 relative overflow-hidden shadow-xl space-y-3">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-rose-500/15 rounded-2xl text-rose-400 border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                          <Flame size={22} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-black text-sm text-white">قراءات العنبر الحالية</h3>
+                            <span className="text-[9px] bg-emerald-500/15 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              تزامن حقيقي ⚡
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Thermometer Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-amber-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الترمومتر</span>
+                            <span className="text-sm font-black font-mono text-amber-400">{curTemp}°م</span>
+                          </div>
+
+                          {/* Target Temp Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-emerald-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">المستهدفة</span>
+                            <span className="text-sm font-black font-mono text-emerald-400">{targetTemp}°م</span>
+                          </div>
+
+                          {/* Humidity Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-cyan-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الرطوبة</span>
+                            <span className="text-sm font-black font-mono text-cyan-400">{curRH}%</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setScreen('barn_readings')}
+                          className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                        >
+                          <span>تعديل القراءة</span>
+                          <ChevronLeft size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Temperature Difference & Heating Action Guidance Banner */}
+                    <div className={cn(
+                      "p-3 rounded-2xl border text-xs font-bold space-y-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+                      tempDiff < -1.0
+                        ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
+                        : tempDiff > 1.0
+                        ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+                        : "bg-emerald-500/15 border-emerald-500/40 text-emerald-200"
+                    )}>
+                      <div className="flex items-center gap-2.5">
+                        {tempDiff < -1.0 ? (
+                          <div className="p-1.5 bg-rose-500/20 rounded-xl text-rose-400 shrink-0">
+                            <Flame size={18} className="animate-bounce" />
+                          </div>
+                        ) : tempDiff > 1.0 ? (
+                          <div className="p-1.5 bg-amber-500/20 rounded-xl text-amber-400 shrink-0">
+                            <AlertTriangle size={18} className="animate-pulse" />
+                          </div>
+                        ) : (
+                          <div className="p-1.5 bg-emerald-500/20 rounded-xl text-emerald-400 shrink-0">
+                            <CheckCircle2 size={18} />
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {tempDiff < -1.0 ? (
+                              <span className="font-black text-white daylight-black-text text-xs">
+                                🥶 عجز حراري ({tempDiff.toFixed(1)}°م): يُوصى برفع التدفئة وتأمين طاقة حرارية إضافية
+                              </span>
+                            ) : tempDiff > 1.0 ? (
+                              <span className="font-black text-white daylight-black-text text-xs">
+                                🔥 فائض حراري (+{tempDiff.toFixed(1)}°م): يُوصى بخفض أو إيقاف التدفئة لتفادي الإجهاد
+                              </span>
+                            ) : (
+                              <span className="font-black text-xs text-white daylight-black-text">
+                                🟢 <span className="text-white daylight-black-text font-black">التدفئة متزنة تماماً</span> (<span className="text-red-600 dark:text-red-400 font-black">{curTemp}°م</span> <span className="text-white daylight-black-text font-black">= الهدف</span> <span className="text-red-600 dark:text-red-400 font-black">{targetTemp}°م</span>)
+                              </span>
+                            )}
+                          </div>
+                          {tempDiff < -1.0 ? null : (
+                            <p className="text-[11px] font-black mt-0.5 leading-relaxed text-white daylight-black-text">
+                              {tempDiff > 1.0 ? (
+                                `قراءة ترمومتر العنبر (${curTemp}°م) أعلى من الحرارة المستهدفة (${targetTemp}°م). يمكنك خفض الدفايات أو إيقاف الهيترات مؤقتاً لتوفير الوقود وحماية الكتاكيت.`
+                              ) : (
+                                <span>
+                                  <span className="text-white daylight-black-text font-black">أنظمة التدفئة الحالية تغطي </span>
+                                  <span className="text-red-600 dark:text-red-400 font-black">الاحتياج الحراري للطيور</span>
+                                  <span className="text-white daylight-black-text font-black"> بنجاح واستقرار فسيولوجي ممتاز.</span>
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newStatus = !isHeatingBoostActive;
+                            setState(prev => ({
+                              ...prev,
+                              isHeatingBoostActive: newStatus,
+                              dailyHeatingBoostActive: {
+                                ...(prev.dailyHeatingBoostActive || {}),
+                                [ageKey]: newStatus
+                              }
+                            }));
+                          }}
+                          className={cn(
+                            "px-3.5 py-2 rounded-xl text-[11px] font-black border transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 heating-boost-btn",
+                            isLowTemp
+                              ? isHeatingBoostActive
+                                ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-500/40 animate-pulse"
+                                : "bg-rose-950/80 hover:bg-rose-900 text-rose-300 border-rose-500/50"
+                              : tempDiff > 1.0
+                              ? "bg-amber-500/30 text-amber-200 border-amber-500/50 cursor-default"
+                              : "bg-emerald-500/30 text-emerald-200 border-emerald-500/50 cursor-default"
+                          )}
+                        >
+                          <Flame size={14} className={isHeatingBoostActive && isLowTemp ? "text-yellow-300 animate-bounce" : ""} />
+                          <span className="heating-boost-btn-text">
+                            {isLowTemp
+                              ? isHeatingBoostActive
+                                ? "🔥 رفع التدفئة مفعّل (تدفئة تعويضية)"
+                                : "🔥 تفعيل رفع التدفئة (تدفئة تعويضية)"
+                              : tempDiff > 1.0
+                              ? "🛑 خفض/إيقاف التدفئة"
+                              : "✅ تدفئة مستقرة"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+
+                  </Card>
+                );
+              })()}
+
               {/* Heating Method Selector Card */}
               <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl text-right font-sans overflow-hidden relative shadow-2xl">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/5 blur-3xl rounded-full pointer-events-none" />
@@ -13281,114 +14331,164 @@ export default function App() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
                   {[
-                    { id: 'bulb', label: 'التدفئة باللمبات فقط 💡', desc: 'توزيع حراري موضعي ومثالي للأعمار الأولى', activeColor: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/40 shadow-xl shadow-yellow-950/20' },
-                    { id: 'heater', label: 'الدفايات والهيترات 💨', desc: 'تحكم مركزي قوي للمساحات المتوسطة والكبيرة', activeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/40 shadow-xl shadow-rose-950/20' },
-                    { id: 'both', label: 'التدفئة المشتركة 🔥', desc: 'الدمج الكامل للحصول على أعلى كفاءة أمان', activeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/40 shadow-xl shadow-amber-950/20' }
+                    { id: 'heater', name: 'التدفئة بالدفايات', label: 'الدفايات والهيترات 💨', desc: 'تحكم مركزي قوي للمساحات المتوسطة والكبيرة', activeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/40 shadow-xl shadow-rose-950/20' },
+                    { id: 'bulb', name: 'التدفئة باللمبات', label: 'التدفئة باللمبات 💡', desc: 'توزيع حراري موضعي ومثالي للأعمار الأولى', activeColor: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/40 shadow-xl shadow-yellow-950/20' },
+                    { id: 'both', name: 'التدفئة المشتركة', label: 'التدفئة المشتركة 🔥', desc: 'الدمج الكامل للحصول على أعلى كفاءة أمان', activeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/40 shadow-xl shadow-amber-950/20' }
                   ].map((method) => {
                     const active = (state.heatingMethod || 'both') === method.id;
                     return (
-                      <button
+                      <div
                         key={method.id}
-                        type="button"
                         onClick={() => setState(prev => ({ ...prev, heatingMethod: method.id as any }))}
-                        className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all border text-center gap-1.5 cursor-pointer ${
+                        className={`flex flex-col justify-between p-4 rounded-2xl transition-all border text-right gap-3 cursor-pointer ${
                           active 
                             ? `${method.activeColor} border-[1.5px]` 
-                            : 'bg-slate-950/30 border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+                            : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
                         }`}
                       >
-                        <span className="text-[13px] font-black">{method.label}</span>
-                        <span className="text-[9px] opacity-70 font-medium leading-normal">{method.desc}</span>
-                      </button>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[12px] sm:text-[13px] font-black text-white daylight-black-text">{method.name}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setState(prev => ({ ...prev, heatingMethod: method.id as any }));
+                            }}
+                            className={`px-3 py-1 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-md ${
+                              active
+                                ? 'bg-emerald-500 text-slate-950 border border-emerald-400 hover:bg-emerald-400'
+                                : 'bg-slate-200 dark:bg-slate-800 text-black dark:text-slate-400 border border-slate-300 dark:border-white/10 hover:bg-slate-300 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${active ? 'bg-slate-950 animate-pulse' : 'bg-rose-500'}`} />
+                            <span className={active ? 'text-slate-950' : 'text-black dark:text-black font-black'}>{active ? 'مفعل' : 'مغلق'}</span>
+                          </button>
+                        </div>
+                        <span className="text-[10px] opacity-75 font-medium leading-relaxed">{method.desc}</span>
+                      </div>
                     );
                   })}
                 </div>
               </Card>
 
-              {/* Quick Info Bento Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Recommended Temperature based on Chick Age */}
-                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full pointer-events-none" />
-                  <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 shrink-0 z-10 border border-amber-500/10 shadow-inner">
-                    <Thermometer size={22} />
-                  </div>
-                  <div className="min-w-0 flex-1 z-10">
-                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">الحرارة المطلوبة للمرحلة</h5>
-                    <p className="text-xl font-black text-white leading-tight">
-                      {toNum(state.age) <= 3 ? 33 : toNum(state.age) <= 7 ? 31 : toNum(state.age) <= 14 ? 28 : toNum(state.age) <= 21 ? 25 : toNum(state.age) <= 28 ? 22 : 20}°م
-                    </p>
-                    <span className="text-[10px] text-amber-500 font-bold block mt-1 truncate">
-                      {toNum(state.age) <= 7 ? "مرحلة تحضين حرجة ⚠️" : "مرحلة معتدلة مستقرة ✅"}
-                    </span>
-                  </div>
-                </Card>
 
-                {/* Installed Power capacity */}
-                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-2xl rounded-full pointer-events-none" />
-                  <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-400 shrink-0 z-10 border border-rose-500/10 shadow-inner">
-                    <Flame size={22} />
-                  </div>
-                  <div className="min-w-0 flex-1 z-10">
-                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">القدرة المتوفرة للتسخين</h5>
-                    <p className="text-xl font-black text-white leading-tight">
-                      {(() => {
-                        const m = state.heatingMethod || 'both';
-                        const bulbW = m === 'heater' ? 0 : (toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200));
-                        const heaterW = m === 'bulb' ? 0 : (toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000));
-                        return ((bulbW + heaterW) / 1000).toFixed(1);
-                      })()} كيلووات
-                    </p>
-                    <span className="text-[10px] text-rose-400 font-bold block mt-1 truncate">
-                      {state.heatingMethod === 'bulb' ? "إضاءة حرارية تنجستين" : state.heatingMethod === 'heater' ? "نظام دفايات مركزي" : "نظام تدفئة مزدوج فعال"}
-                    </span>
-                  </div>
-                </Card>
-
-                {/* Barn Area */}
-                <Card className="bg-slate-900 border border-white/10 p-5 rounded-3xl flex items-center gap-4 overflow-hidden relative shadow-md">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl rounded-full pointer-events-none" />
-                  <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 shrink-0 z-10 border border-indigo-500/10 shadow-inner">
-                    <Layers size={22} />
-                  </div>
-                  <div className="min-w-0 flex-1 z-10">
-                    <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">مساحة العنبر الإجمالية</h5>
-                    <p className="text-xl font-black text-white leading-tight">
-                      {(toNum(state.barnLength || 100) * toNum(state.barnWidth || 12)).toLocaleString()} م²
-                    </p>
-                    <span className="text-[10px] text-indigo-400 font-bold block mt-1 truncate">الأبعاد: {state.barnLength || 100}م × {state.barnWidth || 12}م</span>
-                  </div>
-                </Card>
-              </div>
 
               {/* Heating Configurations Cards Grid */}
-              <div className={`grid grid-cols-1 ${(state.heatingMethod || 'both') === 'both' ? 'lg:grid-cols-2' : ''} gap-6`}>
-                {/* 1. Tungsten Bulbs Configuration Card */}
+              <div className="grid grid-cols-1 gap-6">
+                {/* 1. Tungsten Bulb / Lamps Configuration Card */}
                 {((state.heatingMethod || 'both') === 'bulb' || (state.heatingMethod || 'both') === 'both') && (
                   <Card className="bg-slate-900 border border-white/10 rounded-3xl p-6 text-right font-sans relative overflow-hidden shadow-xl">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 blur-3xl rounded-full pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full pointer-events-none" />
                     
                     <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
-                      <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center text-yellow-500 shrink-0 border border-yellow-500/10 shadow-inner">
-                        <Sun size={18} className={toNum(state.tungstenBulbCount) > 0 ? 'animate-pulse' : ''} />
+                      <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 shrink-0 border border-amber-500/10 shadow-inner">
+                        <Lightbulb size={18} className={toNum(state.tungstenBulbCount) > 0 ? 'animate-pulse' : ''} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-black text-white">لمبات التنجستين الحرارية (الموضعية)</h4>
-                        <p className="text-[10px] text-slate-400 font-bold leading-normal">توزيع حراري منتظم وعالي الكثافة على الفرشة</p>
+                        <h4 className="text-sm font-black text-white">اللمبات ولمبات التنجستين الحرارية 💡</h4>
+                        <p className="text-[10px] text-slate-400 font-bold leading-normal">التدفئة الموضعية وتأمين شبكة حرارة الحضانات والأعمار المبكرة</p>
                       </div>
                     </div>
 
-                    <div className="space-y-5 relative z-10">
-                      {/* Bulb count with controls (optimized for mobile touch targets) */}
-                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                    <div className="space-y-4">
+                      {/* Battery Specifications & Heating Distribution Card (Only shown if battery rearing is selected) */}
+                      {state.breedingSystem !== 'Floor' && (
+                        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/40 p-4 rounded-2xl border border-blue-500/30 space-y-3.5 shadow-xl">
+                          <div className="flex items-center justify-between flex-wrap gap-2 border-b border-blue-500/20 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <Layers size={18} className="text-blue-400 animate-pulse" />
+                              <h5 className="text-xs font-black text-white">مواصفات التربية بالبطاريات وتوزيع التدفئة 🔋</h5>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono font-bold text-blue-300 bg-blue-500/15 px-2.5 py-0.5 rounded-full border border-blue-500/30">
+                                تربية بطاريات مفعلة ⚡
+                              </span>
+
+                            </div>
+                          </div>
+
+                          {/* Battery Summary Stats */}
+                          {(() => {
+                            const groups = state.batteryGroups || [];
+                            const totalBatteries = groups.reduce((acc, g) => acc + toNum(g.count), 0);
+                            const maxTiers = groups.reduce((acc, g) => Math.max(acc, toNum(g.tiers)), 0);
+                            const totalBatteryArea = groups.reduce((acc, g) => acc + (toNum(g.length) * toNum(g.width) * toNum(g.tiers) * toNum(g.count)), 0);
+                            const totalFloorArea = groups.reduce((acc, g) => acc + (toNum(g.length) * toNum(g.width) * toNum(g.count)), 0);
+                            const totalBulbs = toNum(state.tungstenBulbCount ?? 20);
+                            const bulbsPerBattery = totalBatteries > 0 ? (totalBulbs / totalBatteries).toFixed(1) : '0';
+                            const totalTierCages = groups.reduce((acc, g) => acc + (toNum(g.tiers) * toNum(g.count)), 0);
+                            const bulbsPerTier = totalTierCages > 0 ? (totalBulbs / totalTierCages).toFixed(1) : '0';
+
+                            return (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                                  <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                    <span className="text-[9px] text-white daylight-black-text font-black block">إجمالي البطاريات</span>
+                                    <span className="text-sm font-black font-mono text-blue-400 block">{totalBatteries} بطارية</span>
+                                    <span className="text-[9px] text-slate-500 font-bold">({groups.length} مجموعة)</span>
+                                  </div>
+
+                                  <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                    <span className="text-[9px] text-white daylight-black-text font-black block">أدوار البطاريات</span>
+                                    <span className="text-sm font-black font-mono text-cyan-300 block">{maxTiers} أدوار/طوابق</span>
+                                    <span className="text-[9px] text-slate-500 font-bold">({totalTierCages} دور إجمالي)</span>
+                                  </div>
+
+                                  <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                    <span className="text-[9px] text-white daylight-black-text font-black block">مساحة التربية بالبطاريات</span>
+                                    <span className="text-sm font-black font-mono text-emerald-400 block">{totalBatteryArea.toFixed(1)} م²</span>
+                                    <span className="text-[9px] text-slate-500 font-bold">(إشغال الأرض: {totalFloorArea.toFixed(1)} م²)</span>
+                                  </div>
+
+                                  <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                    <span className="text-[9px] text-white daylight-black-text font-black block">توزيع اللمبات للبطارية</span>
+                                    <span className="text-sm font-black font-mono text-amber-400 block">{bulbsPerBattery} لمبة/بطارية</span>
+                                    <span className="text-[9px] text-slate-500 font-bold">({bulbsPerTier} لمبة لكل دور)</span>
+                                  </div>
+                                </div>
+
+                                {/* Group details list */}
+                                {groups.length > 0 && (
+                                  <div className="bg-slate-950/80 p-3 rounded-xl border border-white/5 space-y-2">
+                                    <span className="text-[10px] text-white daylight-black-text font-black block border-b border-slate-200 dark:border-white/5 pb-1">
+                                      تفاصيل المجموعات وأبعاد البطاريات المربوطة بالتدفئة:
+                                    </span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {groups.map((g, idx) => {
+                                        const gArea = toNum(g.length) * toNum(g.width) * toNum(g.tiers) * toNum(g.count);
+                                        const gBulbs = totalBatteries > 0 ? Math.round((toNum(g.count) / totalBatteries) * totalBulbs) : 0;
+                                        return (
+                                          <div key={g.id || idx} className="bg-slate-900 p-2 rounded-lg border border-white/5 text-[10px] flex items-center justify-between">
+                                            <div>
+                                              <span className="font-black text-white block">{g.name || `مجموعة ${idx + 1}`}</span>
+                                              <span className="text-white daylight-black-text font-black font-mono">
+                                                {g.count} بطارية × {g.tiers} أدوار ({g.length}م × {g.width}م)
+                                              </span>
+                                            </div>
+                                            <div className="text-left font-mono">
+                                              <span className="text-blue-300 font-bold block">{gArea.toFixed(1)} م²</span>
+                                              <span className="text-amber-400 font-bold block">{gBulbs} لمبة متوقعة</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Bulb count with controls */}
+                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-2 shadow-inner">
                         <div className="flex justify-between items-center flex-wrap gap-2">
-                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">إجمالي عدد اللمبات بالعنبر</label>
-                          <span className="text-[11px] font-mono font-black text-yellow-400 bg-yellow-400/5 px-2.5 py-1 rounded-lg border border-yellow-400/15">{state.tungstenBulbCount ?? 20} لمبة</span>
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">عدد اللمبات الحرارية الفعالة بالعنبر</label>
+                          <span className="text-[11px] font-mono font-black text-amber-400 bg-amber-400/5 px-2.5 py-1 rounded-lg border border-amber-400/15">{state.tungstenBulbCount ?? 20} لمبة / تنجستين</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
                           <button 
-                            key="dec-bulb"
                             type="button"
                             onClick={() => {
                               const current = toNum(state.tungstenBulbCount ?? 20);
@@ -13399,7 +14499,6 @@ export default function App() {
                             -
                           </button>
                           <input 
-                            key="bulb-count-in"
                             type="text"
                             inputMode="numeric"
                             value={state.tungstenBulbCount ?? ''}
@@ -13409,10 +14508,9 @@ export default function App() {
                                 setState(prev => ({ ...prev, tungstenBulbCount: val }));
                               }
                             }}
-                            className="bg-transparent text-2xl font-black text-center text-white flex-1 outline-none font-mono focus:text-yellow-400 transition-colors w-full"
+                            className="bg-transparent text-2xl font-black text-center text-white flex-1 outline-none font-mono focus:text-amber-400 transition-colors w-full"
                           />
                           <button 
-                            key="inc-bulb"
                             type="button"
                             onClick={() => {
                               const current = toNum(state.tungstenBulbCount ?? 20);
@@ -13425,68 +14523,21 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Special battery tiers bulb configuration */}
-                      {maxBatteryTiers > 0 && (
-                        <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-                          <div className="flex justify-between items-center flex-wrap gap-2">
-                            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">عدد اللمبات الموزعة لكل دور (بطارية)</label>
-                            <span className="text-[10px] text-yellow-400 font-bold bg-yellow-400/5 px-2 py-0.5 rounded border border-yellow-400/10">إجمالي أدوار العنبر: {maxBatteryTiers}</span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {Array.from({ length: maxBatteryTiers }).map((_, tierIdx) => {
-                              const tierNum = tierIdx + 1;
-                              const val = state.bulbsPerTier?.[tierNum] ?? '';
-                              return (
-                                <div key={tierNum} className="space-y-1 bg-slate-900/60 p-2 text-right rounded-xl border border-white/5 flex flex-col justify-between">
-                                  <span className="text-[10px] font-bold text-slate-400">الدور {tierNum}</span>
-                                  <div className="flex items-center gap-1.5 mt-1 bg-slate-950/60 px-2 py-1.5 rounded-lg border border-white/5">
-                                    <input 
-                                      type="text"
-                                      inputMode="numeric"
-                                      value={val}
-                                      placeholder="0"
-                                      onChange={e => {
-                                        const inputVal = e.target.value;
-                                        if (inputVal === '' || /^\d*$/.test(inputVal)) {
-                                          setState(prev => {
-                                            const prevBulbs = prev.bulbsPerTier || {};
-                                            const nextBulbs = { ...prevBulbs, [tierNum]: inputVal };
-                                            const totalBulbsSum = Object.values(nextBulbs).reduce<number>((s, curr) => s + toNum(curr), 0);
-                                            return {
-                                              ...prev,
-                                              bulbsPerTier: nextBulbs,
-                                              tungstenBulbCount: totalBulbsSum > 0 ? totalBulbsSum : prev.tungstenBulbCount
-                                            };
-                                          });
-                                        }
-                                      }}
-                                      className="bg-transparent text-sm font-bold text-center text-white outline-none font-mono w-full"
-                                    />
-                                    <span className="text-[10px] text-slate-500 font-medium shrink-0">لمبة</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Bulb Power selection/custom power inputs */}
+                      {/* Bulb Power selection with chips */}
                       <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
                         <div className="flex justify-between items-center flex-wrap gap-2">
-                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قدرة المصباح الفردي</label>
-                          <span className="text-xs font-mono font-black text-orange-400 bg-orange-400/5 px-2 py-0.5 rounded border border-orange-400/10 shrink-0">{state.tungstenBulbPower ?? 200} وات</span>
+                          <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قدرة اللمبة الواحدة بالوات</label>
+                          <span className="text-xs font-mono font-black text-amber-400 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-400/10 shrink-0">{(toNum(state.tungstenBulbPower ?? 200)).toLocaleString()} وات</span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {[100, 150, 200, 250].map((watts) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {[60, 100, 150, 200, 300].map((watts) => (
                             <button
                               key={watts}
                               type="button"
                               onClick={() => setState(prev => ({ ...prev, tungstenBulbPower: watts }))}
                               className={`py-2 px-1 rounded-xl text-xs font-black transition-all border cursor-pointer ${
                                 toNum(state.tungstenBulbPower) === watts 
-                                  ? 'bg-yellow-500 text-slate-950 font-black border-yellow-400 shadow-md shadow-yellow-500/10' 
+                                  ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/10' 
                                   : 'bg-white/5 hover:bg-white/10 text-slate-300 border-transparent'
                               }`}
                             >
@@ -13507,50 +14558,305 @@ export default function App() {
                                   setState(prev => ({ ...prev, tungstenBulbPower: val }));
                                 }
                               }}
-                              placeholder="مثال: 300"
-                              className="bg-transparent py-0 px-1 text-xs font-bold text-center text-white w-20 outline-none font-mono"
+                              placeholder="مثال: 250"
+                              className="bg-transparent py-0 px-1 text-xs font-bold text-center text-white w-24 outline-none font-mono"
                             />
                             <span className="text-[10px] text-slate-400 font-bold">W</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Bulb Light colors */}
-                      <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block text-right">لون ونوع الإشعاع الحراري</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {['أصفر دافئ وجاذب', 'أحمر أشعة تحت الحمراء', 'أصفر كلاسيكي'].map((colorName) => (
-                            <button
-                              key={colorName}
-                              type="button"
-                              onClick={() => setState(prev => ({ ...prev, tungstenBulbColor: colorName }))}
-                              className={`py-2 px-1 rounded-xl text-[10px] font-bold transition-all leading-tight border cursor-pointer ${
-                                state.tungstenBulbColor === colorName 
-                                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-inner' 
-                                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-transparent'
-                              }`}
-                            >
-                              {colorName}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-[9px] text-slate-500 font-medium leading-relaxed mt-1 text-right">
-                          📌 نصيحة الخبراء: استخدام اللمبات ذات الأشعة تحت الحمراء يؤمن كفاءة تدفئة ممتازة وعميقة دون التسبب في إزعاج ونقر غير مرغوب للصوص.
-                        </p>
-                      </div>
+                      {/* Bulb Height Above Chick Back & Thermal Coupling Physics */}
+                      {(() => {
+                        const bulbHeightCm = toNum(state.tungstenBulbHeightCm ?? 45);
+                        const bulbPower = toNum(state.tungstenBulbPower ?? 200);
+                        const ageNum = toNum(state.age || 1);
+                        const targetTemp = ageNum <= 3 ? 33 : ageNum <= 7 ? 31 : ageNum <= 14 ? 28 : ageNum <= 21 ? 25 : ageNum <= 28 ? 22 : 20;
+                        
+                        // Current indoor ambient temperature inside barn
+                        const currentAgeStr = String(state.age || 1);
+                        const ambientTemp = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp) || 28;
+                        
+                        // Thermal radiation boost at chick back level (°C)
+                        // Inverse square / distance power relationship: DeltaT = (Power / 200W) * (40 / Height)^1.2 * 7.5°C
+                        const deltaTRadiation = (bulbPower / 200) * Math.pow(40 / Math.max(15, bulbHeightCm), 1.2) * 7.5;
+                        const feltChickTemp = ambientTemp + deltaTRadiation;
+                        const tempDiffFromTarget = feltChickTemp - targetTemp;
 
-                      {/* Output Calculator Box */}
-                      <div className="bg-gradient-to-l from-yellow-500/5 to-amber-500/5 p-4 rounded-2xl border border-yellow-500/10 flex justify-between items-center flex-wrap gap-2 shadow-inner">
-                        <span className="text-xs font-bold text-slate-400">إجمالي قدرة التدفئة من المصابيح:</span>
-                        <span className="text-sm font-mono font-black text-yellow-400">
+                        return (
+                          <div className="bg-slate-950/60 p-4 rounded-2xl border border-amber-500/20 space-y-4 shadow-inner">
+                            {/* Title & Header */}
+                            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-white/5 pb-3">
+                              <div className="flex items-center gap-2">
+                                <Sliders size={16} className="text-amber-400 animate-pulse" />
+                                <h5 className="text-xs font-black text-white">ارتفاع اللمبة عن ظهر الكتكوت (بالـ سم) والربط الحراري الفسيولوجي</h5>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                                معيار فيزيائي حسّاس
+                              </span>
+                            </div>
+
+                            {/* Height Slider / Input & Preset Chips */}
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-center flex-wrap gap-2">
+                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                  ارتفاع اللمبة الحرارية عن ظهر الكتكوت:
+                                </label>
+                                <div className="flex items-center gap-1.5 bg-slate-900 px-3 py-1 rounded-xl border border-amber-500/30">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={state.tungstenBulbHeightCm ?? 45}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      if (val === '' || /^\d*$/.test(val)) {
+                                        setState(prev => ({ ...prev, tungstenBulbHeightCm: val }));
+                                      }
+                                    }}
+                                    className="bg-transparent text-lg font-black text-center text-amber-400 w-16 outline-none font-mono"
+                                  />
+                                  <span className="text-xs font-bold text-amber-300 font-mono">سم</span>
+                                </div>
+                              </div>
+
+                              {/* Range Slider */}
+                              <input
+                                type="range"
+                                min="15"
+                                max="100"
+                                step="1"
+                                value={toNum(state.tungstenBulbHeightCm ?? 45)}
+                                onChange={e => setState(prev => ({ ...prev, tungstenBulbHeightCm: parseInt(e.target.value) }))}
+                                className="w-full accent-amber-500 bg-slate-800 h-2 rounded-lg cursor-pointer"
+                              />
+
+                              {/* Preset Quick Selection Buttons */}
+                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                                {[
+                                  { cm: 30, label: '30 سم (قريب جداً)' },
+                                  { cm: 40, label: '40 سم (قياسي 1)' },
+                                  { cm: 50, label: '50 سم (قياسي 2)' },
+                                  { cm: 60, label: '60 سم (مرتفع)' },
+                                  { cm: 75, label: '75 سم (عالي جداً)' }
+                                ].map(item => (
+                                  <button
+                                    key={item.cm}
+                                    type="button"
+                                    onClick={() => setState(prev => ({ ...prev, tungstenBulbHeightCm: item.cm }))}
+                                    className={`py-1.5 px-1 rounded-xl text-[10px] font-bold border transition-all cursor-pointer text-center ${
+                                      toNum(state.tungstenBulbHeightCm ?? 45) === item.cm
+                                        ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/20'
+                                        : 'bg-white/5 hover:bg-white/10 text-slate-300 border-transparent'
+                                    }`}
+                                  >
+                                    {item.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Temperature & Physics Link Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/5">
+                              {/* Card 1: Thermal boost from bulb */}
+                              <div className="bg-slate-900/90 p-3.5 rounded-xl border border-white/5 space-y-1">
+                                <span className="text-[10px] text-slate-400 font-black uppercase block">إضافة الإشعاع الحراري</span>
+                                <div className="text-lg font-black font-mono text-amber-400">
+                                  +{deltaTRadiation.toFixed(1)}°م
+                                </div>
+                                <p className="text-[9px] text-slate-500 font-bold leading-tight">
+                                  حرارة إضافية مكتسبة عند ظهر الكتكوت مباشرة
+                                </p>
+                              </div>
+
+                              {/* Card 2: Felt Temp at Chick level */}
+                              <div className={`p-3.5 rounded-xl border space-y-1 ${
+                                tempDiffFromTarget > 3
+                                  ? 'bg-rose-950/30 border-rose-500/40'
+                                  : tempDiffFromTarget < -2.5
+                                  ? 'bg-sky-950/30 border-sky-500/40'
+                                  : 'bg-emerald-950/30 border-emerald-500/40'
+                              }`}>
+                                <span className="text-[10px] text-slate-400 font-black uppercase block">الحرارة عند ظهر الكتكوت (T_felt)</span>
+                                <div className={`text-lg font-black font-mono ${
+                                  tempDiffFromTarget > 3 ? 'text-rose-400' : tempDiffFromTarget < -2.5 ? 'text-sky-400' : 'text-emerald-400'
+                                }`}>
+                                  {feltChickTemp.toFixed(1)}°م
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold leading-tight">
+                                  المستهدفة لعمر {ageNum} يوم: <span className="font-mono text-white">{targetTemp}°م</span>
+                                </p>
+                              </div>
+
+                              {/* Card 3: Height Recommendation Status */}
+                              <div className="bg-slate-900/90 p-3.5 rounded-xl border border-white/5 space-y-1">
+                                <span className="text-[10px] text-slate-400 font-black uppercase block">الارتفاع الموصى به للعمر</span>
+                                <div className="text-sm font-black text-amber-300 font-mono pt-1">
+                                  {ageNum <= 3 ? '35 - 45 سم' : ageNum <= 7 ? '45 - 55 سم' : ageNum <= 14 ? '55 - 65 سم' : '65 - 80 سم'}
+                                </div>
+                                <p className="text-[9px] text-slate-500 font-bold leading-tight">
+                                  مناسب لعمر الكتكوت الحالي ({ageNum} يوم)
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Linked Diagnostic Warning & Guidance */}
+                            <div className={`p-3.5 rounded-xl border text-xs font-sans space-y-2 ${
+                              tempDiffFromTarget > 3
+                                ? 'bg-rose-500/15 border-rose-500/40 text-rose-200'
+                                : tempDiffFromTarget < -2.5
+                                ? 'bg-sky-500/15 border-sky-500/40 text-sky-200'
+                                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200'
+                            }`}>
+                              <div className="flex items-center gap-2 font-black">
+                                {tempDiffFromTarget > 3 ? (
+                                  <AlertTriangle size={16} className="text-rose-400 shrink-0 animate-pulse" />
+                                ) : tempDiffFromTarget < -2.5 ? (
+                                  <AlertCircle size={16} className="text-sky-400 shrink-0 animate-pulse" />
+                                ) : (
+                                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                                )}
+                                <span className="text-white daylight-black-text font-black">
+                                  {tempDiffFromTarget > 3
+                                    ? '⚠️ تحذير: ارتفاع منخفض جداً! فرط سخونة وإجهاد حراري موضعيّ'
+                                    : tempDiffFromTarget < -2.5
+                                    ? '🥶 تنبيه: ارتفاع عالٍ جداً! تشتت الحرارة وبرودة في مستوى الكتاكيت'
+                                    : '🟢 الارتفاع متوازن ومثالي لتوفير بيئة تحضين آمنة'}
+                                </span>
+                              </div>
+
+                              <p className={`text-[11px] leading-relaxed ${tempDiffFromTarget > 3 ? "text-red-700 dark:text-red-400 font-black" : "text-white daylight-black-text font-medium"}`}>
+                                {tempDiffFromTarget > 3
+                                  ? `اللمبة قريبة جداً من ظهر الكتكوت (${bulbHeightCm} سم)، مما يرفع حرارة الإشعاع المباشرة إلى ${feltChickTemp.toFixed(1)}°م (أعلى من المطلوبة بـ +${tempDiffFromTarget.toFixed(1)}°م). التأثير السلوكي: هروب الكتاكيت إلى أطراف حلقة التحضين وخارج نطاق الضوء، مع خطر جفاف الجسم والإجهاد الحراري.`
+                                  : tempDiffFromTarget < -2.5
+                                  ? `اللمبة مرتفعة أكثر من اللازم (${bulbHeightCm} سم)، فتتشتت الحرارة بالهواء وتنخفض إلى ${feltChickTemp.toFixed(1)}°م (أقل من المطلوبة بـ -${Math.abs(tempDiffFromTarget).toFixed(1)}°م). التأثير السلوكي: تجمع وتراكم الكتاكيت بكثافة في المركز تحت اللمبة مباشرة طلباً للدفء مع خطر الانضغاط والاختناق.`
+                                  : `ارتفاع اللمبة (${bulbHeightCm} سم) يحقق حرارة إشعاع مثالية (${feltChickTemp.toFixed(1)}°م) تتوافق مع احتياج الكتكوت لعمر ${ageNum} يوم. التأثير السلوكي: انتشار وتوزيع متجانس للقطيع بكامل حلقة التحضين وحيوية ممتازة.`}
+                              </p>
+
+                              {/* Quick Chick Behavior Reference Bar */}
+                              <div className="bg-slate-950/80 p-2.5 rounded-lg border border-white/10 text-[10px] space-y-1">
+                                <span className="font-bold text-amber-300 block">🐣 دليل مراقبة سلوك الكتاكيت أسفل اللمبة:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-300 font-bold">
+                                  <div className={`p-1.5 rounded border text-center ${tempDiffFromTarget > 3 ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' : 'bg-slate-900 border-white/5'}`}>
+                                    🥵 هارب للأطراف = اللمبة حارة/منخفضة
+                                  </div>
+                                  <div className={`p-1.5 rounded border text-center ${Math.abs(tempDiffFromTarget) <= 3 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-white/5'}`}>
+                                    🟢 منتشر بانتظام = الارتفاع والحرارة مثاليان
+                                  </div>
+                                  <div className={`p-1.5 rounded border text-center ${tempDiffFromTarget < -2.5 ? 'bg-sky-500/20 border-sky-500/40 text-sky-300' : 'bg-slate-900 border-white/5'}`}>
+                                    🥶 متجمع بالمركز = اللمبة باردة/مرتفعة
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Educational panel */}
+                      <p className="text-[9px] text-slate-500 font-medium leading-relaxed text-right p-4 bg-slate-950/20 rounded-2xl border border-white/5">
+                        💡 تلميح: المصابيح الحرارية والتنجستين مثالية لتشغيل التحضين الأولي لأنها توفر إضاءة وتوزيع حراري موضعياً خفيفاً بدون إحداث صدمات هوائية حادة للكتكوت.
+                      </p>
+
+                      {/* Power sum card */}
+                      <div className="bg-gradient-to-l from-amber-500/5 to-yellow-500/5 p-4 rounded-2xl border border-amber-500/10 flex justify-between items-center flex-wrap gap-2 shadow-inner">
+                        <span className="text-xs font-black text-white daylight-black-text">إجمالي القدرة الحرارية للمصابيح:</span>
+                        <span className="text-sm font-mono font-black text-amber-400">
                           {((toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200)) / 1000).toFixed(2)} كيلووات
                         </span>
                       </div>
 
+                      {/* Live Link with Scientific Thermal Balance Model */}
+                      {(() => {
+                        const bulbCount = toNum(state.tungstenBulbCount ?? 20);
+                        const bulbPower = toNum(state.tungstenBulbPower ?? 200);
+                        const bulbHeightCm = toNum(state.tungstenBulbHeightCm ?? 45);
+                        const ageNum = toNum(state.age || 1);
+                        const targetTemp = ageNum <= 3 ? 33 : ageNum <= 7 ? 31 : ageNum <= 14 ? 28 : ageNum <= 21 ? 25 : ageNum <= 28 ? 22 : 20;
+
+                        // Equipment power
+                        const bulbTotalKw = (bulbCount * bulbPower) / 1000;
+                        const bulbEffectiveKw = bulbTotalKw * 0.90;
+                        
+                        const heaterCount = (state.heatingMethod || 'both') === 'bulb' ? 0 : toNum(state.heaterCount ?? 2);
+                        const heaterPower = toNum(state.heaterPower ?? 15000);
+                        const heaterEffectiveKw = ((heaterCount * heaterPower) * 0.85) / 1000;
+
+                        const birdCount = Math.max(0, toNum(state.totalChicks || 10000));
+                        const defaultW = ageNum <= 3 ? 0.045 : ageNum <= 7 ? 0.18 : ageNum <= 14 ? 0.45 : ageNum <= 21 ? 0.90 : ageNum <= 28 ? 1.40 : 2.10;
+                        const qbWatts = 10.6 * Math.pow(defaultW, 0.75);
+                        const birdTotalKw = (birdCount * qbWatts) / 1000;
+
+                        const totalInputKw = heaterEffectiveKw + bulbEffectiveKw + birdTotalKw;
+
+                        // Barn physical loss coefficient
+                        const length = Math.max(1, toNum(state.barnLength || 100));
+                        const width = Math.max(1, toNum(state.barnWidth || 12));
+                        const height = Math.max(1, toNum(state.barnHeight || 3));
+                        const surfaceArea = 2 * (length * height) + 2 * (width * height) + (length * width);
+                        const outdoorTemp = toNum(state.externalTemp || 15);
+                        
+                        const currentIndoorTemp = toNum(state.dailyInternalTemp?.[String(ageNum)] ?? state.internalTemp) || 28;
+                        const indoorDeficit = targetTemp - currentIndoorTemp;
+                        
+                        const totalLossCoeffKw = ((1.0 * surfaceArea) + (1.20 * 1005 * (2000 / 3600))) / 1000;
+                        const maxContinuousTemp = outdoorTemp + (totalInputKw / Math.max(0.001, totalLossCoeffKw));
+                        const equilibriumTemp = currentIndoorTemp;
+                        
+                        const deltaTRadiation = (bulbPower / 200) * Math.pow(40 / Math.max(15, bulbHeightCm), 1.2) * 7.5;
+                        const feltChickTemp = equilibriumTemp + deltaTRadiation;
+                        const tempDiffFromTarget = feltChickTemp - targetTemp;
+                        const bulbPctOfHeat = Math.round((bulbEffectiveKw / Math.max(0.1, totalInputKw)) * 100);
+
+                        return (
+                          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/40 p-4 rounded-2xl border border-amber-500/30 space-y-3.5 shadow-xl">
+                            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-amber-500/20 pb-2.5">
+                              <div className="flex items-center gap-2">
+                                <Activity size={18} className="text-amber-400 animate-pulse" />
+                                <h5 className="text-xs font-black text-white">نتائج الربط المباشر بنموذج الاتزان الحراري والحرارة المستهدفة</h5>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                                ربط ديناميكي لحظي ⚡
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                              <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                <span className="text-[9px] text-white daylight-black-text font-black block">قدرة التدفئة باللمبات</span>
+                                <span className="text-sm font-black font-mono text-amber-400 block">{bulbEffectiveKw.toFixed(2)} kW</span>
+                                <span className="text-[9px] text-slate-500 font-bold">({bulbPctOfHeat}% من التدفئة)</span>
+                              </div>
+
+                              <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                <span className="text-[9px] text-white daylight-black-text font-black block">حرارة استقرار العنبر</span>
+                                <span className="text-sm font-black font-mono text-cyan-300 block">{equilibriumTemp.toFixed(1)}°م</span>
+                                <span className="text-[9px] text-slate-500 font-bold">(حرارة العنبر الحالية)</span>
+                              </div>
+
+                              <div className="bg-slate-900/90 p-2.5 rounded-xl border border-white/5 space-y-0.5">
+                                <span className="text-[9px] text-white daylight-black-text font-black block">الإشعاع المباشر</span>
+                                <span className="text-sm font-black font-mono text-amber-300 block">+{deltaTRadiation.toFixed(1)}°م</span>
+                                <span className="text-[9px] text-slate-500 font-bold">(على ارتفاع {bulbHeightCm}سم)</span>
+                              </div>
+
+                              <div className={`p-2.5 rounded-xl border space-y-0.5 ${
+                                currentIndoorTemp > targetTemp + 1.0
+                                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                                  : indoorDeficit > 0.5
+                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                              }`}>
+                                <span className="text-[9px] font-bold block opacity-80">الحرارة المحسوسة (ظهر الكتكوت)</span>
+                                <span className="text-sm font-black font-mono block">{feltChickTemp.toFixed(1)}°م</span>
+                                <span className="text-[9px] font-bold block opacity-80">(المستهدفة: {targetTemp}°م)</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                     </div>
                   </Card>
                 )}
-
                 {/* 2. Gas Heater / Dafaia Configuration Card */}
                 {((state.heatingMethod || 'both') === 'heater' || (state.heatingMethod || 'both') === 'both') && (
                   <Card className="bg-slate-900 border border-white/10 rounded-3xl p-6 text-right font-sans relative overflow-hidden shadow-xl">
@@ -13662,7 +14968,7 @@ export default function App() {
 
                       {/* Power sum card */}
                       <div className="bg-gradient-to-l from-red-500/5 to-rose-500/5 p-4 rounded-2xl border border-red-500/10 flex justify-between items-center flex-wrap gap-2 shadow-inner">
-                        <span className="text-xs font-bold text-slate-400">إجمالي قدرة الدفايات الفعلية:</span>
+                        <span className="text-xs font-black text-white daylight-black-text">إجمالي قدرة الدفايات الفعلية:</span>
                         <span className="text-sm font-mono font-black text-rose-400">
                           {((toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000)) / 1000).toFixed(2)} كيلووات
                         </span>
@@ -13671,101 +14977,12 @@ export default function App() {
                     </div>
                   </Card>
                 )}
+
+                {/* 3. Scientific Heat Balance Model Card (نموذج اتزان الطاقة الحرارية والتحكم البيئي) */}
+                <ScientificHeatBalanceCard state={state} setState={setState} />
               </div>
 
-              {/* Thermal Load Diagnostic (Intel Engine Card) */}
-              {(() => {
-                const area = toNum(state.barnLength || 100) * toNum(state.barnWidth || 12);
-                const actualArea = area > 0 ? area : 1200;
-                const recommendedW = actualArea * 120;
-                
-                const m = state.heatingMethod || 'both';
-                const bulbW = m === 'heater' ? 0 : (toNum(state.tungstenBulbCount ?? 20) * toNum(state.tungstenBulbPower ?? 200));
-                const heaterW = m === 'bulb' ? 0 : (toNum(state.heaterCount ?? 2) * toNum(state.heaterPower ?? 15000));
-                const totalInstalledW = bulbW + heaterW;
-                
-                const ratio = recommendedW > 0 ? (totalInstalledW / recommendedW) : 1;
-                const percentage = Math.min(100, Math.round(ratio * 100));
-                
-                let ratingColor = "text-red-400";
-                let ratingBg = "bg-red-500/10 border-red-500/20";
-                let ratingLabel = "تغطية حرارية غير كافية للتحضين 🚨";
-                let ratingAdvice = "سعة التدفئة الحالية في عنبرك منخفضة وتحت التحديد الآمن! قد ينجم عن هذا تفاوت في درجات حرارة الفرشة، تكدس القطعان حول مناطق الدفء وزيادة التعرض للنزلة الهوائية المعوية. ننصح بزيادة لمبات التنجستين الساخنة أو تشغيل دفاية إضافية لإكساب الصوص حيوية ممتازة.";
-                
-                if (ratio >= 0.9) {
-                  ratingColor = "text-emerald-400";
-                  ratingBg = "bg-emerald-500/10 border-emerald-500/20";
-                  ratingLabel = "تغطية تدفئة مثالية ومضمونة ✅";
-                  ratingAdvice = "تهانينا! لديك سعة توازن حرارية ممتازة قادرة على تغطية مساحة العنبر بالكامل في أقسى نوات البرد. هذا يضمن توزيع فرشة دافئة موحدة ومعدل نمو متجانس.";
-                } else if (ratio >= 0.6) {
-                  ratingColor = "text-yellow-400";
-                  ratingBg = "bg-yellow-500/10 border-yellow-500/20";
-                  ratingLabel = "التغطية مقبولة مع التنبيه للحذر ⚠️";
-                  ratingAdvice = "قدرة التدفئة توفر المعدل الاعتيادي بنجاح، لكنها قد تتعرض للقصور النسبي في نوات الصقيع العاتية ليلاً. ننصح برفع العزل الحراري لمنافذ العنبر أو تجهيز بدائل للتدفئة كأمان إضافي.";
-                }
-
-                return (
-                  <Card className="bg-slate-900 border border-white/10 p-6 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/5 blur-3xl pointer-events-none rounded-full" />
-                    
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0" />
-                          <h4 className="text-md font-black text-white">الكفاءة المعايرة وموازنة الاحتباس الحراري</h4>
-                        </div>
-                        <p className="text-xs text-slate-300 leading-relaxed font-semibold">
-                          بناءً على مساحة العنبر المقدرة بـ <span className="text-white underline font-mono">{actualArea} م²</span>، وحساب متطلبات الفرشة والتحضين المعيارية بـ <span className="text-orange-400 font-bold font-sans">120 وات/م²</span>، تكون السعة المستهدفة لعنبرك هي <span className="text-white underline font-mono">{(recommendedW / 1000).toFixed(1)} كيلووات</span>.
-                        </p>
-                        
-                        {/* Rating block */}
-                        <div className={`p-4 rounded-2xl border ${ratingBg} space-y-1`}>
-                          <p className={`text-[13px] font-black ${ratingColor}`}>{ratingLabel}</p>
-                          <p className="text-xs text-slate-300 leading-relaxed font-medium">{ratingAdvice}</p>
-                        </div>
-                      </div>
-
-                      {/* Visual gauge percentage circle */}
-                      <div className="flex flex-col items-center justify-center shrink-0 bg-slate-950/50 p-6 rounded-3xl border border-white/5 w-full md:w-56 shadow-inner">
-                        <div className="relative w-32 h-32 flex items-center justify-center mb-3">
-                          {/* Circle Background & Track with precise viewBox */}
-                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 112 112">
-                            <circle 
-                              cx="56" 
-                              cy="56" 
-                              r="46" 
-                              className="stroke-slate-800" 
-                              strokeWidth="8" 
-                              fill="transparent" 
-                            />
-                            <circle 
-                              cx="56" 
-                              cy="56" 
-                              r="46" 
-                              className={ratio >= 0.9 ? "stroke-emerald-500" : ratio >= 0.6 ? "stroke-yellow-500" : "stroke-red-500"} 
-                              strokeWidth="8" 
-                              fill="transparent" 
-                              strokeDasharray={`${2 * Math.PI * 46}`}
-                              strokeDashoffset={`${2 * Math.PI * 46 * (1 - percentage / 100)}`}
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <div className="absolute flex flex-col items-center justify-center">
-                            <span className="text-2xl font-black text-white font-mono">{percentage}%</span>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">كفاءة التغطية</span>
-                          </div>
-                        </div>
-                        
-                        <div className="text-center font-bold text-xs space-y-1 w-full border-t border-white/5 pt-2 mt-1">
-                          <p className="text-[10px] text-slate-400 flex justify-between px-2"><span>القدرة الفعلية:</span> <span className="text-white font-sans">{(totalInstalledW / 1000).toFixed(1)} kW</span></p>
-                          <p className="text-[10px] text-slate-400 flex justify-between px-2"><span>القدرة المستهدفة:</span> <span className="text-orange-400 font-sans">{(recommendedW / 1000).toFixed(1)} kW</span></p>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })()}
-
+              <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -13866,153 +15083,67 @@ export default function App() {
                        <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
                           <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الحرارة المحسوسة</span>
                           <div className="flex items-baseline gap-1">
-                             <span className="text-xl font-black text-white">{(environmentalLoad.qSensibleBird / 1000).toFixed(2)}</span>
+                             <span className="text-xl font-black text-white">
+                               {(environmentalLoad.qSensibleHouse / 1000) >= 0.1 
+                                 ? (environmentalLoad.qSensibleHouse / 1000).toFixed(2) 
+                                 : (environmentalLoad.qSensibleHouse / 1000).toFixed(3)}
+                             </span>
                              <span className="text-[8px] text-slate-500 font-bold">kW</span>
                           </div>
+                          <span className="text-[9px] text-slate-400 font-bold block mt-1">
+                            ({Math.round(environmentalLoad.qSensibleHouse).toLocaleString()} واط)
+                          </span>
                        </div>
                        <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
-                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الحرارة الكامنة</span>
+                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">الحرارة الكامنة (الرطوبة)</span>
                           <div className="flex items-baseline gap-1">
-                             <span className="text-xl font-black text-blue-400">{(environmentalLoad.qLatentBird / 1000).toFixed(2)}</span>
+                             <span className="text-xl font-black text-cyan-400">
+                               {(environmentalLoad.qLatentHouse / 1000) >= 0.1 
+                                 ? (environmentalLoad.qLatentHouse / 1000).toFixed(2) 
+                                 : (environmentalLoad.qLatentHouse / 1000).toFixed(3)}
+                             </span>
                              <span className="text-[8px] text-slate-500 font-bold">kW</span>
                           </div>
-                       </div>
-                    </div>
-
-                    <div className="mt-4 p-4 rounded-2xl bg-slate-950/40 border border-white/5">
-                       <div className="flex justify-between items-center mb-2">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الحرارة المنتجة</span>
-                          <span className="text-xl font-black text-orange-400">{(environmentalLoad.qTotalBird / 1000).toFixed(1)} kW</span>
-                       </div>
-                       <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden flex border border-white/5">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(environmentalLoad.qSensibleBird / (environmentalLoad.qTotalBird || 1)) * 100}%` }}
-                            className="h-full bg-white transition-all duration-1000" 
-                          />
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(environmentalLoad.qLatentBird / (environmentalLoad.qTotalBird || 1)) * 100}%` }}
-                            className="h-full bg-blue-500 transition-all duration-1000" 
-                          />
-                       </div>
-                       <div className="flex justify-between mt-2 opacity-50 px-1">
-                         <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">الحرارة الجافة (جسم الطائر)</span>
-                         <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">الحرارة الكامنة (تنفس وبخار)</span>
+                          <span className="text-[9px] text-slate-400 font-bold block mt-1">
+                            ({Math.round(environmentalLoad.qLatentHouse).toLocaleString()} واط)
+                          </span>
                        </div>
                     </div>
                  </Card>
 
                  <Card className="bg-slate-900/60 border-white/5 p-6 overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] -z-10 group-hover:bg-blue-500/10 transition-colors duration-1000" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[50px] -z-10 group-hover:bg-cyan-500/10 transition-colors duration-1000" />
                     <div className="flex items-center gap-4 mb-6">
-                       <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
-                          <Wind size={20} />
+                       <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                          <Droplets size={20} />
                        </div>
                        <div>
-                          <h4 className="text-sm font-black text-white">اكتساب الحرارة الكلي للعنبر</h4>
-                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">الحمل الحراري الإجمالي (House Load)</p>
+                          <h4 className="text-sm font-black text-white">إنتاج الرطوبة الكلية للقطيع</h4>
+                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">معدل انبعاث بخار الماء (Moisture Output)</p>
                        </div>
                     </div>
-
-                    <div className="space-y-4">
-                       <div className="flex items-baseline justify-between mb-4">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الحمل الحراري</span>
-                          <span className="text-3xl font-black text-white tracking-tighter">{(environmentalLoad.qTotalHouse / 1000).toFixed(1)} <span className="text-[10px] text-slate-600 font-bold uppercase ms-1">kW</span></span>
-                       </div>
-                       
-                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-                          <div className="flex items-center gap-2 mb-1">
-                             <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">توصية فنية</span>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
+                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">معدل الانبعاث بالساعة</span>
+                          <div className="flex items-baseline gap-1">
+                             <span className="text-xl font-black text-cyan-400">{(environmentalLoad.moisturePerDayKg / 24).toFixed(1)}</span>
+                             <span className="text-[8px] text-slate-500 font-bold">كجم/ساعة</span>
                           </div>
-                          <p className="text-[10.5px] font-bold text-slate-400 leading-relaxed text-right">
-                            {state.environmentalLoadInsulation 
-                              ? "⚠️ العزل الرديء يزيد بشكل كبير من الحرارة المكتسبة من جدران العنبر. يوصى بزيادة كثافة التبريد (الخلايا) لتعويض هذا النقص."
-                              : "✅ العزل الجيد يحافظ على درجة الحرارة المستهدفة بكفاءة ويقلل من استهلاك الكهرباء في الشفاطات."
-                            }
-                            {" "}حمولة اللحم الكبيرة تتطلب سرعة هواء لا تقل عن 2.5 م/ث في الأعمار الكبيرة.
-                          </p>
+                       </div>
+                       <div className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 shadow-inner">
+                          <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">إجمالي اليوم</span>
+                          <div className="flex items-baseline gap-1">
+                             <span className="text-xl font-black text-white">{Math.round(environmentalLoad.moisturePerDayKg).toLocaleString()}</span>
+                             <span className="text-[8px] text-slate-500 font-bold">لتر/يوم</span>
+                          </div>
                        </div>
                     </div>
                  </Card>
               </div>
 
-               {/* Chick Target Temperature Guide */}
-               <Card className="bg-slate-900/80 border-white/5 overflow-hidden">
+              <Card className="bg-slate-900 border-white/5 overflow-hidden">
                   <div className="bg-white/5 px-6 py-4 border-b border-white/5 flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
-                           <Thermometer size={18} />
-                        </div>
-                        <h3 className="font-black text-white text-sm">جدول الحرارة المطلوبة للكتاكيت حسب العمر</h3>
-                     </div>
-                     <div className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                        دليل استرشادي معتمد
-                     </div>
-                  </div>
-
-                  <div className="p-4 space-y-4">
-                     <p className="text-[11px] text-slate-400 leading-relaxed font-bold">
-                        تتبع متطلبات الحرارة الدقيقة للكتكوت حسب العمر لضمان النمو وسلامة الجهاز التنفسي. يتم تلوين المرحلة الحالية باللون الأزرق المضيء.
-                     </p>
-
-                     <div className="flex flex-col gap-2">
-                        {(state.customTempSchedule || CHICK_TEMP_PROFILES).map((profile, idx) => {
-                           const isCurrentRange = toNum(state.age) >= profile.startDay && toNum(state.age) <= profile.endDay;
-                           return (
-                              <div 
-                                 key={idx}
-                                 className={cn(
-                                    "p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 text-right relative overflow-hidden",
-                                    isCurrentRange 
-                                       ? "bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5" 
-                                       : "bg-slate-950/40 border-white/5 opacity-70 hover:opacity-95"
-                                 )}
-                              >
-                                 {isCurrentRange && (
-                                    <span className="absolute top-0 bottom-0 right-0 w-1 bg-blue-500" />
-                                 )}
-                                 <div className="flex items-center gap-3">
-                                    <div className={cn(
-                                       "w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0",
-                                       isCurrentRange ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-400"
-                                    )}>
-                                       {idx + 1}
-                                    </div>
-                                    <div className="space-y-0.5">
-                                       <div className="flex items-center gap-2">
-                                          <span className="text-xs font-black text-white">الأيام {profile.startDay} - {profile.endDay}</span>
-                                          {isCurrentRange && (
-                                             <span className="text-[9px] font-black text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20 animate-pulse">
-                                                المرحلة الحالية
-                                             </span>
-                                          )}
-                                       </div>
-                                       <p className="text-[10px] font-bold text-slate-400">{profile.notes}</p>
-                                    </div>
-                                 </div>
-
-                                 <div className="flex items-center gap-3 self-end md:self-center">
-                                    <div className="text-center px-2.5 py-1 bg-slate-950/60 rounded-xl border border-white/5 min-w-[80px]">
-                                       <span className="text-[8px] text-slate-500 font-bold block leading-none mb-1">المثالية</span>
-                                       <span className={cn("text-xs font-black", isCurrentRange ? "text-blue-400" : "text-white")}>{toNum(profile.targetTemp).toFixed(1)}°م</span>
-                                    </div>
-                                    <div className="text-center px-2.5 py-1 bg-slate-950/60 rounded-xl border border-white/5 min-w-[80px]">
-                                       <span className="text-[8px] text-slate-500 font-bold block leading-none mb-1">المسموح</span>
-                                       <span className="text-xs font-bold text-slate-300">{toNum(profile.minTemp).toFixed(1)} - {toNum(profile.maxTemp).toFixed(1)}°م</span>
-                                    </div>
-                                 </div>
-                              </div>
-                           );
-                        })}
-                     </div>
-                  </div>
-               </Card>
-
-               {/* Diagnostic Engine Table */}
-              <Card className="bg-slate-900/80 border-white/5 overflow-hidden">
-                 <div className="bg-white/5 px-6 py-4 border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                        <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center text-orange-500">
                           <Activity size={18} />
@@ -14145,16 +15276,16 @@ export default function App() {
               </div>
 
               {/* Action Plan */}
-              <Card className="bg-blue-600 p-8 border-none relative overflow-hidden group">
+              <Card className="bg-blue-600 p-8 border-none relative overflow-hidden group climate-action-plan-card">
                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:scale-110 transition-transform duration-700" />
                  
                  <div className="relative z-10">
-                    <h4 className="text-[10px] font-black text-blue-100 uppercase tracking-[0.3em] mb-4">التوصية التشغيلية (Action Plan)</h4>
+                    <h4 className="text-[10px] font-black text-blue-100 uppercase tracking-[0.3em] mb-4 climate-action-plan-title">التوصية التشغيلية (Action Plan)</h4>
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                        <div className="flex-1 space-y-4">
-                          <p className="text-2xl font-black text-white leading-tight">
+                          <p className="text-2xl font-black text-white leading-tight climate-action-plan-text">
                              بناءً على الفارق بين الحرارة الداخلية ({state.internalTemp}) والمستهدفة ({targetTemp})، 
-                             yجب اتخاذ إجراء فوري.
+                             يجب اتخاذ إجراء فوري.
                           </p>
                           <div className="bg-blue-700/50 p-4 rounded-xl border border-white/10">
                              <p className="text-sm font-black text-blue-100">
@@ -14177,16 +15308,16 @@ export default function App() {
 
                              {/* Timing Comparison Section */}
                              <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/10">
-                                <div className="bg-blue-900/40 p-3 rounded-xl border border-white/5 text-right">
-                                   <p className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-1">التشغيل الحالي</p>
-                                   <div className="flex items-baseline gap-1 justify-end">
+                                <div className="bg-blue-900/40 p-3 rounded-xl border border-white/5 text-right climate-current-op-box">
+                                   <p className="text-[9px] font-black text-blue-300 uppercase tracking-widest mb-1 climate-current-op-title">التشغيل الحالي</p>
+                                   <div className="flex items-baseline gap-1 justify-end climate-current-op-val">
                                       <span className="text-xl font-black text-white">{(((minVentilation / totalActiveCapacity) * 60) / toNum(state.cyclesPerHour)).toFixed(1)}</span>
-                                      <span className="text-[10px] font-bold text-blue-400">د/دورة</span>
+                                      <span className="text-[10px] font-bold text-blue-400 climate-current-op-unit">د/دورة</span>
                                    </div>
                                 </div>
-                                <div className="bg-emerald-500/20 p-3 rounded-xl border border-emerald-400/20 text-right">
-                                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1 text-emerald-400">المطلوب للحل</p>
-                                   <div className="flex items-baseline gap-1 justify-end">
+                                <div className="bg-emerald-500/20 p-3 rounded-xl border border-emerald-400/20 text-right climate-required-op-box">
+                                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1 text-emerald-400 climate-required-op-title">المطلوب للحل</p>
+                                   <div className="flex items-baseline gap-1 justify-end climate-required-op-val">
                                       <span className="text-xl font-black text-white">
                                          {(() => {
                                             const currentOn = ((minVentilation / totalActiveCapacity) * 60) / toNum(state.cyclesPerHour);
@@ -14196,12 +15327,12 @@ export default function App() {
                                             return currentOn.toFixed(1);
                                          })()}
                                       </span>
-                                      <span className="text-[10px] font-bold text-emerald-500">د/دورة</span>
+                                      <span className="text-[10px] font-bold text-emerald-500 climate-required-op-unit">د/دورة</span>
                                    </div>
                                 </div>
                              </div>
                              <p className="text-[9px] text-blue-200/50 font-bold mt-2 text-center italic">
-                                * دورة التهوية المعتمدة هي {(60 / toNum(state.cyclesPerHour)).toFixed(0)} دقيقة (يجب استمرار العمل حتى استقرار الحرارة)
+                                * دورة التهوية المعتمدة هي {(60 / toNum(state.cyclesPerHour)).toFixed(0)} <span className="text-black font-black dark:text-slate-400">دقيقة</span> (يجب استمرار العمل حتى استقرار الحرارة)
                              </p>
                           </div>
                        </div>
@@ -14210,6 +15341,7 @@ export default function App() {
                     </div>
                  </div>
               </Card>
+              <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -14234,6 +15366,152 @@ export default function App() {
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">إحصائيات وقدرات الشفاطات وإدارة التوزيع المتقطع</p>
                 </div>
               </header>
+
+              {/* Live Connected Barn Readings Header Bar for Ventilation */}
+              {(() => {
+                const ageKey = String(state.age || 1);
+                const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                const curRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+                const targetTemp = getTargetTemperature(toNum(state.age));
+                const tempDiff = Math.round((curTemp - targetTemp) * 10) / 10;
+                const isHighTemp = tempDiff > 0;
+                const isCoolingActive = state.dailyCoolingVentActive?.[ageKey] ?? (state.isCoolingVentActive || isHighTemp);
+
+                return (
+                  <Card className="p-4 bg-gradient-to-r from-slate-900 via-amber-950/30 to-cyan-950/30 border border-amber-500/30 relative overflow-hidden shadow-xl space-y-3">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-amber-500/15 rounded-2xl text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                          <Gauge size={22} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-black text-sm text-white">قراءات العنبر الحالية</h3>
+                            <span className="text-[9px] bg-emerald-500/15 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                              تزامن حقيقي ⚡
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Thermometer Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-amber-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الترمومتر</span>
+                            <span className="text-sm font-black font-mono text-amber-400">{curTemp}°م</span>
+                          </div>
+
+                          {/* Target Temp Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-emerald-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">المستهدفة</span>
+                            <span className="text-sm font-black font-mono text-emerald-400">{targetTemp}°م</span>
+                          </div>
+
+                          {/* Humidity Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-cyan-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الرطوبة</span>
+                            <span className="text-sm font-black font-mono text-cyan-400">{curRH}%</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setScreen('barn_readings')}
+                          className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                        >
+                          <span>تعديل القراءة</span>
+                          <ChevronLeft size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dynamic Temperature Difference & Ventilation Action Guidance Banner */}
+                    <div className={cn(
+                      "p-3 rounded-2xl border text-xs font-bold space-y-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+                      tempDiff > 1.0
+                        ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
+                        : tempDiff < -1.0
+                        ? "bg-sky-500/15 border-sky-500/40 text-sky-200"
+                        : "bg-emerald-500/15 border-emerald-500/40 text-emerald-200"
+                    )}>
+                      <div className="flex items-center gap-2.5">
+                        {tempDiff > 1.0 ? (
+                          <div className="p-1.5 bg-rose-500/20 rounded-xl text-rose-400 shrink-0">
+                            <Wind size={18} className="animate-spin" style={{ animationDuration: '3s' }} />
+                          </div>
+                        ) : tempDiff < -1.0 ? (
+                          <div className="p-1.5 bg-sky-500/20 rounded-xl text-sky-400 shrink-0">
+                            <Thermometer size={18} />
+                          </div>
+                        ) : (
+                          <div className="p-1.5 bg-emerald-500/20 rounded-xl text-emerald-400 shrink-0">
+                            <CheckCircle2 size={18} />
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-white text-xs">
+                              {tempDiff > 1.0
+                                ? `🔥 ارتفاع الحرارة عن الهدف (+${tempDiff.toFixed(1)}°م): يُوصى بزيادة التهوية لتبريد العنبر`
+                                : tempDiff < -1.0
+                                ? `❄️ انخفاض الحرارة عن الهدف (${tempDiff.toFixed(1)}°م): يُوصى بضبط التهوية عند الحد الأدنى القياسي`
+                                : `🟢 درجة الحرارة متوازنة ومثالية (${curTemp}°م = الهدف ${targetTemp}°م)`}
+                            </span>
+                          </div>
+                          {tempDiff < -1.0 ? null : (
+                            <p className="text-[11px] font-medium opacity-90 mt-0.5 leading-relaxed">
+                              {tempDiff > 1.0
+                                ? `قراءة ترمومتر العنبر (${curTemp}°م) تتجاوز الحرارة المستهدفة (${targetTemp}°م). تفعيل "زيادة التهوية (تبريد)" يزيد زمن تشغيل الشفاطات ويقلل السكون لتفريغ الاحتباس الحراري.`
+                                : `درجة حرارة العنبر الحالية تتطابق مع التوصية الفسيولوجية لعمر ${state.age} يوم. حافظ على برنامج التهوية المتقطعة القياسي.`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newStatus = !isCoolingActive;
+                            setState(prev => ({
+                              ...prev,
+                              isCoolingVentActive: newStatus,
+                              dailyCoolingVentActive: {
+                                ...(prev.dailyCoolingVentActive || {}),
+                                [ageKey]: newStatus
+                              }
+                            }));
+                          }}
+                          className={cn(
+                            "px-3.5 py-2 rounded-xl text-[11px] font-black border transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95",
+                            tempDiff > 0
+                              ? isCoolingActive
+                                ? "bg-rose-600 hover:bg-rose-500 text-white border-rose-400 shadow-rose-500/40 animate-pulse"
+                                : "bg-rose-950/80 hover:bg-rose-900 text-rose-300 border-rose-500/50"
+                              : tempDiff < -1.0
+                              ? "bg-sky-500/30 text-sky-200 border-sky-500/50 cursor-default"
+                              : "bg-emerald-500/30 text-emerald-200 border-emerald-500/50 cursor-default"
+                          )}
+                        >
+                          <Zap size={14} className={isCoolingActive && tempDiff > 0 ? "text-amber-300 animate-bounce" : ""} />
+                          <span>
+                            {tempDiff > 0
+                              ? isCoolingActive
+                                ? "⚡ زيادة التهوية مفعّلة (تبريد)"
+                                : "⚡ تفعيل زيادة التهوية (تبريد)"
+                              : tempDiff < -1.0
+                              ? "🛑 تهوية صغرى (تدفئة)"
+                              : "✅ تهوية قياسية"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })()}
               
               {/* Engineering Ventilation Load Section */}
               <Card className="border-s-4 border-s-indigo-600 bg-slate-900/60 border-white/5 relative overflow-hidden">
@@ -14332,9 +15610,9 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Input Side */}
-                  <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* Top Controls Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                      <div className="p-4 bg-slate-950/50 rounded-3xl border border-white/5 space-y-4">
                         <div className="flex items-center justify-between">
                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">قائمة الشفاطات</label>
@@ -14362,7 +15640,7 @@ export default function App() {
                                      newFans[idx].name = e.target.value;
                                      setState(prev => ({ ...prev, fans: newFans }));
                                    }}
-                                   className="bg-transparent border-none p-0 text-[11px] font-black text-white focus:ring-0 w-32"
+                                   className="bg-transparent border-none p-0 text-[11px] font-black text-white daylight-black-text focus:ring-0 w-32"
                                  />
                                  <div className="flex items-center gap-2">
                                    <button 
@@ -14371,9 +15649,9 @@ export default function App() {
                                        newFans[idx].isActive = !newFans[idx].isActive;
                                        setState(prev => ({ ...prev, fans: newFans }));
                                      }}
-                                     className={cn("w-8 h-4 rounded-full relative transition-colors", fan.isActive ? "bg-emerald-600" : "bg-slate-800")}
+                                     className={cn("w-8 h-4 rounded-full relative transition-colors border border-slate-300 dark:border-slate-700/50", fan.isActive ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-800")}
                                    >
-                                     <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", fan.isActive ? "left-4.5" : "left-0.5")} />
+                                     <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all border border-slate-300 dark:border-transparent shadow-sm", fan.isActive ? "left-4.5" : "left-0.5")} />
                                    </button>
                                    <button 
                                        onClick={() => setFanToDeleteId(fan.id)}
@@ -14398,7 +15676,7 @@ export default function App() {
                                           setState(prev => ({ ...prev, fans: newFans }));
                                         }
                                       }}
-                                       className="w-full bg-slate-950 border border-white/5 rounded-lg px-2 py-1.5 text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
+                                       className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-white/5 rounded-lg px-2 py-1.5 text-black dark:text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
                                     />
                                   </div>
                                   <div>
@@ -14415,7 +15693,7 @@ export default function App() {
                                          setState(prev => ({ ...prev, fans: newFans }));
                                        }
                                      }}
-                                     className="w-full bg-slate-950 border border-white/5 rounded-lg px-2 py-1.5 text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
+                                     className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-white/5 rounded-lg px-2 py-1.5 text-black dark:text-white font-black text-[10px] focus:border-emerald-500/50 outline-none"
                                    />
                                  </div>
                                </div>
@@ -14452,7 +15730,7 @@ export default function App() {
                             <span className="bg-emerald-600 text-white font-black px-4 py-2 rounded-xl text-lg min-w-[3rem] text-center shadow-lg shadow-emerald-500/20">{state.cyclesPerHour}</span>
                          </div>
                          <p className="text-[8px] text-slate-600 font-bold mt-1 text-right">
-                           * يفضل 4-6 دورات بالساعة (كل 10-15 دقيقة) لضمان تجانس الهواء.
+                           * يفضل 4-6 دورات بالساعة (كل 10-15 <span className="text-white font-black daylight-black-text vent-fans-card-minute-text">دقيقة</span>) لضمان تجانس الهواء.
                          </p>
                        </div>
 
@@ -14470,175 +15748,394 @@ export default function App() {
                   </div>
 
                   {/* Cycle Durations & Air Requirements Panel */}
-                  <div className="lg:col-span-2 bg-slate-950/90 p-8 rounded-[2rem] border border-white/10 relative overflow-hidden flex flex-col gap-6 backdrop-blur-xl shadow-2xl">
+                  <div className="lg:col-span-2 bg-slate-950/95 p-6 sm:p-8 rounded-[2rem] border border-slate-800 hover:border-emerald-500/30 relative overflow-hidden flex flex-col gap-6 backdrop-blur-xl shadow-2xl transition-all duration-300">
                     {/* Ambient Glows */}
-                    <div className="absolute -top-12 -left-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -top-16 -left-16 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
                     
                     <div className="w-full space-y-6 text-right z-10">
                       {/* Header Section */}
-                      <div className="border-b border-white/5 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <h5 className="font-black text-base text-white flex items-center gap-2 justify-end">
-                            <span>تفاصيل مؤقت التهوية وحفظ بيئة العنبر</span>
-                            <span className="text-xl">⏱️</span>
-                          </h5>
-                          <p className="text-xs text-slate-400 font-medium">زمن تشغيل وإيقاف الشفاطات المحسوب فسيولوجياً وعضوياً لضمان سلامة القطيع</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full self-start md:self-auto shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span className="text-[10px] font-black text-emerald-400 tracking-tight">حساب ذكي تلقائي نَشِط</span>
+                      <div className="border-b border-white/10 pb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                            <Clock size={24} className="animate-pulse" />
+                          </div>
+                          <div>
+                            <h5 className="font-black text-lg text-white flex items-center gap-2 flex-wrap">
+                              <span>تفاصيل مؤقت التهوية وحفظ بيئة العنبر</span>
+                            </h5>
+                          </div>
                         </div>
                       </div>
 
                       {(() => {
+                        const ageKey = String(state.age || 1);
+                        const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                        const targetTemp = getTargetTemperature(toNum(state.age));
+                        const tempDiff = Math.round((curTemp - targetTemp) * 10) / 10;
+                        const isHighTemp = tempDiff > 0;
+                        const isCoolingActive = state.dailyCoolingVentActive?.[ageKey] ?? (state.isCoolingVentActive || isHighTemp);
+
+                        // Manual override state check
+                        const isManualVent = state.dailyManualVentOverride?.[ageKey] ?? (state.isManualVentOverride ?? false);
+                        const customVentSecsStored = toNum(state.dailyCustomVentOnSeconds?.[ageKey] ?? state.customVentOnSeconds);
+
+                        // If temperature is higher than target and cooling boost is enabled, boost ventilation rate
+                        // Each 1°C excess temperature boosts ventilation airflow by ~20% (minimum 30% boost)
+                        const coolingBoostFactor = (isHighTemp && isCoolingActive)
+                          ? Math.max(1.30, 1 + Math.max(0, tempDiff) * 0.20)
+                          : 1.0;
+
+                        const effectiveVentilation = minVentilation * coolingBoostFactor;
+
                         const cycles = Math.max(1, toNum(state.cyclesPerHour));
                         const cycleSecs = 3600 / cycles;
-                        const onRatio = Math.max(0, Math.min(1, minVentilation / (totalActiveCapacity || 1)));
-                        const onSecs = Math.min(cycleSecs, Math.max(0, onRatio * cycleSecs));
+                        const autoOnRatio = Math.max(0, Math.min(1, effectiveVentilation / (totalActiveCapacity || 1)));
+                        const autoOnSecs = Math.min(cycleSecs, Math.max(0, autoOnRatio * cycleSecs));
+
+                        const onSecs = isManualVent && customVentSecsStored > 0
+                          ? Math.min(cycleSecs, Math.max(0, customVentSecsStored))
+                          : autoOnSecs;
+
                         const offSecs = Math.max(0, cycleSecs - onSecs);
+                        const onRatio = cycleSecs > 0 ? onSecs / cycleSecs : 0;
                         
                         const runM = Math.floor(onSecs / 60);
                         const runS = Math.round(onSecs % 60);
                         const runFormatted = runS > 0 ? `${runM} دقيقة و ${runS} ثانية` : `${runM} دقيقة`;
+                        const runClock = `${String(runM).padStart(2, '0')}:${String(runS).padStart(2, '0')}`;
+
+                        const autoRunM = Math.floor(autoOnSecs / 60);
+                        const autoRunS = Math.round(autoOnSecs % 60);
+                        const autoRunClock = `${String(autoRunM).padStart(2, '0')}:${String(autoRunS).padStart(2, '0')}`;
+                        const autoRunFormatted = autoRunS > 0 ? `${autoRunM} دقيقة و ${autoRunS} ثانية` : `${autoRunM} دقيقة`;
 
                         const offM = Math.floor(offSecs / 60);
                         const offS = Math.round(offSecs % 60);
                         const offFormatted = offS > 0 ? `${offM} دقيقة و ${offS} ثانية` : `${offM} دقيقة`;
+                        const offClock = `${String(offM).padStart(2, '0')}:${String(offS).padStart(2, '0')}`;
 
                         const onPercent = (onRatio * 100).toFixed(1);
                         const offPercent = ((1 - onRatio) * 100).toFixed(1);
+                        const cycleMinutes = (cycleSecs / 60).toFixed(0);
+
+                        const setCustomVentSeconds = (secs: number, manual: boolean = true) => {
+                          const roundedSecs = Math.max(0, Math.min(cycleSecs, Math.round(secs)));
+                          setState(prev => ({
+                            ...prev,
+                            isManualVentOverride: manual,
+                            dailyManualVentOverride: {
+                              ...(prev.dailyManualVentOverride || {}),
+                              [ageKey]: manual
+                            },
+                            customVentOnSeconds: roundedSecs,
+                            dailyCustomVentOnSeconds: {
+                              ...(prev.dailyCustomVentOnSeconds || {}),
+                              [ageKey]: roundedSecs
+                            }
+                          }));
+                        };
                         
                         return (
                           <div className="space-y-6">
+
+                            {/* Manual Fan Duration Edit Control Panel */}
+                            <div className="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h6 className="font-black text-white text-sm flex items-center gap-2">
+                                      <Sliders size={18} className="text-emerald-400" />
+                                      <span>التحكم في زمن تشغيل الشفاطات</span>
+                                    </h6>
+                                    <span className={cn(
+                                      "text-[9px] font-black px-2.5 py-0.5 rounded-full border vent-mode-badge",
+                                      isManualVent
+                                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                    )}>
+                                      {isManualVent ? "✏️ مُعدل يدوياً" : "🤖 حساب تلقائي"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 font-medium mt-1">
+                                    تتيح لك هذه الشاشة تعديل زمن تشغيل الشفاطات بالدقائق والثواني بدقة مع تحديث فترات السكون تلقائياً
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-950 p-1 rounded-xl border border-white/10 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomVentSeconds(autoOnSecs, false)}
+                                    className={cn(
+                                      "px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1",
+                                      !isManualVent
+                                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                                        : "text-slate-400 hover:text-white"
+                                    )}
+                                  >
+                                    <span className="vent-auto-text">🤖 تلقائي</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomVentSeconds(onSecs > 0 ? onSecs : autoOnSecs, true)}
+                                    className={cn(
+                                      "px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1",
+                                      isManualVent
+                                        ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30"
+                                        : "text-slate-400 hover:text-white"
+                                    )}
+                                  >
+                                    <span className="vent-manual-text">✏️ تعديل يدوي</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Manual Editing Inputs & Quick Presets */}
+                              {isManualVent ? (
+                                <div className="space-y-4 pt-1 animate-in fade-in duration-300">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
+                                    {/* Minutes Input */}
+                                    <div className="bg-slate-950 p-3 rounded-xl border border-white/10 space-y-1">
+                                      <label className="text-[10px] font-black text-amber-400 block">دقائق التشغيل (Min)</label>
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          inputMode="numeric"
+                                          value={runM}
+                                          onChange={e => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            const newTotalSecs = val * 60 + runS;
+                                            setCustomVentSeconds(newTotalSecs, true);
+                                          }}
+                                          className="w-full bg-slate-100 dark:bg-slate-900 border border-amber-500/40 rounded-lg px-3 py-1.5 text-black dark:text-white font-mono font-black text-base text-center outline-none focus:border-amber-400"
+                                        />
+                                        <span className="text-xs font-black text-white daylight-black-text">دقيقة</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Seconds Input */}
+                                    <div className="bg-slate-950 p-3 rounded-xl border border-white/10 space-y-1">
+                                      <label className="text-[10px] font-black text-amber-400 block">ثواني التشغيل (Sec)</label>
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="text"
+                                          inputMode="numeric"
+                                          value={runS}
+                                          onChange={e => {
+                                            const val = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
+                                            const newTotalSecs = runM * 60 + val;
+                                            setCustomVentSeconds(newTotalSecs, true);
+                                          }}
+                                          className="w-full bg-slate-100 dark:bg-slate-900 border border-amber-500/40 rounded-lg px-3 py-1.5 text-black dark:text-white font-mono font-black text-base text-center outline-none focus:border-amber-400"
+                                        />
+                                        <span className="text-xs font-black text-white daylight-black-text">ثانية</span>
+                                      </div>
+                                    </div>
+
+
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {/* Active Cooling Boost Banner when temperature is high */}
+                            {isHighTemp && isCoolingActive && (
+                              <div className="bg-gradient-to-r from-rose-950/80 via-slate-900 to-amber-950/80 border border-rose-500/40 rounded-2xl p-4 text-xs space-y-2 shadow-xl shadow-rose-950/20">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-rose-500/20 rounded-xl text-amber-300 border border-rose-500/30 shrink-0">
+                                      <Zap size={20} className="animate-bounce" />
+                                    </div>
+                                    <div>
+                                      <h6 className="font-black text-white text-xs sm:text-sm flex items-center gap-2">
+                                        <span>⚡ زيادة التهوية (تبريد) نَشِطة ومربوطة بالحرارة (+{tempDiff.toFixed(1)}°م)</span>
+                                      </h6>
+                                      <p className="text-[11px] text-rose-200 font-medium mt-0.5 leading-relaxed">
+                                        الحرارة الحالية ({curTemp}°م) أعلى من المستهدفة ({targetTemp}°م). تم رفع تدفق الشفاطات بنسبة <span className="font-black font-mono text-amber-300">+{Math.round((coolingBoostFactor - 1) * 100)}%</span> لتمديد فترة التشغيل وتقليل السكون لتبريد العنبر.
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-xl font-black text-[10px] shrink-0 self-end sm:self-auto">
+                                    تبريد تعويضي نَشِط ❄️
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Graphical representation of the 1-hour cycle share */}
-                            <div className="space-y-3 bg-slate-900/40 p-4 rounded-2xl border border-white/5 shadow-inner">
-                              <div className="flex justify-between items-center text-[11px] font-bold">
-                                <div className="flex items-center gap-1.5 text-red-400 font-sans">
-                                  <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                                  <span>فترة السكون: {offPercent}%</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-emerald-400 font-sans">
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                  <span>فترة التشغيل: {onPercent}%</span>
-                                </div>
-                                <span className="text-slate-400 font-black">مخطط تقسيم الدورة الواحدة ({ (cycleSecs / 60).toFixed(0) } دقيقة)</span>
-                              </div>
-                              
-                              <div className="relative w-full h-4 bg-slate-950/85 rounded-full overflow-hidden flex p-0.5 border border-white/5">
-                                <div 
-                                  style={{ width: `${onPercent}%` }} 
-                                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full relative transition-all duration-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                                >
-                                  {/* Subtle diagonal stripe overlay to indicate active movement */}
-                                  <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:10px_10px] opacity-25" />
-                                </div>
-                                <div 
-                                  style={{ width: `${offPercent}%` }} 
-                                  className="h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full relative transition-all duration-500 shadow-[0_0_12px_rgba(239,68,68,0.3)] ml-0.5"
-                                />
-                              </div>
-                              
-                              <div className="flex justify-between text-[9px] font-black text-slate-500 font-mono">
-                                <span>{(cycleSecs / 60).toFixed(0)} دقيقة</span>
-                                <span>{(cycleSecs / 120).toFixed(0)} دقيقة</span>
-                                <span>0 دقيقة</span>
-                              </div>
-                            </div>
+                             <div className="space-y-4 bg-slate-900/80 p-4 sm:p-5 rounded-2xl border border-white/10 shadow-inner overflow-hidden">
+                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold">
+                                 <div className="flex items-center gap-2">
+                                   <span className="text-slate-300 font-black text-xs sm:text-sm flex items-center gap-1.5">
+                                     <Activity size={16} className="text-emerald-400 shrink-0" />
+                                     <span className="text-red-600 dark:text-slate-300 font-black text-xs sm:text-sm [text-shadow:_1px_1px_0_#ffffff,_-1px_-1px_0_#ffffff,_1px_-1px_0_#ffffff,_-1px_1px_0_#ffffff,_0_0_3px_#ffffff] dark:[text-shadow:none]">دورة تشغيل / {cycleMinutes} دقيقة</span>
+                                   </span>
+                                 </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+                                   {/* التشغيل */}
+                                   <div className="flex items-center justify-between gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20 shadow-inner">
+                                     <div className="flex items-center gap-1.5 shrink-0">
+                                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] shrink-0" />
+                                       <span className="font-sans font-bold text-slate-200 text-xs shrink-0">التشغيل:</span>
+                                     </div>
+                                     <div className="flex items-center gap-1.5 font-mono font-black text-emerald-300 text-xs shrink-0 dir-ltr">
+                                       <span>{runClock}</span>
+                                      </div>
+                                   </div>
+                                   {/* السكون */}
+                                   <div className="flex items-center justify-between gap-2 text-rose-400 bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-500/20 shadow-inner">
+                                     <div className="flex items-center gap-1.5 shrink-0">
+                                       <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)] shrink-0" />
+                                       <span className="font-sans font-bold text-slate-200 text-xs shrink-0">السكون:</span>
+                                     </div>
+                                     <div className="flex items-center gap-1.5 font-mono font-black text-rose-300 text-xs shrink-0 dir-ltr">
+                                       <span>{offClock}</span>
+                                      </div>
+                                   </div>
+                                 </div>
+                               </div>
+                               
+                               <div className="relative w-full h-6 bg-slate-950/90 rounded-xl overflow-hidden flex gap-1 p-1 border border-white/10 shadow-inner">
+                                 <div 
+                                   style={{ width: `${onPercent}%` }} 
+                                   className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-lg relative transition-all duration-500 shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center justify-center text-[9px] sm:text-[10px] font-black text-slate-950 font-mono tracking-wider overflow-hidden min-w-[32px]"
+                                 >
+                                   <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:12px_12px] opacity-30 animate-pulse" />
+                                   <span className="relative z-10 px-1 truncate dir-ltr">{onPercent}% ON</span>
+                                 </div>
+                                 <div 
+                                   style={{ width: `${offPercent}%` }} 
+                                   className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600/80 rounded-lg relative transition-all duration-500 shadow-[0_0_15px_rgba(244,63,94,0.3)] flex items-center justify-center text-[9px] sm:text-[10px] font-black text-white font-mono tracking-wider overflow-hidden min-w-[32px]"
+                                 >
+                                   <span className="relative z-10 px-1 truncate dir-ltr">{offPercent}% OFF</span>
+                                 </div>
+                               </div>
+                               
+                               <div className="grid grid-cols-3 text-[10px] sm:text-xs font-bold text-slate-400 pt-2 border-t border-white/5">
+                                 <div className="text-right text-emerald-400 font-medium">
+                                   <span className="block font-black">► بداية الدورة</span>
+                                   <span className="text-[9px] text-slate-500 font-mono">0.0 د</span>
+                                 </div>
+                                 <div className="text-center text-slate-300 font-medium">
+                                   <span className="block font-black">منتصف الدورة</span>
+                                   <span className="text-[9px] text-slate-400 font-mono">{(Number(cycleMinutes) / 2).toFixed(1)} د</span>
+                                 </div>
+                                 <div className="text-left text-rose-400 font-medium">
+                                   <span className="block font-black">نهاية الدورة ◄</span>
+                                   <span className="text-[9px] text-slate-400 font-mono">{cycleMinutes} د</span>
+                                 </div>
+                               </div>
+                             </div>
 
-                            {/* Dual layout side-by-side cards with high visual clarity */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Run time status */}
-                              <div className="relative bg-gradient-to-tr from-slate-900/40 via-emerald-950/5 to-emerald-900/10 border border-emerald-500/20 hover:border-emerald-500/40 p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-lg shadow-emerald-950/10 overflow-hidden">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-300" />
-                                
-                                <div className="flex items-start gap-3.5 z-10">
-                                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                                    <Play size={20} fill="currentColor" className="ml-0.5 animate-pulse" />
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="text-xs font-black text-slate-300 block">زمن التشغيل الفعّال</span>
-                                    <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">{onPercent}% من إجمالي وقت الدورة</span>
-                                  </div>
-                                </div>
+{/* Dual layout side-by-side cards with high visual clarity */}
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               {/* Run time status */}
+                               <div className="relative bg-gradient-to-br from-slate-900 via-slate-900/95 to-emerald-950/40 border border-emerald-500/30 hover:border-emerald-500/60 p-4 sm:p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-xl shadow-emerald-950/20 overflow-hidden">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-300" />
+                                 
+                                 <div className="flex items-start justify-between gap-3 z-10">
+                                   <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 text-emerald-400 group-hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                                       <Play size={20} fill="currentColor" className="ml-0.5 animate-pulse" />
+                                     </div>
+                                     <div className="text-right">
+                                       <span className="text-sm sm:text-base font-black text-white block">زمن التشغيل الفعّال</span>
+                                       <span className="text-[10px] sm:text-xs text-emerald-300 font-bold block mt-0.5">ضخ الأكسجين وطرد الأمونيا</span>
+                                     </div>
+                                   </div>
+                                   <span className="shrink-0 whitespace-nowrap text-xs font-black font-mono text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30 shadow-inner">
+                                     {onPercent}%
+                                   </span>
+                                 </div>
 
-                                <div className="z-10 mt-2">
-                                  <p className="text-2xl font-black text-emerald-400 font-sans tracking-tight drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-                                    {runFormatted}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400 font-medium leading-normal mt-1.5 border-t border-white/5 pt-1.5">
-                                    تقوم الشفاطات بالعمل بكامل طاقتها لضمان تدفق الأكسجين وتصريف الرطوبة والأمونيا ومخلفات التنفس.
-                                  </p>
-                                </div>
-                              </div>
+                                 <div className="z-10 space-y-3">
+                                   {/* Timer Display Box */}
+                                   <div className="bg-slate-950/80 p-3 sm:p-3.5 rounded-xl border border-emerald-500/20 flex items-center justify-between gap-2.5">
+                                     <span className="text-xs sm:text-sm font-bold text-slate-400 vent-calc-duration-label">المدة المحسوبة:</span>
+                                     <div className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5 flex-wrap">
+                                       {runM > 0 && (
+                                         <span className="bg-emerald-500/10 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-black text-sm sm:text-base">
+                                           {runM} <span className="font-sans text-xs font-black text-white daylight-black-text">دقيقة</span>
+                                         </span>
+                                       )}
+                                       {runM > 0 && runS > 0 && <span className="text-white font-black text-xs px-0.5 daylight-black-text vent-duration-and-text">و</span>}
+                                       {(runS > 0 || runM === 0) && (
+                                         <span className="bg-emerald-500/10 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-500/20 font-mono font-black text-sm sm:text-base">
+                                           {runS} <span className="font-sans text-xs font-black text-white daylight-black-text">ثانية</span>
+                                         </span>
+                                       )}
+                                     </div>
+                                   </div>
 
-                              {/* Off time status */}
-                              <div className="relative bg-gradient-to-tr from-slate-900/40 via-red-950/5 to-red-900/10 border border-red-500/20 hover:border-red-500/40 p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-lg shadow-red-950/10 overflow-hidden">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-red-500/10 transition-all duration-300" />
-                                
-                                <div className="flex items-start gap-3.5 z-10">
-                                  <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 text-red-500 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-                                    <Pause size={20} fill="currentColor" className="animate-pulse" />
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="text-xs font-black text-slate-300 block">زمن السكون والراحة</span>
-                                    <span className="text-[10px] text-red-400 font-bold block mt-0.5">{offPercent}% من إجمالي وقت الدورة</span>
-                                  </div>
-                                </div>
+                                   <div className="text-[11px] text-slate-300 font-medium leading-relaxed border-t border-white/10 pt-2.5 space-y-1.5">
+                                     <div className="flex items-center gap-1.5 text-emerald-300">
+                                       <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                                       <span>تفريغ الأبخرة والأمونيا ومخلفات التنفس.</span>
+                                     </div>
+                                     <div className="flex items-center gap-1.5 text-emerald-300">
+                                       <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                                       <span>ضخ الأكسجين الحيوي الكافي لسلامة القطيع.</span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
 
-                                <div className="z-10 mt-2">
-                                  <p className="text-2xl font-black text-red-400 font-sans tracking-tight drop-shadow-[0_0_12px_rgba(239,68,68,0.3)]">
-                                    {offFormatted}
-                                  </p>
-                                  <p className="text-[10px] text-slate-400 font-medium leading-normal mt-1.5 border-t border-white/5 pt-1.5">
-                                    تتوقف الشفاطات بشكل آمن لإعطاء فترة راحة حرارية للطيور وتجنب حدوث برودة في منسوب أرضية العنبر.
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
+                               {/* Off time status */}
+                               <div className="relative bg-gradient-to-br from-slate-900 via-slate-900/95 to-rose-950/30 border border-rose-500/30 hover:border-rose-500/60 p-4 sm:p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-300 group shadow-xl shadow-rose-950/20 overflow-hidden">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all duration-300" />
+                                 
+                                 <div className="flex items-start justify-between gap-3 z-10">
+                                   <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shrink-0 text-rose-400 group-hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(244,63,94,0.2)]">
+                                       <Pause size={20} fill="currentColor" className="animate-pulse" />
+                                     </div>
+                                     <div className="text-right">
+                                       <span className="text-sm sm:text-base font-black text-white block">فترة السكون والراحة</span>
+                                       <span className="text-[10px] sm:text-xs text-rose-300 font-bold block mt-0.5">حفظ حرارة العنبر</span>
+                                     </div>
+                                   </div>
+                                   <span className="shrink-0 whitespace-nowrap text-xs font-black font-mono text-rose-300 bg-rose-500/20 px-2.5 py-1 rounded-lg border border-rose-500/30 shadow-inner">
+                                     {offPercent}%
+                                   </span>
+                                 </div>
 
-                            {/* Advanced Bento Grid Metric indicators/Calculations */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-900/20 p-4 rounded-2xl border border-white/5 shadow-inner">
-                              {/* Item 1 */}
-                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
-                                <div className="flex items-center gap-1.5 justify-end text-slate-400">
-                                  <span className="text-[10px] font-bold">دورة التكرار</span>
-                                  <Clock size={12} className="text-slate-400" />
-                                </div>
-                                <p className="text-sm font-black text-white font-mono leading-none">{(cycleSecs / 60).toFixed(0)} دقيقة</p>
-                                <p className="text-[9px] text-slate-500 font-bold">{cycles} دورات في الساعة</p>
-                              </div>
+                                 <div className="z-10 space-y-3">
+                                   {/* Timer Display Box */}
+                                   <div className="bg-slate-950/80 p-3 sm:p-3.5 rounded-xl border border-rose-500/20 flex items-center justify-between gap-2.5">
+                                     <span className="text-xs sm:text-sm font-bold text-slate-400 vent-calc-duration-label">المدة المحسوبة:</span>
+                                     <div className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-1.5 flex-wrap">
+                                       {offM > 0 && (
+                                         <span className="bg-rose-500/10 text-rose-300 px-2.5 py-1 rounded-lg border border-rose-500/20 font-mono font-black text-sm sm:text-base">
+                                           {offM} <span className="font-sans text-xs font-black text-white daylight-black-text">دقيقة</span>
+                                         </span>
+                                       )}
+                                       {offM > 0 && offS > 0 && <span className="text-white font-black text-xs px-0.5 daylight-black-text vent-duration-and-text">و</span>}
+                                       {(offS > 0 || offM === 0) && (
+                                         <span className="bg-rose-500/10 text-rose-300 px-2.5 py-1 rounded-lg border border-rose-500/20 font-mono font-black text-sm sm:text-base">
+                                           {offS} <span className="font-sans text-xs font-black text-white daylight-black-text">ثانية</span>
+                                         </span>
+                                       )}
+                                     </div>
+                                   </div>
 
-                              {/* Item 2 */}
-                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
-                                <div className="flex items-center gap-1.5 justify-end text-cyan-400">
-                                  <span className="text-[10px] font-bold text-slate-400">التهوية الصغرى</span>
-                                  <Wind size={12} className="text-cyan-400" />
-                                </div>
-                                <p className="text-sm font-black text-white font-mono leading-none">{minVentilation.toLocaleString()}</p>
-                                <p className="text-[9px] text-slate-500 font-bold">متر مكعب / ساعة مطلوب</p>
-                              </div>
+                                   <div className="text-[11px] text-slate-300 font-medium leading-relaxed border-t border-white/10 pt-2.5 space-y-1.5">
+                                     <div className="flex items-center gap-1.5 text-rose-300">
+                                       <span className="text-rose-400 font-bold shrink-0">✓</span>
+                                       <span>الاحتفاظ بالدفء وحفظ درجة حرارة التحضين.</span>
+                                     </div>
+                                     <div className="flex items-center gap-1.5 text-rose-300">
+                                       <span className="text-rose-400 font-bold shrink-0">✓</span>
+                                       <span>حماية أرضية العنبر من الصدمات البردية.</span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
+                             </div>
 
-                              {/* Item 3 */}
-                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
-                                <div className="flex items-center gap-1.5 justify-end text-cyan-400">
-                                  <span className="text-[10px] font-bold text-slate-400">قدرة الشفاطات</span>
-                                  <Cpu size={12} className="text-cyan-400" />
-                                </div>
-                                <p className="text-sm font-black text-white font-mono leading-none">{totalActiveCapacity.toLocaleString()}</p>
-                                <p className="text-[9px] text-slate-500 font-bold">متر مكعب / ساعة نشط</p>
-                              </div>
 
-                              {/* Item 4 */}
-                              <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-1">
-                                <div className="flex items-center gap-1.5 justify-end text-emerald-400">
-                                  <span className="text-[10px] font-bold text-slate-400">نسبة التحميل</span>
-                                  <Zap size={12} className="text-emerald-400 animate-pulse" />
-                                </div>
-                                <p className="text-sm font-black text-emerald-400 font-mono leading-none">{onPercent}%</p>
-                                <p className="text-[9px] text-slate-500 font-bold">معدل التشغيل الآمن</p>
-                              </div>
-                            </div>
+
+
                           </div>
                         );
                       })()}
@@ -14646,6 +16143,7 @@ export default function App() {
                   </div>
                 </div>
               </Card>
+              <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -14678,6 +16176,66 @@ export default function App() {
                 </div>
               </header>
 
+              {/* Live Connected Barn Readings Header Bar for Humidity */}
+              {(() => {
+                const ageKey = String(state.age || 1);
+                const curTemp = toNum(state.dailyInternalTemp?.[ageKey] ?? state.internalTemp) || 28;
+                const curRH = toNum(state.dailyHumidity?.[ageKey] ?? state.currentHumidity) || 65;
+                const targetTemp = getTargetTemperature(toNum(state.age));
+
+                return (
+                  <Card className="p-4 bg-gradient-to-r from-slate-900 via-rose-950/30 to-amber-950/30 border border-rose-500/30 relative overflow-hidden shadow-xl mb-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-rose-500/15 rounded-2xl text-rose-400 border border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                          <Flame size={22} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-black text-sm text-white">قراءة العنبر الحالية</h3>
+                            <span className="text-[9px] bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-ping" />
+                              تزامن حقيقي ⚡
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto justify-between md:justify-end">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Thermometer Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-amber-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الترمومتر</span>
+                            <span className="text-sm font-black font-mono text-amber-400">{curTemp}°م</span>
+                          </div>
+
+                          {/* Target Temp Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-emerald-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">المستهدفة</span>
+                            <span className="text-sm font-black font-mono text-emerald-800 dark:text-emerald-400">{targetTemp}°م</span>
+                          </div>
+
+                          {/* Humidity Pill */}
+                          <div className="bg-slate-950/90 px-3 py-1.5 rounded-xl border border-cyan-500/30 text-center">
+                            <span className="text-[9px] text-slate-400 font-bold block">الرطوبة</span>
+                            <span className="text-sm font-black font-mono text-cyan-400">{curRH}%</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setScreen('barn_readings')}
+                          className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                        >
+                          <span>تعديل القراءة</span>
+                          <ChevronLeft size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })()}
+
               {/* DASHBOARD GRID */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
@@ -14693,7 +16251,18 @@ export default function App() {
                       <div className="flex flex-col items-center justify-center space-y-6 bg-slate-950/40 p-6 rounded-3xl border border-white/5 shadow-inner">
                         <div className="relative w-48 h-48">
                           <svg className="w-full h-full transform -rotate-225" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" strokeDasharray="198 264" strokeLinecap="round" />
+                            {/* Visible Track Frame */}
+                            <circle 
+                              cx="50" 
+                              cy="50" 
+                              r="42" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="10" 
+                              strokeDasharray="198 264" 
+                              strokeLinecap="round" 
+                              className="track-very-light-gray dark:text-slate-800/80"
+                            />
                             <motion.circle 
                               cx="50" cy="50" r="42" fill="none" 
                               stroke={thi < targetThi - 0.5 ? "#3b82f6" : thi < targetThi + 1.5 ? "#10b981" : thi <= targetThi + 4 ? "#f59e0b" : "#ef4444"} 
@@ -14715,7 +16284,7 @@ export default function App() {
                             <div className="flex items-baseline gap-0.5">
                               <span className={cn(
                                 "text-4xl font-black tracking-tighter",
-                                thi < targetThi - 0.5 ? "text-blue-400" : thi < targetThi + 1.5 ? "text-emerald-400" : thi <= targetThi + 4 ? "text-orange-400" : "text-red-500"
+                                thi < targetThi - 0.5 ? "text-blue-400" : thi < targetThi + 1.5 ? "text-emerald-800 dark:text-emerald-400" : thi <= targetThi + 4 ? "text-orange-400" : "text-red-500"
                               )}>
                                 {Math.round(thi)}
                               </span>
@@ -14725,7 +16294,7 @@ export default function App() {
                               "mt-2 px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border",
                               thi < targetThi - 2 ? "bg-blue-600/10 border-blue-500/20 text-blue-400" :
                               thi < targetThi - 0.5 ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" :
-                              thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : 
+                              thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-400" : 
                               thi <= targetThi + 4 ? "bg-orange-500/10 border-orange-500/20 text-orange-400" :
                               "bg-red-500/10 border-red-500/20 text-red-500"
                             )}>
@@ -14737,7 +16306,7 @@ export default function App() {
                         <div className="w-full space-y-3">
                           <div className="flex items-center justify-between text-[10px] font-bold">
                             <span className="text-slate-500">المؤشر المستهدف للعمر</span>
-                            <span className="text-white">{targetThi} THI</span>
+                            <span className="text-red-500 dark:text-red-400 font-black">{targetThi} THI</span>
                           </div>
                           <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
                              <div 
@@ -14745,94 +16314,6 @@ export default function App() {
                                style={{ width: `${Math.min(100, (targetThi / 120) * 100)}%` }}
                              />
                           </div>
-                        </div>
-                      </div>
-
-                      {/* Inputs Area */}
-                      <div className="flex flex-col justify-center space-y-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20">
-                               <Thermometer size={16} />
-                             </div>
-                             <h4 className="text-sm font-black text-white">قراءة العنبر الحالية</h4>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block pr-2">درجة الحرارة المستمرة</label>
-                               <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
-                                  <button onClick={() => {
-                                    const currentVal = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp);
-                                    const newVal = (currentVal - 0.1).toFixed(1);
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: newVal },
-                                      internalTemp: newVal // Update global too for first-time sync
-                                    }));
-                                  }} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-orange-500/5 group/btn shrink-0"><Minus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
-                                  <input type="text" inputMode="decimal" value={state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp} onChange={e => { 
-                                    const val = e.target.value; 
-                                    if (val === '' || /^-?\d*\.?\d*$/.test(val)) {
-                                      setState(prev => ({ 
-                                        ...prev, 
-                                        dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: val },
-                                        internalTemp: val // Update global too for first-time sync
-                                      }));
-                                    }
-                                  }} className="bg-transparent text-center font-black text-white text-2xl flex-1 outline-none font-mono min-w-0" />
-                                  <button onClick={() => {
-                                    const currentVal = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp);
-                                    const newVal = (currentVal + 0.1).toFixed(1);
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyInternalTemp: { ...prev.dailyInternalTemp, [currentAgeStr]: newVal },
-                                      internalTemp: newVal // Update global too for first-time sync
-                                    }));
-                                  }} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-orange-500/5 group/btn shrink-0"><Plus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
-                               </div>
-                            </div>
-
-                            <div className="space-y-2">
-                               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block pr-2">الرطوبة النسبية (%)</label>
-                               <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
-                                  <button onClick={() => {
-                                    const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
-                                    const newVal = Math.max(0, currentVal - 1).toFixed(0);
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
-                                      currentHumidity: newVal // Update global too for first-time sync
-                                    }));
-                                  }} className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-cyan-500/5 group/btn shrink-0"><Minus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
-                                  <input type="text" inputMode="decimal" value={state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity} onChange={e => { 
-                                    const val = e.target.value; 
-                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                      setState(prev => ({ 
-                                        ...prev, 
-                                        dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: val },
-                                        currentHumidity: val // Update global too for first-time sync
-                                      }));
-                                    }
-                                  }} className="bg-transparent text-center font-black text-white text-2xl flex-1 outline-none font-mono min-w-0" />
-                                  <button onClick={() => {
-                                    const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
-                                    const newVal = Math.min(100, currentVal + 1).toFixed(0);
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
-                                      currentHumidity: newVal // Update global too for first-time sync
-                                    }));
-                                  }} className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shadow-cyan-500/5 group/btn shrink-0"><Plus size={14} strokeWidth={4} className="group-active/btn:scale-75 transition-transform" /></button>
-                               </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-white/5">
-                           <div className="text-[9px] font-black text-slate-500 leading-relaxed">
-                            * أدخل القراءات الحالية التي تظهر على لوحة التحكم أو الحساسات في العنبر للحصول على تشخيص دقيق.
-                           </div>
                         </div>
                       </div>
                     </div>
@@ -14861,7 +16342,7 @@ export default function App() {
                         <div className={cn(
                           "w-16 h-16 rounded-3xl flex items-center justify-center shrink-0 border",
                           thi < targetThi - 2 ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
-                          thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+                          thi < targetThi + 1.5 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-400" :
                           "bg-red-500/10 border-red-500/20 text-red-400"
                         )}>
                           <AlertCircle size={32} />
@@ -14877,7 +16358,7 @@ export default function App() {
                               ) : thi < targetThi - 0.5 ? (
                                 <>الوضع <span className="text-cyan-400">أبرد من المطلوب</span></>
                               ) : thi < targetThi + 1.5 ? (
-                                <>الوضع <span className="text-emerald-400">ضمن النطاق المثالي</span></>
+                                <>الوضع <span className="text-emerald-800 dark:text-emerald-400">ضمن النطاق المثالي</span></>
                               ) : (
                                 <>الوضع <span className="text-red-400">يتجاوز النطاق الآمن</span></>
                               )}
@@ -14897,7 +16378,7 @@ export default function App() {
                          <div className="flex items-center gap-3">
                             <div className={cn(
                               "text-3xl font-black tabular-nums tracking-tighter",
-                              Math.abs(thi - targetThi) < 1.5 ? "text-emerald-400" : 
+                              Math.abs(thi - targetThi) < 1.5 ? "text-emerald-800 dark:text-emerald-400" : 
                               thi > targetThi ? "text-red-400" : "text-blue-400"
                             )}>
                               {thi > targetThi ? "+" : ""}{(thi - targetThi).toFixed(1)}
@@ -15098,11 +16579,11 @@ export default function App() {
                              <Info size={18} />
                            </div>
                            <div className="flex-1">
-                             <p className="text-[11px] text-white font-black leading-tight">توصية الخبير</p>
-                             <p className="text-[9px] text-slate-500 font-bold mt-1 leading-relaxed">
+                             <p className="text-[11px] expert-recommendation-title font-black leading-tight">توصية الخبير</p>
+                             <p className="text-[10px] text-amber-500 dark:text-amber-400 font-black mt-1 leading-relaxed">
                                 {thi > targetThi + 2 
                                   ? "يفضل تقديم فيتامين C في ماء الشرب لمساعدة الطيور على تحمل الإجهاد الناتج عن الرطوبة العالية."
-                                  : "حافظ على دورية عمل شفاطات التهوية الدنيا لضمان تبدل الهواء دون تبريد مفاجئ."}
+                                  : <span className="text-golden-yellow">حافظ على دورية عمل شفاطات التهوية الدنيا لضمان تبدل الهواء دون تبريد مفاجئ.</span>}
                              </p>
                            </div>
                         </div>
@@ -15122,13 +16603,13 @@ export default function App() {
                              <Layers size={20} />
                            </div>
                            <div>
-                             <h4 className="font-black text-lg text-white">كفاءة خلايا التبريد</h4>
+                             <h4 className="font-black text-lg text-white">خلايا التبريد</h4>
                              <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">توازن الضغط والسحب</p>
                            </div>
                          </div>
                          <button 
                            onClick={() => {
-                             const newPad: CoolingPad = { id: `cp-${Date.now()}`, name: `خلية ${state.coolingPads.length + 1}`, area: 5 };
+                             const newPad: CoolingPad = { id: `cp-${Date.now()}`, name: `خلية ${state.coolingPads.length + 1}`, area: 1 };
                              setState(prev => ({ ...prev, coolingPads: [...prev.coolingPads, newPad] }));
                            }}
                            className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-500 flex items-center justify-center hover:bg-blue-600/20 transition-all active:scale-95 border border-blue-500/20"
@@ -15155,7 +16636,7 @@ export default function App() {
                               />
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1 bg-slate-900 px-2.5 py-1 rounded-lg border border-white/5 focus-within:border-blue-500/50 transition-colors">
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-white/5 focus-within:border-blue-500/50 transition-colors">
                                 <input 
                                   type="text" inputMode="decimal" value={pad.area}
                                   onChange={e => {
@@ -15164,7 +16645,7 @@ export default function App() {
                                       setState(prev => ({ ...prev, coolingPads: prev.coolingPads.map(p => p.id === pad.id ? { ...p, area: val } : p) }));
                                     }
                                   }}
-                                  className="w-12 bg-transparent border-none text-right font-black text-white focus:outline-none text-xs"
+                                  className="w-12 bg-transparent border-none text-right font-black text-slate-900 dark:text-white focus:outline-none text-xs"
                                 />
                                 <span className="text-[8px] font-black text-slate-500">م²</span>
                               </div>
@@ -15215,7 +16696,7 @@ export default function App() {
                                </div>
                                <div className={cn(
                                  "p-3 rounded-xl border flex items-center gap-3 transition-all",
-                                 sufficiency ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500/80" : "bg-red-500/5 border-red-500/10 text-red-400"
+                                 sufficiency ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-800 dark:text-emerald-400" : "bg-red-500/5 border-red-500/10 text-red-400"
                                )}>
                                  {sufficiency ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
                                  <p className="text-[10px] font-black leading-tight uppercase tracking-wide">
@@ -15225,113 +16706,6 @@ export default function App() {
                              </div>
                            );
                          })()}
-                      </div>
-                    </Card>
-
-                    {/* PUMP TIMER CONTROL */}
-                    <Card className="bg-slate-900 border-white/5 border-b-4 border-b-cyan-600/50 p-6 flex flex-col">
-                      <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-cyan-600/10 rounded-xl flex items-center justify-center text-cyan-500 shadow-inner ring-1 ring-white/5">
-                          <Clock size={20} />
-                        </div>
-                        <div>
-                          <h4 className="font-black text-lg text-white">مؤقت الطلمبة</h4>
-                          <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-0.5">التحكم في مستويات الرطوبة</p>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 flex flex-col items-center justify-center py-4">
-                        <div className="relative w-40 h-40">
-                           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                              <circle cx="60" cy="60" r="56" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" strokeDasharray="314 314" />
-                              
-                              {(() => {
-                                 const sumTimes = toNum(state.pumpOnTime) + toNum(state.pumpOffTime);
-                                 if (sumTimes <= 0) return null;
-                                 const cycles = 60 / sumTimes;
-                                 const cycleDeg = 360 / cycles;
-                                 const onRatio = toNum(state.pumpOnTime) / sumTimes;
-                                 const onDeg = cycleDeg * onRatio;
-                                 
-                                 return Array.from({ length: Math.ceil(cycles) }).map((_, i) => {
-                                   const startAngle = i * cycleDeg;
-                                   const endAngle = startAngle + onDeg;
-                                   return (
-                                     <path 
-                                       key={i}
-                                       d={describeArc(60, 60, 50, startAngle, endAngle)} 
-                                       className="fill-none stroke-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
-                                       strokeWidth="6"
-                                       strokeLinecap="round"
-                                     />
-                                   );
-                                 });
-                              })()}
-                           </svg>
-                           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                              <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping mb-2 shadow-[0_0_15px_rgba(6,182,212,1)]" />
-                              <p className="text-[10px] font-black text-white uppercase tracking-widest">تلقائي</p>
-                              <p className="text-[8px] font-bold text-slate-500 mt-0.5">{(toNum(state.pumpOnTime) + toNum(state.pumpOffTime)) > 0 ? (60 / (toNum(state.pumpOnTime) + toNum(state.pumpOffTime))).toFixed(0) : 0} دورات/س</p>
-                           </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mt-6">
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest block text-center">تشغيل (دقيقة)</label>
-                           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-inner">
-                              <button 
-                                onClick={() => setState(prev => ({ ...prev, pumpOnTime: Math.max(0, toNum(prev.pumpOnTime) - 0.5) }))}
-                                className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:text-white hover:bg-emerald-500 transition-all border border-emerald-500/20 active:scale-90 shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <div className="flex-1 flex justify-center items-center px-1 overflow-hidden">
-                                <input 
-                                  type="text" inputMode="decimal" value={state.pumpOnTime}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === '' || /^\d*\.?\d*$/.test(val)) setState(prev => ({ ...prev, pumpOnTime: val }));
-                                  }}
-                                  className="bg-transparent text-center font-black text-white text-xl outline-none w-full"
-                                />
-                              </div>
-                              <button 
-                                onClick={() => setState(prev => ({ ...prev, pumpOnTime: (toNum(prev.pumpOnTime) + 0.5) }))}
-                                className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 hover:text-white hover:bg-emerald-500 transition-all border border-emerald-500/20 active:scale-90 shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                           </div>
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-red-500 uppercase tracking-widest block text-center">إيقاف (دقيقة)</label>
-                           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-red-500/20 transition-all shadow-inner">
-                              <button 
-                                onClick={() => setState(prev => ({ ...prev, pumpOffTime: Math.max(0, toNum(prev.pumpOffTime) - 0.5) }))}
-                                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-500/20 active:scale-90 shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <div className="flex-1 flex justify-center items-center px-1 overflow-hidden">
-                                <input 
-                                  type="text" inputMode="decimal" value={state.pumpOffTime}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === '' || /^\d*\.?\d*$/.test(val)) setState(prev => ({ ...prev, pumpOffTime: val }));
-                                  }}
-                                  className="bg-transparent text-center font-black text-white text-xl outline-none w-full"
-                                />
-                              </div>
-                              <button 
-                                onClick={() => setState(prev => ({ ...prev, pumpOffTime: (toNum(prev.pumpOffTime) + 0.5) }))}
-                                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:text-white hover:bg-red-500 transition-all border border-red-500/20 active:scale-90 shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                           </div>
-                        </div>
                       </div>
                     </Card>
 
@@ -15346,7 +16720,6 @@ export default function App() {
                           </div>
                           <div>
                             <h4 className="font-black text-lg text-white">إدارة رطوبة العنبر ذكياً 💧</h4>
-                            <p className="text-[9px] text-slate-500 font-bold mt-1">تحليل ذكي يربط قراءة الحساس الحالي بكتالوج عمر الطيور</p>
                           </div>
                         </div>
 
@@ -15366,167 +16739,6 @@ export default function App() {
 
                       <div className="space-y-5 flex-1">
                         
-                        {/* INPUTS PANEL */}
-                        <div className="bg-slate-950/40 p-4 rounded-2xl border border-white/5 space-y-4">
-                          <h5 className="text-[11px] font-bold text-slate-400 text-right pr-1">بيانات العنبر ومؤشرات الحساسات الحالية</h5>
-                          
-                          {/* 1. Sensor Humidity (RH) Input with plus/minus */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">
-                              قراءة رطوبة الحساس الحالية (%) - شاملة الكتاكيت:
-                            </label>
-                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
-                              <button 
-                                onClick={() => {
-                                  const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
-                                  const newVal = Math.max(0, currentVal - 1).toFixed(0);
-                                  setState(prev => ({ 
-                                    ...prev, 
-                                    dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
-                                    currentHumidity: newVal
-                                  }));
-                                }}
-                                className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <input 
-                                type="text" 
-                                inputMode="decimal" 
-                                value={state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity} 
-                                onChange={e => { 
-                                  const val = e.target.value; 
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    setState(prev => ({ 
-                                      ...prev, 
-                                      dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: val },
-                                      currentHumidity: val
-                                    }));
-                                  }
-                                }} 
-                                className="bg-transparent text-center font-black text-white text-lg flex-1 outline-none font-mono min-w-0" 
-                              />
-                              <button 
-                                onClick={() => {
-                                  const currentVal = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
-                                  const newVal = Math.min(100, currentVal + 1).toFixed(0);
-                                  setState(prev => ({ 
-                                    ...prev, 
-                                    dailyHumidity: { ...prev.dailyHumidity, [currentAgeStr]: newVal },
-                                    currentHumidity: newVal
-                                  }));
-                                }}
-                                className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 2. Weight and Age inputs arranged vertically to adjust visual identity */}
-                          {/* Average Weight */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">وزن الطائر (جرام):</label>
-                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                              <button 
-                                onClick={() => setHumidityAvgWeight(prev => String(Math.max(10, (parseFloat(prev) || 0) - 5)))}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <input 
-                                type="text" 
-                                inputMode="decimal" 
-                                value={humidityAvgWeight}
-                                maxLength={5}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    if (val.length <= 5) {
-                                      setHumidityAvgWeight(val);
-                                    }
-                                  }
-                                }}
-                                className="bg-transparent text-center font-black text-white text-md flex-1 outline-none font-mono min-w-0" 
-                              />
-                              <button 
-                                onClick={() => setHumidityAvgWeight(prev => String((parseFloat(prev) || 0) + 5))}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Flock Age Input */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">عمر القطيع (يوم):</label>
-                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                              <button 
-                                onClick={() => {
-                                  const currentAge = toNum(state.age);
-                                  const newAge = Math.max(1, currentAge - 1);
-                                  setState(prev => ({ ...prev, age: newAge }));
-                                }}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <input 
-                                type="text" 
-                                inputMode="numeric" 
-                                value={state.age}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  if (val === '' || /^\d*$/.test(val)) {
-                                    setState(prev => ({ ...prev, age: parseInt(val, 10) || 1 }));
-                                  }
-                                }}
-                                className="bg-transparent text-center font-black text-white text-md flex-1 outline-none font-mono min-w-0" 
-                              />
-                              <button 
-                                onClick={() => {
-                                  const currentAge = toNum(state.age);
-                                  const newAge = currentAge + 1;
-                                  setState(prev => ({ ...prev, age: newAge }));
-                                }}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Birds total */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold text-slate-400 block text-right pr-1">عدد الطيور بالكامل:</label>
-                            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                              <button 
-                                onClick={() => setHumidityTotalBirds(prev => String(Math.max(0, (parseInt(prev, 10) || 0) - 100)))}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Minus size={14} strokeWidth={3} />
-                              </button>
-                              <input 
-                                type="text" 
-                                inputMode="numeric" 
-                                value={humidityTotalBirds}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  if (val === '' || /^\d*$/.test(val)) setHumidityTotalBirds(val);
-                                }}
-                                className="bg-transparent text-center font-black text-white text-md flex-1 outline-none font-mono min-w-0" 
-                              />
-                              <button 
-                                onClick={() => setHumidityTotalBirds(prev => String((parseInt(prev, 10) || 0) + 100))}
-                                className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm shrink-0"
-                              >
-                                <Plus size={14} strokeWidth={3} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
                         {/* Interactive Analysis Outcomes */}
                         {(() => {
                           const birdsCountNum = parseInt(humidityTotalBirds, 10) || 0;
@@ -15552,56 +16764,13 @@ export default function App() {
                           const currentTempC = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp) || 28;
                           const addedRHPercent = calculateExactNewRH(currentTempC, 0, totalMoisturePerHour, barnVol);
 
-                          // Interactive Target Determination by Age Map requested:
-                          const getTargetHumidityByAge = (age: number): number => {
-                            if (age <= 7) return 65;  // الأسبوع الأول
-                            if (age <= 14) return 60; // الأسبوع الثاني
-                            if (age <= 21) return 55; // الأسبوع الثالث
-                            return 50;                // الأعمار الكبيرة
-                          };
-
                           const rhCurrentNum = toNum(state.dailyHumidity?.[currentAgeStr] ?? state.currentHumidity);
-                          const ageNum = toNum(state.age) || 1;
-                          const targetRH = getTargetHumidityByAge(ageNum);
-                          const rhDifference = parseFloat((rhCurrentNum - targetRH).toFixed(1));
-
-                          let statusMessage = '';
-                          let statusColorClass = '';
-                          let statusBorderClass = '';
-                          let statusTextClass = '';
-
-                          if (rhDifference > 5) {
-                            statusMessage = `⚠️ الرطوبة مرتفعة عن المطلوب بـ ${rhDifference}% (خطر كتمة)`;
-                            statusColorClass = 'bg-red-500/10';
-                            statusBorderClass = 'border-red-500/20';
-                            statusTextClass = 'text-red-400';
-                          } else if (rhDifference < -5) {
-                            statusMessage = `⚠️ الجو جاف؛ أقل من المطلوب بـ ${Math.abs(rhDifference)}% (خطر جفاف)`;
-                            statusColorClass = 'bg-amber-500/10';
-                            statusBorderClass = 'border-amber-500/20';
-                            statusTextClass = 'text-amber-400';
-                          } else {
-                            statusMessage = '🟢 الرطوبة في النطاق المثالي لعمر الطيور';
-                            statusColorClass = 'bg-emerald-500/10';
-                            statusBorderClass = 'border-emerald-500/20';
-                            statusTextClass = 'text-emerald-400';
-                          }
 
                           // Future Danger Forecast:
                           const predictedRHAfterOneHour = Math.min(100, parseFloat((rhCurrentNum + addedRHPercent).toFixed(1)));
 
                           return (
                             <div className="space-y-4">
-                              
-                              {/* REALTIME EVALUATION CARD */}
-                              <div className={cn("p-4 rounded-xl border text-right space-y-2", statusColorClass, statusBorderClass)}>
-                                <p className={cn("text-xs font-black", statusTextClass)}>{statusMessage}</p>
-                                <div className="flex items-center justify-between border-t border-white/5 pt-2 text-[11px] text-slate-400">
-                                  <span>الرطوبة الحالية: <strong className="text-white font-mono">{rhCurrentNum}%</strong></span>
-                                  <span>المستهدفة لعمر {ageNum} أيام: <strong className="text-white font-mono">{targetRH}%</strong></span>
-                                </div>
-                              </div>
-
                               {/* DANGER FORECAST CARD */}
                               <div className="p-4 bg-red-950/20 border border-red-500/10 rounded-2xl text-right space-y-3">
                                 <div className="flex items-center gap-2 text-red-400 font-bold text-xs">
@@ -15616,7 +16785,7 @@ export default function App() {
                                   <span className="text-[10px] text-slate-500 font-bold">الرطوبة المتوقعة بعد ساعة بدون شفاط:</span>
                                   <span className={cn(
                                     "text-lg font-black px-2.5 py-1 rounded-lg font-mono",
-                                    predictedRHAfterOneHour >= 75 ? "bg-red-500/0 text-red-400 border border-red-500/20 animate-pulse" : "bg-emerald-500/10 text-emerald-400"
+                                    predictedRHAfterOneHour >= 75 ? "bg-red-500/0 text-red-400 border border-red-500/20 animate-pulse" : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400"
                                   )}>
                                     {predictedRHAfterOneHour.toFixed(1)}%
                                   </span>
@@ -15632,7 +16801,7 @@ export default function App() {
                               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
                                 <div className="p-2.5 bg-slate-950 rounded-xl border border-white/5 text-center">
                                   <p className="text-[9px] text-slate-500 font-semibold uppercase">الزيادة في الساعة (فيزيائية)</p>
-                                  <p className="text-sm font-mono font-black text-emerald-400">+{addedRHPercent.toFixed(1)}%</p>
+                                  <p className="text-sm font-mono font-black text-emerald-800 dark:text-emerald-400">+{addedRHPercent.toFixed(1)}%</p>
                                 </div>
                                 <div className="p-2.5 bg-slate-950 rounded-xl border border-white/5 text-center">
                                   <p className="text-[9px] text-slate-500 font-semibold uppercase">معدل التبخر الكلي</p>
@@ -15661,6 +16830,7 @@ export default function App() {
                     </Card>
                   </div>
 
+                  <CalculationDisclaimerNotice />
               </motion.div>
           )}
 
@@ -15739,42 +16909,114 @@ export default function App() {
                     </h3>
                     
                     <div className="space-y-6">
+                      {/* WEATHER SYNCED CARD */}
+                      <div className="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={() => setScreen('weather')}
+                            className="text-[10px] font-black text-sky-400 bg-sky-500/20 hover:bg-sky-500 hover:text-slate-950 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Cloud size={12} />
+                            <span>شاشة الطقس</span>
+                          </button>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-white">الحرارة الخارجية (الطقس)</span>
+                            <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-slate-950/80 p-3 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-black text-sky-400 tabular-nums">
+                              {Math.round(toNum(state.externalTemp ?? weather?.current_weather?.temperature ?? 25))}°م
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-[9px] font-bold text-slate-400 block">حرارة العنبر: {Math.round(toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp))}°م</span>
+                            <span className="text-[9px] font-bold text-sky-300 block">الفارق الفعلي: {Math.abs(Math.round(toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp)) - Math.round(toNum(state.externalTemp ?? weather?.current_weather?.temperature ?? 25)))}°م</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const barnT = toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp);
+                            const outT = toNum(state.externalTemp ?? weather?.current_weather?.temperature ?? 25);
+                            const diff = Math.max(1, Math.abs(barnT - outT));
+                            setState(prev => ({ ...prev, environmentalLoadDeltaT: diff, isDeltaTManual: false }));
+                          }}
+                          className="w-full py-2 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 rounded-xl text-[10.5px] font-black transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                        >
+                          <RefreshCw size={12} />
+                          <span>مزامنة تلقائية مع فارق الطقس الفعلي ({Math.abs(Math.round(toNum(state.dailyInternalTemp?.[currentAgeStr] ?? state.internalTemp)) - Math.round(toNum(state.externalTemp ?? weather?.current_weather?.temperature ?? 25)))}°م)</span>
+                        </button>
+                      </div>
+
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pr-2">فرق الحرارة (Delta T)</label>
+                        <div className="flex items-center justify-between pr-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">فرق الحرارة (Delta T)</label>
+                          {state.isDeltaTManual ? (
+                            <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">تعديل يدوي</span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">محتسب تلقائياً</span>
+                          )}
+                        </div>
                         <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 shadow-inner">
-                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.max(1, toNum(prev.environmentalLoadDeltaT || 3) - 0.5) }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.max(1, toNum(prev.environmentalLoadDeltaT || 3) - 0.5), isDeltaTManual: true }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
                              <Minus size={14} strokeWidth={4} />
                            </button>
                            <input type="text" inputMode="decimal" value={state.environmentalLoadDeltaT} onChange={e => {
                              const val = e.target.value;
                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                               setState(prev => ({ ...prev, environmentalLoadDeltaT: val }));
+                               setState(prev => ({ ...prev, environmentalLoadDeltaT: val, isDeltaTManual: true }));
                              }
-                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0" />
-                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.min(10, toNum(prev.environmentalLoadDeltaT || 3) + 0.5) }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0 thermal-load-input" />
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDeltaT: Math.min(10, toNum(prev.environmentalLoadDeltaT || 3) + 0.5), isDeltaTManual: true }))} className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
                              <Plus size={14} strokeWidth={4} />
                            </button>
                         </div>
-                        <p className="text-[9px] text-slate-500 font-bold px-2">الفرق المسموح به بين حرارة الداخل والخارج (3-5 مئوي)</p>
+                        <p className="text-[9px] text-slate-500 font-bold px-2">الفرق المسموح به بين حرارة الداخل والخارج (محتسب تلقائياً أو بين 3-5 مئوي)</p>
                       </div>
 
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block pr-2">الكثافة (كجم/متر²)</label>
+                        <div className="flex items-center justify-between pr-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">الكثافة (كجم/متر²)</label>
+                          {state.isDensityManual ? (
+                            <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">تعديل يدوي</span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">محتسب تلقائياً ({liveCalculatedDensity} كجم/م²)</span>
+                          )}
+                        </div>
                         <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-white/10 shadow-inner">
-                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.max(0, toNum(prev.environmentalLoadDensity || 30) - 1) }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.max(0, toNum(prev.environmentalLoadDensity || 30) - 1), isDensityManual: true }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
                              <Minus size={14} strokeWidth={4} />
                            </button>
                            <input type="text" inputMode="decimal" value={state.environmentalLoadDensity} onChange={e => {
                              const val = e.target.value;
                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                               setState(prev => ({ ...prev, environmentalLoadDensity: val }));
+                               setState(prev => ({ ...prev, environmentalLoadDensity: val, isDensityManual: true }));
                              }
-                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0" />
-                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.min(50, toNum(prev.environmentalLoadDensity || 30) + 1) }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
+                           }} className="bg-transparent text-center font-black text-white text-xl flex-1 outline-none font-mono min-w-0 thermal-load-input" />
+                           <button onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: Math.min(50, toNum(prev.environmentalLoadDensity || 30) + 1), isDensityManual: true }))} className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0">
                              <Plus size={14} strokeWidth={4} />
                            </button>
                         </div>
-                        <p className="text-[9px] text-slate-500 font-bold px-2">يؤثر في تصحيح إنتاج الحرارة الكلي (خاصة فوق 35 كجم/م²)</p>
+                        <p className="text-[9px] text-slate-500 font-bold px-2">
+                          {state.breedingSystem === 'Floor' 
+                            ? `معادلة التربية الأرضي: (الطيور الحية × متوسط الوزن) ÷ (طول العنبر × عرض العنبر) = ${liveCalculatedDensity} كجم/م²`
+                            : `معادلة تربية البطاريات: (الطيور الحية × متوسط الوزن) ÷ (طول البطارية × عرض البطارية إجمالياً) = ${liveCalculatedDensity} كجم/م²`
+                          }
+                        </p>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setState(prev => ({ ...prev, environmentalLoadDensity: liveCalculatedDensity, isDensityManual: false }))}
+                          className="w-full mt-1.5 py-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                        >
+                          <RefreshCw size={11} />
+                          <span>مزامنة تلقائية مستمرة مع الكثافة الميدانية ({liveCalculatedDensity} كجم/م²)</span>
+                        </button>
                       </div>
 
                       <div className="pt-6 border-t border-white/5">
@@ -15914,6 +17156,7 @@ export default function App() {
                    </div>
                 </div>
               </div>
+              <CalculationDisclaimerNotice />
             </motion.div>
           )}
 
@@ -15938,6 +17181,18 @@ export default function App() {
               className="pb-32"
             >
               <WorkshopScreen onNavigate={setScreen} />
+            </motion.div>
+          )}
+
+          {screen === 'disclaimer' && (
+            <motion.div 
+              key="disclaimer"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="pb-32"
+            >
+              <DisclaimerScreen onNavigate={setScreen} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -16053,7 +17308,7 @@ export default function App() {
       {/* Categories Fullscreen Drawer Modal */}
       <AnimatePresence>
         {isCategoriesModalOpen && (
-          <div className="fixed inset-0 z-[150] flex justify-end">
+          <div className="fixed inset-0 z-[150]">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -16068,7 +17323,7 @@ export default function App() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 220 }}
-              className="relative w-[300px] sm:w-[350px] h-full bg-[#0d121f] border-l border-white/10 rounded-l-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 text-right overflow-hidden"
+              className="absolute top-0 right-0 bottom-0 z-10 w-[300px] sm:w-[350px] h-full bg-[#0d121f] border-l border-white/10 rounded-l-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col text-right overflow-hidden"
               dir="rtl"
             >
               {/* Sidebar Header */}
@@ -16085,9 +17340,13 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsCategoriesModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-white/5 outline-none active:scale-90"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border outline-none active:scale-90 close-x-btn ${
+                    isDaylightMode
+                      ? 'bg-black text-rose-500 border-rose-600/50 hover:bg-neutral-900 hover:text-rose-400'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-white/5'
+                  }`}
                 >
-                  <X size={14} />
+                  <X size={14} className={isDaylightMode ? 'text-rose-500 stroke-[2.5]' : ''} />
                 </button>
               </div>
 
@@ -16100,6 +17359,7 @@ export default function App() {
                   <div className="flex flex-col gap-2">
                     {[
                       { id: 'dashboard', label: 'لوحة التحكم', desc: 'الحالة التفصيلية الفورية لقسم الرعاية', icon: LayoutDashboard },
+                      { id: 'barn_readings', label: 'قراءة العنبر', desc: 'إدخال قراءات الترمومتر والرطوبة والربط اللحظي بجميع الأنظمة', icon: Gauge },
                       { id: 'landing', label: 'الدورات الحالية', desc: 'إدارة وتنشيط دورات تحضين الدواجن', icon: RefreshCw },
                       { id: 'setup', label: 'إدارة العنابر', desc: 'تعديل وتخصيص تجهيزات العنبر، أبعاده ونظام التربية والتهوية', icon: Settings },
                       { id: 'medication', label: 'برنامج الأدوية', desc: 'التحصينات والجرعات واللقاحات البيطرية', icon: Stethoscope },
@@ -16107,7 +17367,8 @@ export default function App() {
                         { id: 'battery', label: 'إدارة الأدوار', desc: 'تنظيم البطاريات والتشغيل بالأدوار', icon: Layers }
                       ] : []),
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isActive = screen === item.id;
                       return (
                         <button
                           type="button"
@@ -16116,14 +17377,27 @@ export default function App() {
                             setScreen(item.id as Screen);
                             setIsCategoriesModalOpen(false);
                           }}
-                          className="p-3.5 rounded-2xl border text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-blue-400 border-white/5 w-full relative overflow-hidden"
+                          className={cn(
+                            "p-3.5 rounded-2xl border text-right transition-all flex items-start gap-3 w-full relative overflow-hidden group active:scale-95 duration-300",
+                            isActive 
+                              ? "bg-sky-950/40 border-sky-400/80 font-black text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.25)] scale-[1.01]" 
+                              : "bg-slate-900/60 hover:bg-slate-800/80 border-white/20 hover:border-white/40 text-slate-300"
+                          )}
                         >
-                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-blue-400">
+                          <div className={cn(
+                            "p-2 rounded-xl flex-shrink-0 mt-0.5 transition-all duration-300 border",
+                            isActive
+                              ? "bg-sky-900/40 border-sky-400/40 text-sky-300 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
+                              : "bg-slate-950/40 border-white/10 text-slate-500 group-hover:text-slate-300"
+                          )}>
                             <item.icon size={16} />
                           </div>
                           <div className="min-w-0 flex-grow">
                             <div className="flex items-center gap-1.5 justify-start">
-                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              <p className={cn(
+                                "text-xs font-black leading-tight transition-colors duration-300",
+                                isActive ? "text-sky-300 font-black" : "text-white group-hover:text-white"
+                              )}>{item.label}</p>
                               {isLocked && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
                                   <Lock size={8} />
@@ -16133,6 +17407,9 @@ export default function App() {
                             </div>
                             <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
                           </div>
+                          {isActive && (
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sky-400 rounded-l-full shadow-[0_0_15px_rgba(56,189,248,0.9)] animate-pulse" />
+                          )}
                         </button>
                       );
                     })}
@@ -16144,14 +17421,15 @@ export default function App() {
                   <h4 className="text-[10px] font-black text-rose-400 tracking-widest uppercase mb-1">التحكم البيئي والمناخ</h4>
                   <div className="flex flex-col gap-2">
                     {[
-                      { id: 'ventilation', label: 'مراوح التهوية', desc: 'إدارة الشفاطات والمراوح ومستويات التبريد', icon: Wind },
+                      { id: 'ventilation', label: 'نظام التهوية', desc: 'إدارة الشفاطات والمراوح ومستويات التبريد', icon: Wind },
                       { id: 'heating', label: 'نظام التدفئة', desc: 'توزيع خلايا الدفء وشعلات التدفئة المستهدفة', icon: Flame },
-                      { id: 'humidity', label: 'الرطوبة والتبخير', desc: 'درجات رطوبة الهواء وتشغيل خلايا التبريد', icon: Droplets },
+                      { id: 'humidity', label: 'نظام الرطوبة', desc: 'درجات رطوبة الهواء وتشغيل خلايا التبريد', icon: Droplets },
                       { id: 'climate', label: 'تشخيص المناخ', desc: 'إدارة ومراقبة جودة هواء العنبر المتكاملة', icon: Thermometer },
-                      { id: 'weather', label: 'محطة الطقس', desc: 'تحسس درجات THI ومقارنتها بالخلايا الخارجية', icon: Cloud },
+                      { id: 'weather', label: 'الطقس والأرصاد الجوية', desc: 'تحسس درجات THI ومقارنتها بالخلايا الخارجية', icon: Cloud },
                       { id: 'environmental_load', label: 'الحمل الحراري', desc: 'حساب معامل التبخر وحرارة الطيور الفسيولوجية', icon: Activity },
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isActive = screen === item.id;
                       return (
                         <button
                           type="button"
@@ -16160,14 +17438,27 @@ export default function App() {
                             setScreen(item.id as Screen);
                             setIsCategoriesModalOpen(false);
                           }}
-                          className="p-3.5 rounded-2xl border border-white/5 text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-rose-400 w-full relative overflow-hidden"
+                          className={cn(
+                            "p-3.5 rounded-2xl border text-right transition-all flex items-start gap-3 w-full relative overflow-hidden group active:scale-95 duration-300",
+                            isActive 
+                              ? "bg-sky-950/40 border-sky-400/80 font-black text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.25)] scale-[1.01]" 
+                              : "bg-slate-900/60 hover:bg-slate-800/80 border-white/20 hover:border-white/40 text-slate-300"
+                          )}
                         >
-                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-rose-400">
+                          <div className={cn(
+                            "p-2 rounded-xl flex-shrink-0 mt-0.5 transition-all duration-300 border",
+                            isActive
+                              ? "bg-sky-900/40 border-sky-400/40 text-sky-300 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
+                              : "bg-slate-950/40 border-white/10 text-slate-500 group-hover:text-slate-300"
+                          )}>
                             <item.icon size={16} />
                           </div>
                           <div className="min-w-0 flex-grow">
                             <div className="flex items-center gap-1.5 justify-start">
-                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              <p className={cn(
+                                "text-xs font-black leading-tight transition-colors duration-300",
+                                isActive ? "text-sky-300 font-black" : "text-white group-hover:text-white"
+                              )}>{item.label}</p>
                               {isLocked && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
                                   <Lock size={8} />
@@ -16177,6 +17468,9 @@ export default function App() {
                             </div>
                             <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
                           </div>
+                          {isActive && (
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sky-400 rounded-l-full shadow-[0_0_15px_rgba(56,189,248,0.9)] animate-pulse" />
+                          )}
                         </button>
                       );
                     })}
@@ -16188,14 +17482,16 @@ export default function App() {
                   <h4 className="text-[10px] font-black text-violet-400 tracking-widest uppercase mb-1">الحسابات والذكاء الاصطناعي</h4>
                   <div className="flex flex-col gap-2">
                     {[
-                      { id: 'finances', label: 'الحسابات والأرباح', desc: 'لوحة الأوراق المالية والمصاريف والأرباح', icon: Wallet },
+                      { id: 'finances', label: 'التكاليف والأرباح', desc: 'لوحة الأوراق المالية والمصاريف والأرباح', icon: Wallet },
                       { id: 'market', label: 'بورصة الدواجن', desc: 'آخر تحديثات أسعار اللحم والكتكوت والأعلاف', icon: TrendingUp },
-                      { id: 'charts', label: 'الإحصائيات والرسومات', desc: 'رسوميات بيانية ومخططات نمو الدورة النشطة', icon: BarChart2 },
+                      { id: 'charts', label: 'البيانات والإحصاءات', desc: 'رسوميات بيانية ومخططات نمو الدورة النشطة', icon: BarChart2 },
                       { id: 'expert', label: 'الخبير الذكيّ', desc: 'الاستشارة والذكاء الاصطناعي البيطري المتقدم', icon: MessageSquare },
-                      { id: 'workshop', label: 'مركز العناية بالدعم', desc: 'الاتصال الفني وصيانة الأجهزة والاستفسار', icon: Wrench },
+                      { id: 'workshop', label: 'خدمة العملاء والدعم الفني', desc: 'الاتصال الفني وصيانة الأجهزة والاستفسار', icon: Wrench },
                       { id: 'profile', label: 'بيانات الحساب الشخصي', desc: 'تفاصيل الدخول وصلاحيات الاشتراك المعتمدة', icon: User },
+                      { id: 'disclaimer', label: 'إخلاء المسؤولية', desc: 'شروط الاستخدام وإخلاء المسؤولية القانونية والبيطرية', icon: ShieldAlert },
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'market', 'charts', 'workshop', 'profile', 'battery'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isActive = screen === item.id;
                       return (
                         <button
                           type="button"
@@ -16211,14 +17507,27 @@ export default function App() {
                               setIsCategoriesModalOpen(false);
                             }
                           }}
-                          className="p-3.5 rounded-2xl border border-white/5 text-right transition-all flex items-start gap-3 bg-slate-900/60 hover:bg-slate-800/80 active:scale-95 text-violet-400 w-full relative overflow-hidden"
+                          className={cn(
+                            "p-3.5 rounded-2xl border text-right transition-all flex items-start gap-3 w-full relative overflow-hidden group active:scale-95 duration-300",
+                            isActive 
+                              ? "bg-sky-950/40 border-sky-400/80 font-black text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.25)] scale-[1.01]" 
+                              : "bg-slate-900/60 hover:bg-slate-800/80 border-white/20 hover:border-white/40 text-slate-300"
+                          )}
                         >
-                          <div className="p-2 rounded-xl bg-black/40 flex-shrink-0 mt-0.5 text-violet-400">
+                          <div className={cn(
+                            "p-2 rounded-xl flex-shrink-0 mt-0.5 transition-all duration-300 border",
+                            isActive
+                              ? "bg-sky-900/40 border-sky-400/40 text-sky-300 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
+                              : "bg-slate-950/40 border-white/10 text-slate-500 group-hover:text-slate-300"
+                          )}>
                             <item.icon size={16} />
                           </div>
                           <div className="min-w-0 flex-grow">
                             <div className="flex items-center gap-1.5 justify-start">
-                              <p className="text-xs font-black text-white leading-tight">{item.label}</p>
+                              <p className={cn(
+                                "text-xs font-black leading-tight transition-colors duration-300",
+                                isActive ? "text-sky-300 font-black" : "text-white group-hover:text-white"
+                              )}>{item.label}</p>
                               {isLocked && (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase animate-pulse">
                                   <Lock size={8} />
@@ -16228,6 +17537,9 @@ export default function App() {
                             </div>
                             <p className="text-[10px] text-slate-400 leading-normal mt-1 font-bold">{item.desc}</p>
                           </div>
+                          {isActive && (
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sky-400 rounded-l-full shadow-[0_0_15px_rgba(56,189,248,0.9)] animate-pulse" />
+                          )}
                         </button>
                       );
                     })}
@@ -16256,16 +17568,16 @@ export default function App() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-full sm:max-w-xs bg-slate-900 border-x border-t sm:border border-white/10 rounded-t-[2.5rem] sm:rounded-3xl p-8 sm:p-6 shadow-2xl space-y-6 text-center"
+              className="relative w-full sm:max-w-xs bg-white border border-slate-200 rounded-t-[2.5rem] sm:rounded-3xl p-8 sm:p-6 shadow-2xl space-y-6 text-center"
             >
-              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto border border-red-500/30 mb-2">
-                <Trash2 size={32} className="text-red-400" />
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20 mb-2">
+                <Trash2 size={32} className="text-red-600" />
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-white">تأكيد الحذف</h3>
-                <p className="text-sm text-slate-400 font-bold leading-relaxed px-4 sm:px-0">
-                  هل أنت متأكد من حذف الشفاط <span className="text-white">"{state.fans?.find(f => f.id === fanToDeleteId)?.name}"</span>؟ لا يمكن التراجع عن هذا الإجراء.
+                <h3 className="text-xl font-black text-black">تأكيد الحذف</h3>
+                <p className="text-sm text-slate-900 font-bold leading-relaxed px-4 sm:px-0">
+                  هل أنت متأكد من حذف الشفاط <span className="text-black font-black">"{state.fans?.find(f => f.id === fanToDeleteId)?.name}"</span>؟ لا يمكن التراجع عن هذا الإجراء.
                 </p>
               </div>
 
@@ -16281,7 +17593,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => setFanToDeleteId(null)}
-                  className="w-full py-4 sm:py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-black rounded-2xl transition-all border border-white/5 active:scale-[0.98]"
+                  className="w-full py-4 sm:py-3.5 bg-slate-200 hover:bg-slate-300 text-black font-black rounded-2xl transition-all border border-slate-300 active:scale-[0.98]"
                 >
                   إلغاء
                 </button>
@@ -16338,34 +17650,147 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl"
+              className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl medication-info-modal-card"
               dir="rtl"
             >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-800/50">
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-800/50 medication-info-modal-header">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-500 medication-info-modal-icon">
                     <Info size={20} />
                   </div>
-                  <h3 className="font-black text-xl text-white">{selectedMedInfo.title}</h3>
+                  <h3 className="font-black text-xl text-white medication-info-modal-title">{selectedMedInfo.title}</h3>
                 </div>
                 <button 
                   onClick={() => setSelectedMedInfo(null)}
-                  className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white"
+                  className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white medication-info-modal-close"
                 >
                   <X size={20} />
                 </button>
               </div>
-              <div className="p-8">
-                <p className="text-lg font-bold text-slate-200 leading-relaxed text-right">
+              <div className="p-8 medication-info-modal-body">
+                <p className="text-lg font-bold text-slate-200 leading-relaxed text-right medication-info-modal-text">
                   {selectedMedInfo.text}
                 </p>
               </div>
-              <div className="p-6 bg-slate-800/30 border-t border-white/5 flex justify-end">
+              <div className="p-6 bg-slate-800/30 border-t border-white/5 flex justify-end medication-info-modal-footer">
                 <button 
                   onClick={() => setSelectedMedInfo(null)}
-                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                  className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 medication-info-modal-btn"
                 >
                   فهمت
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedMedForDistribution && (
+          <div className="fixed inset-0 z-[100] flex flex-col p-0 new-cycle-modal-overlay medication-dist-modal-overlay">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedMedForDistribution(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="relative w-full h-full max-w-none bg-slate-900 border-0 rounded-none overflow-hidden shadow-2xl z-10 medication-dist-modal-card flex flex-col"
+              dir="rtl"
+            >
+              <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-slate-800/40 shrink-0 medication-dist-modal-header">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 medication-dist-modal-icon">
+                    <Droplets size={22} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg sm:text-xl text-white medication-dist-modal-title">توزيع المياه والدواء لكل بطارية</h3>
+                    <p className="text-[11px] sm:text-xs font-bold text-slate-400 medication-dist-modal-subtitle">حسب عدد الطيور الفعلية في كل وحدة / دور</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedMedForDistribution(null)}
+                  className="w-10 h-10 rounded-full bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/40 flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-rose-600/20 medication-dist-modal-close"
+                  title="إغلاق"
+                >
+                  <X size={22} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/10 space-y-2.5 medication-dist-modal-summary">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm font-bold text-slate-400 summary-label">اسم الجرعة / الدواء:</span>
+                    <span className="text-sm sm:text-base font-black text-emerald-400 summary-val">{selectedMedForDistribution.medName}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-xs sm:text-sm font-bold text-slate-400 summary-label">إجمالي المياه المطلوبة:</span>
+                    <span className="text-sm sm:text-base font-black text-cyan-400 font-mono summary-val">{selectedMedForDistribution.calculatedWater} لتر</span>
+                  </div>
+                  {toNum(selectedMedForDistribution.doseValue) > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                      <span className="text-xs sm:text-sm font-bold text-slate-400 summary-label">إجمالي كمية الدواء:</span>
+                      <span className="text-sm sm:text-base font-black text-amber-400 font-mono summary-val">
+                        {(selectedMedForDistribution.calculatedWater * toNum(selectedMedForDistribution.doseValue)).toLocaleString()} {selectedMedForDistribution.unit && selectedMedForDistribution.unit.includes('/') ? selectedMedForDistribution.unit.split('/')[0] : selectedMedForDistribution.unit}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-300 px-1 medication-dist-units-header">تفاصيل الكمية لكل بطارية:</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 p-1">
+                    {batteryWaterDistribution.units.filter(u => u.birdsCount > 0).map((unit, uIdx) => {
+                      const ratio = unit.birdsCount / (batteryWaterDistribution.totalBirdsAcrossAllBatteries || 1);
+                      const unitWater = (ratio * selectedMedForDistribution.calculatedWater).toFixed(1);
+                      const hasDose = toNum(selectedMedForDistribution.doseValue) > 0;
+                      const unitDose = hasDose ? ((toNum(unitWater) * toNum(selectedMedForDistribution.doseValue))).toLocaleString(undefined, { maximumFractionDigits: 1 }) : null;
+                      const cleanUnit = selectedMedForDistribution.unit && selectedMedForDistribution.unit.includes('/') ? selectedMedForDistribution.unit.split('/')[0] : selectedMedForDistribution.unit;
+                      const unitDisplayName = unit.unitName.includes(' - ') ? unit.unitName.split(' - ')[1] : unit.unitName;
+
+                      return (
+                        <div key={uIdx} className="p-4 rounded-2xl bg-slate-950/40 border border-white/10 flex flex-col justify-between gap-3 medication-dist-unit-card">
+                          <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                            <span className="text-xs sm:text-sm font-black text-white unit-card-name">{unitDisplayName}</span>
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-1 rounded-lg unit-card-birds">{unit.birdsCount.toLocaleString()} طائر</span>
+                          </div>
+
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] sm:text-xs font-bold text-slate-400 flex items-center gap-1.5 unit-water-label">
+                                <Droplets size={14} className="text-cyan-400" />
+                                كمية المياه:
+                              </span>
+                              <span className="font-black font-mono text-cyan-400 sm:text-sm unit-water-val">{unitWater} لتر</span>
+                            </div>
+
+                            {hasDose && (
+                              <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
+                                <span className="text-[11px] sm:text-xs font-bold text-slate-400 flex items-center gap-1.5 unit-dose-label">
+                                  <Stethoscope size={14} className="text-emerald-400" />
+                                  كمية الدواء:
+                                </span>
+                                <span className="font-black font-mono text-emerald-400 sm:text-sm unit-dose-val">{unitDose} {cleanUnit}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-800/30 border-t border-white/10 flex justify-end shrink-0 medication-dist-modal-footer">
+                <button 
+                  onClick={() => setSelectedMedForDistribution(null)}
+                  className="w-full sm:w-auto px-10 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl transition-all shadow-lg shadow-emerald-600/20 active:scale-95 medication-dist-modal-submit"
+                >
+                  إغلاق
                 </button>
               </div>
             </motion.div>
@@ -16385,17 +17810,17 @@ export default function App() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
+              className="bg-white border border-slate-200 p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl space-y-6 text-center"
             >
-              <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-500' : 'bg-red-500/10 text-red-500'}`}>
+              <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 ${deleteStep === 1 ? 'bg-orange-500/10 text-orange-600' : 'bg-red-500/10 text-red-600'}`}>
                 <AlertTriangle size={40} className="animate-pulse" />
               </div>
 
               <div className="space-y-2" dir="rtl">
-                <h3 className="text-2xl font-black text-white">
+                <h3 className="text-2xl font-black text-black">
                   {deleteStep === 1 ? 'تحذير مسح الدورة' : 'تأكيد الحذف النهائي'}
                 </h3>
-                <p className="text-slate-400 font-medium">
+                <p className="text-slate-900 font-bold leading-relaxed">
                   {deleteStep === 1 
                     ? 'هل أنت متأكد من رغبتك في حذف هذه الدورة؟ لا يمكن التراجع عن هذا العمل.' 
                     : 'هذا الإجراء سيمسح جميع بيانات هذه الدورة نهائياً من جزيئات التطبيق. هل أنت متأكد تماماً؟'}
@@ -16411,7 +17836,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={cancelDelete}
-                  className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 font-black transition-all"
+                  className="w-full py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-black font-black transition-all"
                 >
                   إلغاء
                 </button>
@@ -16435,16 +17860,16 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-slate-900 border border-white/5 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 text-center"
+              className="bg-white border border-slate-200 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 text-center"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto ring-8 ring-red-500/5">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-600 mx-auto ring-8 ring-red-500/5">
                 <Trash2 size={40} />
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-white">تأكيد الحذف</h3>
-                <p className="text-slate-400 text-sm font-bold leading-relaxed">
+                <h3 className="text-xl font-black text-black">تأكيد الحذف</h3>
+                <p className="text-slate-900 text-sm font-bold leading-relaxed">
                   هل أنت متأكد من حذف {['emergencyMeds', 'medicationOverrides'].includes(billToDelete.section) ? 'هذه الجرعة' : billToDelete.section === 'salesRecords' ? 'هذا السجل' : 'هذه الفاتورة'}؟ لا يمكن التراجع عن هذا الإجراء.
                 </p>
               </div>
@@ -16452,7 +17877,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => setBillToDelete(null)}
-                  className="py-4 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all font-sans"
+                  className="py-4 bg-slate-200 hover:bg-slate-300 text-black font-black rounded-2xl text-xs uppercase tracking-widest transition-all font-sans"
                 >
                   إلغاء
                 </button>
@@ -16484,31 +17909,31 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+            className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md extra-dose-modal-overlay"
             onClick={() => setSuggestedMedModal(null)}
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl space-y-6 text-right"
+              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl space-y-6 text-right extra-dose-modal-card"
               onClick={e => e.stopPropagation()}
               dir="rtl"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4 extra-dose-modal-header">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center extra-dose-header-icon">
                     <Clock size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">إضافة جرعة إضافية (بعد آخر نشاط)</h3>
-                    <p className="text-[10px] text-slate-400 font-bold">تخصيص وتأكيد تفاصيل الجرعة المقترحة</p>
+                    <h3 className="text-lg font-black text-white extra-dose-title">إضافة جرعة إضافية (بعد آخر نشاط)</h3>
+                    <p className="text-[10px] text-slate-400 font-bold extra-dose-subtitle">تخصيص وتأكيد تفاصيل الجرعة المقترحة</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSuggestedMedModal(null)}
-                  className="text-slate-500 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                  className="text-slate-500 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-colors cursor-pointer extra-dose-close-btn"
                 >
                   <X size={18} />
                 </button>
@@ -16518,7 +17943,7 @@ export default function App() {
               <div className="space-y-4">
                 {/* 1. Medication Name Selector & Input */}
                 <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block">اسم الدواء / الجرعة:</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider block extra-dose-label-blue">اسم الدواء / الجرعة:</label>
                   <div className="relative">
                     <input 
                       type="text"
@@ -16526,7 +17951,7 @@ export default function App() {
                       value={suggestedMedModal.name}
                       onChange={(e) => setSuggestedMedModal(prev => prev ? { ...prev, name: e.target.value } : null)}
                       className={cn(
-                        "w-full bg-slate-950 border border-white/10 rounded-xl py-3 text-xs font-bold text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all text-right pr-4",
+                        "w-full bg-slate-950 border border-white/10 rounded-xl py-3 text-xs font-bold text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-all text-right pr-4 extra-dose-input",
                         suggestedMedModal.name ? "pl-16" : "pl-4"
                       )}
                     />
@@ -16534,7 +17959,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setSuggestedMedModal(prev => prev ? { ...prev, name: '', doseValue: '', unit: 'سم³/لتر', category: 'عام' } : null)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition-all text-[10px] font-bold cursor-pointer"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg border border-white/5 transition-all text-[10px] font-bold cursor-pointer extra-dose-clear-btn"
                         title="مسح الحقل وكتابة دواء آخر"
                       >
                         <X size={12} />
@@ -16545,8 +17970,8 @@ export default function App() {
                   
                   {/* Quick Select Grid from CUSTOM_MED_LIST */}
                   <div className="space-y-1">
-                    <span className="text-[9px] font-black text-slate-500 block">اختيار سريع من الأدوية الشائعة:</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-950/40 border border-white/5 rounded-xl">
+                    <span className="text-[9px] font-black text-slate-500 block extra-dose-quick-select-header">اختيار سريع من الأدوية الشائعة:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-1 bg-slate-950/40 border border-white/5 rounded-xl extra-dose-quick-select-box">
                       {CUSTOM_MED_LIST.map((m, idx) => (
                         <button
                           key={idx}
@@ -16560,9 +17985,9 @@ export default function App() {
                             category: m.category
                           } : null)}
                           className={cn(
-                            "text-right px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer",
+                            "text-right px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer extra-dose-quick-btn",
                             suggestedMedModal.name === m.name 
-                              ? "bg-amber-500/10 border-amber-500 text-amber-400" 
+                              ? "bg-amber-500/10 border-amber-500 text-amber-400 extra-dose-quick-btn-active" 
                               : "bg-slate-900 border-white/5 text-slate-400 hover:border-white/10 hover:text-white"
                           )}
                         >
@@ -16577,8 +18002,8 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Start Time */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-400 block">وقت البدء المقترح:</label>
-                    <div className="relative bg-slate-950 border border-white/10 rounded-xl px-3 py-2 flex items-center shadow-inner h-[42px] cursor-pointer">
+                    <label className="text-[11px] font-black text-slate-400 block extra-dose-label-blue">وقت البدء المقترح:</label>
+                    <div className="relative bg-slate-950 border border-white/10 rounded-xl px-3 py-2 flex items-center shadow-inner h-[42px] cursor-pointer extra-dose-input-wrapper">
                       <input 
                         type="time"
                         value={suggestedMedModal.startTime}
@@ -16587,7 +18012,7 @@ export default function App() {
                       />
                       <div className="flex items-center justify-between w-full pointer-events-none">
                         <ChevronDown size={14} className="text-slate-500" />
-                        <span className="text-xs font-black text-white leading-none">
+                        <span className="text-xs font-black text-white leading-none extra-dose-input-val">
                           {suggestedMedModal.startTime ? (() => {
                             const [h, m] = suggestedMedModal.startTime.split(':').map(Number);
                             if (isNaN(h)) return suggestedMedModal.startTime;
@@ -16603,8 +18028,8 @@ export default function App() {
 
                   {/* Duration in Hours */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-400 block">مدة الإعطاء (بالساعات):</label>
-                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px]">
+                    <label className="text-[11px] font-black text-slate-400 block extra-dose-label-blue">مدة الإعطاء (بالساعات):</label>
+                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px] extra-dose-input-wrapper">
                       <input 
                         type="text"
                         inputMode="decimal"
@@ -16615,20 +18040,20 @@ export default function App() {
                             setSuggestedMedModal(prev => prev ? { ...prev, duration: val } : null);
                           }
                         }}
-                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600"
+                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600 extra-dose-input-val"
                         placeholder="8"
                       />
-                      <span className="text-[9px] font-bold text-slate-500 mr-2">ساعة</span>
+                      <span className="text-[9px] font-bold text-slate-500 mr-2 extra-dose-unit-text">ساعة</span>
                     </div>
                   </div>
 
                   {/* Dose Value */}
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <label className="text-[11px] font-black text-slate-400 block">مقدار الجرعة:</label>
+                      <label className="text-[11px] font-black text-slate-400 block extra-dose-label-blue">مقدار الجرعة:</label>
                       {suggestedMedModal.name && (
                         <span className={cn(
-                          "text-[9px] font-black px-2 py-0.5 rounded-lg border",
+                          "text-[9px] font-black px-2 py-0.5 rounded-lg border extra-dose-med-badge",
                           getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).text,
                           getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).bg,
                           getCategoryColorClasses(suggestedMedModal.category || 'عام', suggestedMedModal.name).border.replace('border-s-', 'border-')
@@ -16637,7 +18062,7 @@ export default function App() {
                         </span>
                       )}
                     </div>
-                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px]">
+                    <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl px-3 h-[42px] extra-dose-input-wrapper">
                       <input 
                         type="text"
                         inputMode="decimal"
@@ -16648,7 +18073,7 @@ export default function App() {
                             setSuggestedMedModal(prev => prev ? { ...prev, doseValue: val } : null);
                           }
                         }}
-                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600"
+                        className="bg-transparent text-xs font-black text-white w-full text-right focus:outline-none placeholder-slate-600 extra-dose-input-val"
                         placeholder="1"
                       />
                     </div>
@@ -16656,7 +18081,7 @@ export default function App() {
 
                   {/* Dose Unit */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-400 block">وحدة الجرعة:</label>
+                    <label className="text-[11px] font-black text-slate-400 block extra-dose-label-blue">وحدة الجرعة:</label>
                     <div className="grid grid-cols-2 gap-2 h-[42px]">
                       {['سم³/لتر', 'جرام/لتر'].map((u) => (
                         <button
@@ -16664,9 +18089,9 @@ export default function App() {
                           type="button"
                           onClick={() => setSuggestedMedModal(prev => prev ? { ...prev, unit: u } : null)}
                           className={cn(
-                            "rounded-xl text-[10px] font-black transition-all border cursor-pointer",
+                            "rounded-xl text-[10px] font-black transition-all border cursor-pointer extra-dose-unit-btn",
                             suggestedMedModal.unit === u 
-                              ? "bg-amber-500 border-amber-500 text-slate-950" 
+                              ? "bg-amber-500 border-amber-500 text-slate-950 extra-dose-unit-btn-active" 
                               : "bg-slate-950 border-white/10 text-slate-400 hover:border-white/20"
                           )}
                         >
@@ -16679,18 +18104,18 @@ export default function App() {
 
                 {/* Dynamically calculated Water & Medicine Volumes summary if duration is present */}
                 {suggestedMedModal.duration && toNum(suggestedMedModal.duration) > 0 && (
-                  <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl space-y-2.5">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block">ملخص الكميات التقريبية المحسوبة:</span>
+                  <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl space-y-2.5 extra-dose-summary-box">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block extra-dose-summary-header">ملخص الكميات التقريبية المحسوبة:</span>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right">
-                        <span className="text-[8px] font-black text-slate-400 block">إجمالي المياه المطلوبة:</span>
-                        <span className="text-sm font-black text-sky-400 mt-1">
+                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right extra-dose-summary-card">
+                        <span className="text-[8px] font-black text-slate-400 block extra-dose-water-label">إجمالي المياه المطلوبة:</span>
+                        <span className="text-sm font-black text-sky-400 mt-1 extra-dose-water-val">
                           {Math.round((dailyWaterTotalLiters / 24) * toNum(suggestedMedModal.duration))} لتر
                         </span>
                       </div>
-                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right">
-                        <span className="text-[8px] font-black text-slate-400 block">إجمالي الدواء المطلوب:</span>
-                        <span className="text-sm font-black text-amber-400 mt-1">
+                      <div className="flex flex-col bg-slate-900/60 p-2.5 rounded-xl border border-white/5 text-right extra-dose-summary-card">
+                        <span className="text-[8px] font-black text-slate-400 block extra-dose-med-label">إجمالي الدواء المطلوب:</span>
+                        <span className="text-sm font-black text-amber-400 mt-1 extra-dose-med-val">
                           {(() => {
                             const waterLiters = Math.round((dailyWaterTotalLiters / 24) * toNum(suggestedMedModal.duration));
                             const totalMed = waterLiters * toNum(suggestedMedModal.doseValue);
@@ -16705,10 +18130,10 @@ export default function App() {
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5 extra-dose-modal-footer">
                 <button 
                   onClick={() => setSuggestedMedModal(null)}
-                  className="py-3.5 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all font-sans cursor-pointer"
+                  className="py-3.5 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all font-sans cursor-pointer extra-dose-cancel-btn"
                 >
                   إلغاء
                 </button>
@@ -16724,7 +18149,7 @@ export default function App() {
                     setSuggestedMedModal(null);
                   }}
                   className={cn(
-                    "py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 font-sans cursor-pointer",
+                    "py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 font-sans cursor-pointer extra-dose-submit-btn",
                     suggestedMedModal.name.trim() 
                       ? "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20" 
                       : "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
@@ -16742,40 +18167,40 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md"
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md notifications-modal-overlay"
             onClick={() => setShowNotificationsModal(false)}
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full shadow-2xl space-y-6 overflow-y-auto max-h-[85vh] no-scrollbar text-right"
+              className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 max-w-lg w-full shadow-2xl space-y-6 overflow-y-auto max-h-[85vh] no-scrollbar text-right notifications-modal-card"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-4" dir="rtl">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4 notifications-modal-header" dir="rtl">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center text-violet-400 border border-violet-500/20">
+                  <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center text-violet-400 border border-violet-500/20 notifications-modal-header-icon">
                     <Bell size={20} className="animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white leading-tight text-right">مركز التنبيهات الإرشادية</h3>
-                    <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-1 text-right">إشعارات الهاتف المحمول والمشرف</p>
+                    <h3 className="text-lg font-black text-white leading-tight text-right notifications-modal-title">مركز التنبيهات الإرشادية</h3>
+                    <p className="text-[10px] text-slate-400 font-bold tracking-wider mt-1 text-right notifications-modal-subtitle">إشعارات الهاتف المحمول والمشرف</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setShowNotificationsModal(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/10"
+                  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all hover:bg-white/10 notifications-modal-close"
                 >
                   <X size={16} />
                 </button>
               </div>
 
               {/* Quick Actions (Test Native Notification) */}
-              <div className="bg-[linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15))] border border-violet-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg" dir="rtl">
+              <div className="bg-[linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.15))] border border-violet-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg notifications-modal-banner" dir="rtl">
                 <div className="text-right flex-1">
-                  <span className="text-xs font-black text-white block">اختبار الإشعارات على موبايلك</span>
-                  <span className="text-[9px] font-bold text-slate-400 block mt-1">اضغط للتجربة وسيصلك إشعار فوري بحالة الحرارة والجرعات حالاً للتحقق من الموبايل</span>
+                  <span className="text-xs font-black text-white block notifications-modal-banner-title">اختبار الإشعارات على موبايلك</span>
+                  <span className="text-[9px] font-bold text-slate-400 block mt-1 notifications-modal-banner-body">اضغط للتجربة وسيصلك إشعار فوري بحالة الحرارة والجرعات حالاً للتحقق من الموبايل</span>
                 </div>
                 <button
                   type="button"
@@ -16818,7 +18243,7 @@ export default function App() {
                       alert("الإشعارات غير مدعومة على هذا المتصفح.");
                     }
                   }}
-                  className="py-2.5 px-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black text-[11px] tracking-wide transition-all active:scale-95 shadow-md shadow-violet-600/20 flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+                  className="py-2.5 px-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black text-[11px] tracking-wide transition-all active:scale-95 shadow-md shadow-violet-600/20 flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0 notifications-modal-banner-btn"
                 >
                   <BellRing size={14} />
                   تجربة إشعار فوري
@@ -16826,18 +18251,18 @@ export default function App() {
               </div>
 
               {/* Notification Toggles */}
-              <div className="space-y-3" dir="rtl">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 text-right">إعدادات قنوات الإشعارات</h4>
+              <div className="space-y-3 notifications-modal-section" dir="rtl">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 text-right notifications-modal-section-title">إعدادات قنوات الإشعارات</h4>
                 
                 {/* Temp */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 notifications-modal-row">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
                       <Flame size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-white block text-right">الحرارة والبرودة المفرطة</span>
-                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">الاحترار والإجهاد الحراري وموجات الصقيع والبرد</span>
+                      <span className="text-xs font-black text-white block text-right notifications-modal-item-title">الحرارة والبرودة المفرطة</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right notifications-modal-item-sub">الاحترار والإجهاد الحراري وموجات الصقيع والبرد</span>
                     </div>
                   </div>
                   <button 
@@ -16857,14 +18282,14 @@ export default function App() {
                 </div>
 
                 {/* Humidity */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 notifications-modal-row">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
                       <Droplets size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-white block text-right">مستوى الرطوبة والجفاف</span>
-                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">تنبيهات الفرشة الرطبة والأتربة في الجو</span>
+                      <span className="text-xs font-black text-white block text-right notifications-modal-item-title">مستوى الرطوبة والجفاف</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right notifications-modal-item-sub">تنبيهات الفرشة الرطبة والأتربة في الجو</span>
                     </div>
                   </div>
                   <button 
@@ -16884,14 +18309,14 @@ export default function App() {
                 </div>
 
                 {/* Medication */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 notifications-modal-row">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500">
                       <Stethoscope size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-white block text-right">مواعيد وجرعات الأدوية</span>
-                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">تذكير بانتهاء الجرعة بـ 30 دقيقة وقبل موعد الجرعة التالية</span>
+                      <span className="text-xs font-black text-white block text-right notifications-modal-item-title">مواعيد وجرعات الأدوية</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right notifications-modal-item-sub">تذكير بانتهاء الجرعة بـ 30 دقيقة وقبل موعد الجرعة التالية</span>
                     </div>
                   </div>
                   <button 
@@ -16911,14 +18336,14 @@ export default function App() {
                 </div>
 
                 {/* Feed and Water */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 notifications-modal-row">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
                       <Wheat size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-white block text-right">إرشادات وأعطال المياه والعلف</span>
-                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">مقارنة معايير الأكل والشرب والتحقق من انسداد الخطوط</span>
+                      <span className="text-xs font-black text-white block text-right notifications-modal-item-title">إرشادات وأعطال المياه والعلف</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right notifications-modal-item-sub">مقارنة معايير الأكل والشرب والتحقق من انسداد الخطوط</span>
                     </div>
                   </div>
                   <button 
@@ -16938,14 +18363,14 @@ export default function App() {
                 </div>
 
                 {/* System states */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 notifications-modal-row">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center text-slate-400">
                       <Activity size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-white block text-right">مراقبة استقرار العنبر</span>
-                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right">إشعار فوري وتلقائي كلما طرأت أي تغييرات بالاوزان أو الطقس</span>
+                      <span className="text-xs font-black text-white block text-right notifications-modal-item-title">مراقبة استقرار العنبر</span>
+                      <span className="text-[9px] font-bold text-slate-400 block mt-0.5 text-right notifications-modal-item-sub">إشعار فوري وتلقائي كلما طرأت أي تغييرات بالاوزان أو الطقس</span>
                     </div>
                   </div>
                   <button 
@@ -16966,14 +18391,14 @@ export default function App() {
               </div>
 
               {/* Active Warnings Section */}
-              <div className="space-y-3 pt-2" dir="rtl">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider text-right">الإنذارات والتشخيصات النشطة حالياً</h4>
+              <div className="space-y-3 pt-2 notifications-modal-warnings-section" dir="rtl">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider text-right notifications-modal-warnings-title">الإنذارات والتشخيصات النشطة حالياً</h4>
                 
                 {inAppNotifications.length === 0 ? (
-                  <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 text-center space-y-2">
+                  <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 text-center space-y-2 notifications-modal-empty-card">
                     <span className="text-2xl block">😊</span>
-                    <span className="text-xs font-black text-emerald-400 block">جميع الأنظمة مستقرة والقطيع بصحة ممتازة</span>
-                    <span className="text-[9px] font-bold text-slate-500 block">درجة الحرارة والرطوبة ومواعيد الأدوية متلائمة تماماً مع أوزان الكتاكيت اليوم</span>
+                    <span className="text-xs font-black text-emerald-400 block notifications-modal-empty-title">جميع الأنظمة مستقرة والقطيع بصحة ممتازة</span>
+                    <span className="text-[9px] font-bold text-slate-500 block notifications-modal-empty-sub">درجة الحرارة والرطوبة ومواعيد الأدوية متلائمة تماماً مع أوزان الكتاكيت اليوم</span>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
@@ -16981,7 +18406,7 @@ export default function App() {
                       <div 
                         key={`${alItem.id}-${idxIdx}`} 
                         className={cn(
-                          "p-3 rounded-2xl border flex items-start gap-3 transition-all",
+                          "p-3 rounded-2xl border flex items-start gap-3 transition-all notifications-modal-alert-item",
                           alItem.type === 'temp' ? "bg-red-500/5 border-red-500/10 text-red-100" :
                           alItem.type === 'humidity' ? "bg-blue-500/5 border-blue-500/10 text-blue-100" :
                           alItem.type === 'medication' ? "bg-violet-500/5 border-violet-500/10 text-violet-100" :
@@ -17004,9 +18429,9 @@ export default function App() {
                            <AlertTriangle size={14} />}
                         </div>
                         <div className="flex-1 text-right">
-                          <span className="text-xs font-black block">{alItem.title}</span>
-                          <p className="text-[10px] font-medium leading-relaxed mt-1 opacity-80">{alItem.body}</p>
-                          <span className="text-[8px] font-bold text-slate-500 block mt-1.5">{alItem.time}</span>
+                          <span className="text-xs font-black block notifications-modal-alert-item-title">{alItem.title}</span>
+                          <p className="text-[10px] font-medium leading-relaxed mt-1 opacity-80 notifications-modal-alert-item-body">{alItem.body}</p>
+                          <span className="text-[8px] font-bold text-slate-500 block mt-1.5 notifications-modal-alert-item-time">{alItem.time}</span>
                         </div>
                       </div>
                     ))}
@@ -17018,7 +18443,7 @@ export default function App() {
               <button 
                 type="button"
                 onClick={() => setShowNotificationsModal(false)}
-                className="w-full py-4 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg cursor-pointer"
+                className="w-full py-4 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg cursor-pointer notifications-modal-submit-btn"
               >
                 تطبيق وحفظ الإعدادات
               </button>
@@ -17038,24 +18463,24 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-slate-900 border border-white/5 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 text-center"
+              className="bg-white border border-slate-200 rounded-[2rem] p-8 max-w-sm w-full shadow-2xl space-y-6 text-center"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto ring-8 ring-red-500/5">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-600 mx-auto ring-8 ring-red-500/5">
                 <AlertCircle size={40} />
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-white">تأكيد حذف الخلية</h3>
-                <p className="text-slate-400 text-sm font-bold leading-relaxed px-2">
-                  هل أنت متأكد من رغبتك في حذف <span className="text-white">"{padToDelete.name}"</span>؟ سيؤثر هذا على إجمالي مساحة التبريد المحسوبة.
+                <h3 className="text-xl font-black text-black">تأكيد حذف الخلية</h3>
+                <p className="text-slate-900 text-sm font-bold leading-relaxed px-2">
+                  هل أنت متأكد من رغبتك في حذف <span className="text-black font-black">"{padToDelete.name}"</span>؟ سيؤثر هذا على إجمالي مساحة التبريد المحسوبة.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => setPadToDelete(null)}
-                  className="py-4 bg-slate-800 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all"
+                  className="py-4 bg-slate-200 hover:bg-slate-300 text-black font-black rounded-2xl text-xs uppercase tracking-widest transition-all"
                 >
                   إلغاء
                 </button>
@@ -17087,19 +18512,19 @@ function SidebarLink({ id, label, icon: Icon, color, onClick, activeId, isLocked
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-right transition-all group relative border",
+        "w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-right transition-all duration-300 group relative border",
         active
-          ? "bg-slate-800/80 border-white/10 font-bold text-white shadow-lg shadow-black/20"
-          : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-white/5 font-medium"
+          ? "bg-sky-950/40 border-white/60 font-black text-sky-300 shadow-[0_0_15px_rgba(56,189,248,0.25)] scale-[1.02]"
+          : "bg-slate-950/10 border-white/20 text-slate-400 hover:text-white hover:bg-white/[0.05] hover:border-white/35 font-medium"
       )}
     >
       <div className={cn(
-        "p-1.5 rounded-lg border transition-all flex items-center justify-center flex-shrink-0 relative",
+        "p-1.5 rounded-lg border transition-all duration-300 flex items-center justify-center flex-shrink-0 relative",
         active 
-          ? "bg-slate-900 border-white/10 " + color
-          : "bg-slate-950/40 border-white/5 text-slate-500 group-hover:text-slate-300 group-hover:border-white/10"
+          ? "bg-sky-900/40 border-sky-400/50 shadow-[0_0_8px_rgba(56,189,248,0.3)]"
+          : "bg-slate-950/40 border-white/10 group-hover:border-white/20"
       )}>
-        <Icon size={14} className="flex-shrink-0" />
+        <Icon size={14} className={cn("flex-shrink-0 transition-colors duration-300", active ? color : "text-slate-500 group-hover:text-slate-300")} />
         {isLocked && (
           <div className="absolute -top-1 -left-1 bg-amber-500 text-slate-950 rounded-full p-0.5 border border-[#0a0f1d] shadow-md flex items-center justify-center">
             <Lock size={7} strokeWidth={3} />
@@ -17113,7 +18538,7 @@ function SidebarLink({ id, label, icon: Icon, color, onClick, activeId, isLocked
         )}
       </span>
       {active && (
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-500 rounded-l-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" />
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sky-400 rounded-l-full shadow-[0_0_15px_rgba(56,189,248,0.9)]" />
       )}
     </button>
   );
@@ -17188,7 +18613,7 @@ function FeedSection({
   onUpdate: (id: string, field: string, val: any) => void 
 }) {
   return (
-    <div className="bg-slate-950/30 p-4 rounded-2xl border border-white/5 space-y-4">
+    <div className="bg-slate-950/30 p-4 rounded-2xl border border-white/5 space-y-4 feed-section-container">
       <div className="flex items-center justify-between mb-2">
         <button 
           type="button"
@@ -17205,12 +18630,12 @@ function FeedSection({
 
       <div className="space-y-3">
         {bills.map(bill => (
-          <div key={bill.id} className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-4">
+          <div key={bill.id} className="bg-slate-900/50 p-4 rounded-xl border border-white/5 space-y-4 feed-bill-item">
              <div className="flex items-center justify-between">
                 <button 
                   type="button"
                   onClick={() => onRemove(bill.id)}
-                  className="text-slate-600 hover:text-red-500 transition-colors"
+                  className="text-slate-600 hover:text-red-500 transition-colors trash-btn-black-red"
                   title="حذف"
                 >
                   <Trash2 size={14} />
@@ -17331,7 +18756,7 @@ function FeedSection({
 
 function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { title: string, bills: Bill[], icon: any, onAdd: () => void, onRemove: (id: string) => void, onUpdate: (id: string, field: string, val: any) => void }) {
   return (
-    <Card className="bg-slate-900 border-white/5 p-6 text-right">
+    <Card className="bg-slate-900 border-white/5 p-6 text-right bill-section-card">
       <div className="flex items-center justify-between mb-4">
         <button 
           type="button"
@@ -17350,7 +18775,7 @@ function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { 
       
       <div className="space-y-4">
         {bills.map(bill => (
-          <div key={bill.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-4">
+          <div key={bill.id} className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 space-y-4 general-bill-item">
             <div className="flex items-center justify-between">
               <button 
                 type="button"
@@ -17358,7 +18783,7 @@ function BillSection({ title, bills, icon: Icon, onAdd, onRemove, onUpdate }: { 
                   e.stopPropagation();
                   onRemove(bill.id);
                 }}
-                className="p-1.5 text-slate-600 hover:text-red-500 transition-colors"
+                className="p-1.5 text-slate-600 hover:text-red-500 transition-colors trash-btn-black-red"
                 title="حذف"
               >
                 <Trash2 size={16} />
