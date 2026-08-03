@@ -1639,11 +1639,11 @@ body.daylight-mode .daylight-red-text,
   font-weight: 900 !important;
 }
 
-/* Daylight Mode White Text (for Execution Price Title - سعر التنفيذ اليوم - أرض المزرعة) */
+/* Daylight Mode Gold Text (for Execution Price Title - سعر التنفيذ اليوم - أرض المزرعة) */
 .daylight-mode .daylight-bright-gold-text,
 .daylight-mode.daylight-bright-gold-text {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #d97706 !important;
+  -webkit-text-fill-color: #d97706 !important;
   background: none !important;
   font-weight: 900 !important;
   text-shadow: none !important;
@@ -3311,6 +3311,621 @@ body.daylight-mode input.thermal-load-input {
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
 }
+
+/* ==========================================================================
+   Daylight Mode - Subscription & Packages Screen & Modals (الوضع النهاري فقط)
+   الهوية البصرية: الأسود (#000000)، الأحمر (#dc2626)، الأخضر الغامق (#047857)، الأزرق الكحلي (#0f172a)
+   خالي تماماً من أي نصوص أو أرقام باللون الأبيض
+   ========================================================================== */
+
+/* 1. Limited Login Popup Modal (الشاشة المنبثقة للحساب التجريبي المحدود) */
+.daylight-mode .limited-login-modal-overlay,
+body.daylight-mode .limited-login-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.daylight-mode .limited-login-modal-card,
+body.daylight-mode .limited-login-modal-card {
+  background-color: #ffffff !important;
+  border: 3px solid #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3) !important;
+}
+
+.daylight-mode .limited-login-modal-card .bg-gradient-to-r {
+  background: linear-gradient(to right, #dc2626, #047857, #0f172a) !important;
+}
+
+.daylight-mode .limited-login-modal-icon,
+body.daylight-mode .limited-login-modal-icon {
+  background-color: #fef2f2 !important;
+  border: 2px solid #fecaca !important;
+}
+
+.daylight-mode .limited-login-modal-icon svg,
+body.daylight-mode .limited-login-modal-icon svg {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+
+.daylight-mode .limited-login-modal-title,
+body.daylight-mode .limited-login-modal-title {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .limited-login-modal-subtitle,
+body.daylight-mode .limited-login-modal-subtitle {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+.daylight-mode .limited-login-modal-submit,
+body.daylight-mode .limited-login-modal-submit {
+  background-color: #d1fae5 !important;
+  border: 2px solid #047857 !important;
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2) !important;
+}
+
+.daylight-mode .limited-login-modal-submit:hover,
+body.daylight-mode .limited-login-modal-submit:hover {
+  background-color: #a7f3d0 !important;
+}
+
+.daylight-mode .limited-login-modal-submit svg,
+body.daylight-mode .limited-login-modal-submit svg {
+  color: #047857 !important;
+  stroke: #047857 !important;
+}
+
+.daylight-mode .limited-login-modal-cancel,
+body.daylight-mode .limited-login-modal-cancel {
+  background-color: #f1f5f9 !important;
+  border: 2px solid #0f172a !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .limited-login-modal-cancel:hover,
+body.daylight-mode .limited-login-modal-cancel:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* ==========================================================================
+   نظام شاشة باقات الاشتراك (Subscription Modal & Package Cards)
+   الوضع النهاري (Daylight Mode) والوضع الليلي (Night Mode)
+   ========================================================================== */
+
+/* --- 1. الوضع الليلي (Night Mode Default) --- */
+.subscription-modal-wrapper:not(.daylight-mode),
+.night-mode .subscription-modal-wrapper {
+  background-color: #0f172a !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-overlay,
+.night-mode .subscription-modal-overlay {
+  background-color: rgba(2, 6, 23, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-card,
+.night-mode .subscription-modal-card {
+  background-color: #0f172a !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-header,
+.night-mode .subscription-modal-header {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-title,
+.night-mode .subscription-modal-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-subtitle,
+.night-mode .subscription-modal-subtitle {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+  font-weight: 700 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-badge,
+.night-mode .subscription-modal-badge {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-btn,
+.night-mode .subscription-modal-btn {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-modal-close,
+.night-mode .subscription-modal-close {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+}
+
+/* بطاقة غير محددة (الوضع الليلي) */
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected),
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) {
+  background-color: #0f172a !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-title,
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) h4,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-title,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) h4 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration {
+  background-color: #1e293b !important;
+  border: 1px solid #3b82f6 !important;
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-desc,
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) p,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-desc,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) p {
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-price-label,
+.night-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-price-label {
+  color: #fbbf24 !important;
+  -webkit-text-fill-color: #fbbf24 !important;
+  opacity: 1 !important;
+}
+
+/* بطاقة محددة (الوضع الليلي) */
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected,
+.night-mode .subscription-package-card.subscription-package-card-selected {
+  background-color: #022c22 !important;
+  border: 2px solid #34d399 !important;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.45) !important;
+  color: #ffffff !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected .subscription-package-title,
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected h4,
+.night-mode .subscription-package-card.subscription-package-card-selected .subscription-package-title,
+.night-mode .subscription-package-card.subscription-package-card-selected h4 {
+  color: #34d399 !important;
+  -webkit-text-fill-color: #34d399 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected .subscription-package-duration,
+.night-mode .subscription-package-card.subscription-package-card-selected .subscription-package-duration {
+  background-color: #064e3b !important;
+  border: 1px solid #10b981 !important;
+  color: #6ee7b7 !important;
+  -webkit-text-fill-color: #6ee7b7 !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected .subscription-package-desc,
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected p,
+.night-mode .subscription-package-card.subscription-package-card-selected .subscription-package-desc,
+.night-mode .subscription-package-card.subscription-package-card-selected p {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-card.subscription-package-card-selected .subscription-package-price-label,
+.night-mode .subscription-package-card.subscription-package-card-selected .subscription-package-price-label {
+  color: #34d399 !important;
+  -webkit-text-fill-color: #34d399 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-price,
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-package-price *,
+.night-mode .subscription-package-price,
+.night-mode .subscription-package-price * {
+  color: #34d399 !important;
+  -webkit-text-fill-color: #34d399 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-offer-badge,
+.night-mode .subscription-offer-badge {
+  background-color: rgba(251, 191, 36, 0.1) !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+  color: #fbbf24 !important;
+  -webkit-text-fill-color: #fbbf24 !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-selected-badge,
+.night-mode .subscription-selected-badge {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+  color: #6ee7b7 !important;
+  -webkit-text-fill-color: #6ee7b7 !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-steps-card,
+.night-mode .subscription-steps-card {
+  background-color: rgba(2, 6, 23, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-steps-title,
+.night-mode .subscription-steps-title {
+  color: #fbbf24 !important;
+  -webkit-text-fill-color: #fbbf24 !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-steps-text,
+.night-mode .subscription-steps-text {
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-email-pill,
+.night-mode .subscription-email-pill {
+  background-color: #0f172a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  font-weight: 900 !important;
+}
+
+.subscription-modal-wrapper:not(.daylight-mode) .subscription-whatsapp-btn,
+.night-mode .subscription-whatsapp-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #022c22 !important;
+  -webkit-text-fill-color: #022c22 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.35) !important;
+}
+
+
+/* --- 2. الوضع النهاري (Daylight Mode ONLY) --- */
+.daylight-mode .subscription-modal-wrapper,
+.subscription-modal-wrapper.daylight-mode {
+  background-color: #f1f5f9 !important;
+}
+
+.daylight-mode .subscription-modal-overlay,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+.daylight-mode .subscription-modal-card,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-card {
+  background-color: #f8fafc !important;
+}
+
+.daylight-mode .subscription-modal-header,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-header {
+  background-color: #ffffff !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.daylight-mode .subscription-modal-title,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-title {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-modal-subtitle,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-subtitle {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .subscription-modal-badge,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-badge {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fca5a5 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-modal-btn,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-btn {
+  background-color: #eff6ff !important;
+  border: 1.5px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-modal-close,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-close {
+  background-color: #fef2f2 !important;
+  border: 1.5px solid #fecdd3 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.daylight-mode .subscription-modal-close:hover,
+.subscription-modal-wrapper.daylight-mode .subscription-modal-close:hover {
+  background-color: #fee2e2 !important;
+}
+
+/* بطاقات الباقات غير المحتارة (الوضع النهاري) */
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected),
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) {
+  background-color: #ffffff !important;
+  border: 2px solid #cbd5e1 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-title,
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) h4,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-title,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) h4 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration {
+  background-color: #eff6ff !important;
+  border: 1.5px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration *,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-duration * {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-desc,
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) p,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-desc,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) p {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-price-label,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card:not(.subscription-package-card-selected) .subscription-package-price-label {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+/* بطاقة محددة (الوضع النهاري) */
+.daylight-mode .subscription-package-card.subscription-package-card-selected,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected {
+  background-color: #ffffff !important;
+  border: 2.5px solid #059669 !important;
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.2) !important;
+  color: #047857 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-title,
+.daylight-mode .subscription-package-card.subscription-package-card-selected h4,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-title,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected h4 {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-duration,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-duration {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #a7f3d0 !important;
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-duration *,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-duration * {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-desc,
+.daylight-mode .subscription-package-card.subscription-package-card-selected p,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-desc,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected p {
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-price-label,
+.subscription-modal-wrapper.daylight-mode .subscription-package-card.subscription-package-card-selected .subscription-package-price-label {
+  color: #059669 !important;
+  -webkit-text-fill-color: #059669 !important;
+  font-weight: 900 !important;
+}
+
+/* السعر وسعر العرض والشارات في الوضع النهاري */
+.daylight-mode .subscription-package-old-price,
+.subscription-modal-wrapper.daylight-mode .subscription-package-old-price {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-package-price,
+.daylight-mode .subscription-package-price *,
+.subscription-modal-wrapper.daylight-mode .subscription-package-price,
+.subscription-modal-wrapper.daylight-mode .subscription-package-price * {
+  color: #059669 !important;
+  -webkit-text-fill-color: #059669 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.daylight-mode .subscription-offer-badge,
+.subscription-modal-wrapper.daylight-mode .subscription-offer-badge {
+  background-color: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-offer-badge *,
+.subscription-modal-wrapper.daylight-mode .subscription-offer-badge * {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+
+.daylight-mode .subscription-selected-badge,
+.subscription-modal-wrapper.daylight-mode .subscription-selected-badge {
+  background-color: #059669 !important;
+  border: 1px solid #047857 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-selected-badge *,
+.subscription-modal-wrapper.daylight-mode .subscription-selected-badge * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* خطوات التفعيل وزر الواتساب في الوضع النهاري */
+.daylight-mode .subscription-steps-card,
+.subscription-modal-wrapper.daylight-mode .subscription-steps-card {
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.daylight-mode .subscription-steps-title,
+.subscription-modal-wrapper.daylight-mode .subscription-steps-title {
+  color: #047857 !important;
+  -webkit-text-fill-color: #047857 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-steps-text,
+.subscription-modal-wrapper.daylight-mode .subscription-steps-text {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .subscription-email-pill,
+.subscription-modal-wrapper.daylight-mode .subscription-email-pill {
+  background-color: #eff6ff !important;
+  border: 1.5px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-whatsapp-btn,
+.subscription-modal-wrapper.daylight-mode .subscription-whatsapp-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3) !important;
+}
+
+.daylight-mode .subscription-whatsapp-btn *,
+.subscription-modal-wrapper.daylight-mode .subscription-whatsapp-btn * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.daylight-mode .subscription-trial-banner,
+.subscription-modal-wrapper.daylight-mode .subscription-trial-banner {
+  background-color: #fef2f2 !important;
+  border: 2px solid #dc2626 !important;
+  color: #0f172a !important;
+}
+
+.daylight-mode .subscription-trial-banner h4,
+.subscription-modal-wrapper.daylight-mode .subscription-trial-banner h4 {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.daylight-mode .subscription-trial-banner p,
+.subscription-modal-wrapper.daylight-mode .subscription-trial-banner p {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.daylight-mode .subscription-trial-btn,
+.subscription-modal-wrapper.daylight-mode .subscription-trial-btn {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+
+
+
 
 
 

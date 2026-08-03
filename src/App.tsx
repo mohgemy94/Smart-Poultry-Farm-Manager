@@ -305,10 +305,35 @@ const smartFetch = async (url: string, options: any = {}) => {
     } catch (error: any) {
       console.error("CapacitorHttp error:", error);
       // Fallback to regular fetch if CapacitorHttp fails
-      return fetch(targetUrl, options);
+      try {
+        return await fetch(targetUrl, options);
+      } catch (fErr: any) {
+        console.warn("Native fetch fallback failed:", fErr);
+        return {
+          ok: false,
+          status: 0,
+          statusText: fErr?.message || 'Failed to fetch',
+          json: async () => ({ status: 'error', message: 'Failed to fetch' }),
+          text: async () => '',
+          headers: { get: () => null }
+        } as any;
+      }
     }
   }
-  return fetch(targetUrl, options);
+
+  try {
+    return await fetch(targetUrl, options);
+  } catch (err: any) {
+    console.warn(`[smartFetch] Network fetch failed for ${targetUrl}:`, err?.message || err);
+    return {
+      ok: false,
+      status: 0,
+      statusText: err?.message || 'Failed to fetch',
+      json: async () => ({ status: 'error', message: 'Failed to fetch' }),
+      text: async () => '',
+      headers: { get: () => null }
+    } as any;
+  }
 };
 
 if (Capacitor.isNativePlatform() && !API_BASE_URL) {
@@ -2765,26 +2790,42 @@ export default function App() {
     const isBypassed = localStorage.getItem('poultry_gateway_passed');
     if (!isBypassed) return 'gateway';
     
-    if (saved === 'setup' || !saved) return 'landing';
-    return (saved as Screen) || 'landing';
+    if (saved === 'charts' || saved === 'setup' || !saved) return 'weather';
+    return (saved as Screen) || 'weather';
   });
+
+  useEffect(() => {
+    if (screen === 'charts') {
+      setScreen('weather');
+    }
+  }, [screen]);
+
   const [selectedPlanId, setSelectedPlanId] = useState<string>('6_months');
   
   const timelineCache = useRef<Record<number, any[]>>({});
   timelineCache.current = {}; // Clear cache on every single render to keep updates accurate
   
   const getPackagePriceInfo = (pkg: any) => {
-    const curr = pkg?.currentPrice !== undefined && pkg?.currentPrice !== null && pkg?.currentPrice !== '' ? Number(pkg.currentPrice) : 0;
-    const orig = pkg?.originalPrice !== undefined && pkg?.originalPrice !== null && pkg?.originalPrice !== '' ? Number(pkg.originalPrice) : (pkg?.price !== undefined && pkg?.price !== null && pkg?.price !== '' ? Number(pkg.price) : 0);
+    const curr = pkg?.currentPrice !== undefined && pkg?.currentPrice !== null && pkg?.currentPrice !== '' ? Number(pkg.currentPrice) : (pkg?.price ? Number(pkg.price) : 0);
+    const orig = pkg?.originalPrice !== undefined && pkg?.originalPrice !== null && pkg?.originalPrice !== '' ? Number(pkg.originalPrice) : 0;
     
-    const hasOffer = curr > 0 && orig > 0 && curr < orig;
-    const displayPrice = hasOffer ? curr : (orig > 0 ? orig : (curr > 0 ? curr : (pkg?.price ? Number(pkg.price) : 0)));
+    const idLower = String(pkg?.id || '').toLowerCase();
+    const nameStr = String(pkg?.name || '').toLowerCase();
+    let defaultCurr = 250;
+    let defaultOrig = 500;
+    if (idLower === '3_months' || nameStr.includes('فض') || nameStr.includes('مميز')) { defaultCurr = 490; defaultOrig = 700; }
+    else if (idLower === '6_months' || nameStr.includes('ذهب') || nameStr.includes('طلب')) { defaultCurr = 910; defaultOrig = 1500; }
+    else if (idLower === '1_year' || nameStr.includes('بلاتين') || nameStr.includes('سنو') || nameStr.includes('عام')) { defaultCurr = 1400; defaultOrig = 2000; }
+
+    const finalCurr = curr > 0 ? curr : defaultCurr;
+    const finalOrig = orig > 0 ? orig : defaultOrig;
+    const hasOffer = finalOrig > finalCurr;
     
     return {
       hasOffer,
-      currentPrice: curr,
-      originalPrice: orig,
-      displayPrice
+      currentPrice: finalCurr,
+      originalPrice: finalOrig,
+      displayPrice: finalCurr
     };
   };
 
@@ -2809,13 +2850,21 @@ export default function App() {
     return '1400';
   };
 
-  const getWhatsappHref = () => {
+  const getWhatsappHref = (customWalletNum?: string, customBankNum?: string) => {
     const activePkg = packages.find(p => p.id === selectedPlanId) || packages[0] || DEFAULT_PACKAGES[2];
     const { hasOffer, currentPrice, originalPrice, displayPrice } = getPackagePriceInfo(activePkg);
     const priceText = hasOffer 
       ? `${currentPrice} جنيه مصري بدلاً من ${originalPrice} جنيه`
       : `${displayPrice} جنيه مصري`;
     
+    const targetWalletNumber = customWalletNum !== undefined ? customWalletNum : walletCashNumber;
+    const targetBankAccount = customBankNum !== undefined ? customBankNum : bankAccountNumber;
+
+    const paymentDetailsText = targetBankAccount 
+      ? `سأقوم بتحويل قيمة الاشتراك إلى محفظة كاش على الرقم: (${targetWalletNumber})
+أو إلى الحساب البنكي رقم: (${targetBankAccount})`
+      : `سأقوم بتحويل قيمة الاشتراك إلى محفظة كاش على الرقم: (${targetWalletNumber})`;
+
     return `https://wa.me/201115127032?text=${encodeURIComponent(`السلام عليكم ورحمة الله وبركاته،
 أود تفعيل اشتراكي في برنامج "مدير مزارع الدواجن الذكي" بالبيانات التالية:
 📋 تفاصيل الطلب:
@@ -2823,7 +2872,7 @@ export default function App() {
 السعر: ${priceText}
 بريدي الإلكتروني المسجل: ${localCurrentUser?.email || 'لم يسجل بريد'}
 💳 تفاصيل الدفع:
-سأقوم بتحويل قيمة الاشتراك إلى محفظة فودافون كاش على الرقم: 01029494614
+${paymentDetailsText}
 سأرسل لكم صورة إيصال التحويل في هذه المحادثة فوراً لتأكيد العملية والتمتع بكافة خدمات ومميزات البرنامج.
 أرجو مراجعة التحويل وتفعيل حسابي وإرسال كود تسجيل الدخول بمجرد الاستلام. شكراً لكم!`)}`;
   };
@@ -2944,25 +2993,31 @@ export default function App() {
           setProfileLoading(true);
           setProfileError('');
           console.log("الإيميل المرسل للبحث هو:", localCurrentUser.email);
-          // Using standard fetch since this is a GET request to a external web app
-          const response = await fetch(`${PROFILE_SCRIPT_URL}?email=${encodeURIComponent(localCurrentUser.email)}`);
-          const result = await response.json();
-          if (result.status === 'success' && result.data) {
-            setProfileData(result.data);
-            const isActive = result.data.status?.includes('مفعل') || result.data.status?.includes('نشط');
-            // Sync isUnsubscribed status based on subscription state
-            setLocalCurrentUser((prev: any) => {
-              if (!prev) return prev;
-              const updated = {
-                ...prev,
-                isUnsubscribed: !isActive,
-                username: result.data.name || prev.username,
-              };
-              localStorage.setItem('poultry_current_user', JSON.stringify(updated));
-              return updated;
-            });
+          let response = await smartFetch(`/api/profile-script?email=${encodeURIComponent(localCurrentUser.email)}`);
+          if (!response.ok) {
+            response = await smartFetch(`${PROFILE_SCRIPT_URL}?email=${encodeURIComponent(localCurrentUser.email)}`);
+          }
+          if (response.ok) {
+            const result = await response.json();
+            if (result && result.status === 'success' && result.data) {
+              setProfileData(result.data);
+              const isActive = result.data.status?.includes('مفعل') || result.data.status?.includes('نشط');
+              // Sync isUnsubscribed status based on subscription state
+              setLocalCurrentUser((prev: any) => {
+                if (!prev) return prev;
+                const updated = {
+                  ...prev,
+                  isUnsubscribed: !isActive,
+                  username: result.data.name || prev.username,
+                };
+                localStorage.setItem('poultry_current_user', JSON.stringify(updated));
+                return updated;
+              });
+            } else {
+              setProfileError(result?.message || 'لم يتم العثور على بيانات الحساب المحدثة.');
+            }
           } else {
-            setProfileError(result.message || 'لم يتم العثور على بيانات الحساب المحدثة.');
+            setProfileError('فشل الاتصال بالخادم لجلب بيانات الحساب المحدثة.');
           }
         } catch (error) {
           setProfileError('فشل الاتصال بالخادم لجلب بيانات الحساب المحدثة.');
@@ -3684,51 +3739,157 @@ export default function App() {
   const [packages, setPackages] = useState<any[]>(DEFAULT_PACKAGES);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
+  const [walletCashNumber, setWalletCashNumber] = useState('01029494614');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+
+  const fetchWalletNumberFromSheet = useCallback(async (): Promise<{ wallet: string; bank: string } | null> => {
+    const parsePhone = (str: string): string | null => {
+      if (!str) return null;
+      const digits = str.replace(/[^\d]/g, '');
+      if (/^01[0125]\d{8}$/.test(digits)) return digits;
+      if (/^1[0125]\d{8}$/.test(digits)) return '0' + digits;
+      if (/^201[0125]\d{8}$/.test(digits)) return '0' + digits.slice(2);
+      if (digits.length >= 9 && digits.length <= 12) {
+        if (digits.startsWith('01')) return digits;
+        if (digits.startsWith('1')) return '0' + digits;
+      }
+      return null;
+    };
+
+    const parseBank = (str: string): string | null => {
+      if (!str) return null;
+      const clean = str.replace(/^"|"$/g, '').trim();
+      if (!clean) return null;
+      if (/^(حساب|الحساب|بنك|البنك|رقم|bank|account|b)$/i.test(clean)) return null;
+      if (clean.includes('حساب بنكي') || clean.includes('Bank Account')) return null;
+      if (clean.replace(/\D/g, '').length >= 3 || clean.length >= 3) return clean;
+      return null;
+    };
+
+    try {
+      const cacheBuster = Date.now();
+      let response = await smartFetch(`/api/wallet-number?t=${cacheBuster}`);
+      if (response.ok) {
+        const json = await response.json();
+        if (json) {
+          const wallet = json.walletNumber || '01029494614';
+          const bank = json.bankAccount || '';
+          setWalletCashNumber(wallet);
+          setBankAccountNumber(bank);
+          return { wallet, bank };
+        }
+      }
+      
+      const directCsvUrl = `https://docs.google.com/spreadsheets/d/1T0F6jLezc1bE4GmrTqcOoCQbBMVX3Yk8xKPvn1rTbB8/gviz/tq?tqx=out:csv&sheet=Sheet3&t=${cacheBuster}`;
+      const directCsvRes = await smartFetch(directCsvUrl);
+      if (directCsvRes.ok) {
+        const text = await directCsvRes.text();
+        if (text && !text.includes('<!DOCTYPE html>')) {
+          const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+          const foundNums: string[] = [];
+          const foundBanks: string[] = [];
+          for (const row of rows) {
+            const cells = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+            const phone = parsePhone(cells[0] || '');
+            if (phone && !foundNums.includes(phone)) {
+              foundNums.push(phone);
+            }
+            const bAcc = parseBank(cells[1] || '');
+            if (bAcc && !foundBanks.includes(bAcc)) {
+              foundBanks.push(bAcc);
+            }
+          }
+          if (foundNums.length > 0 || foundBanks.length > 0) {
+            const walletJoined = foundNums.length > 0 ? foundNums.join(' أو ') : walletCashNumber;
+            const bankJoined = foundBanks.join(' أو ');
+            setWalletCashNumber(walletJoined);
+            setBankAccountNumber(bankJoined);
+            return { wallet: walletJoined, bank: bankJoined };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error fetching wallet/bank number from sheet:", err);
+    }
+    return null;
+  }, [walletCashNumber]);
+
+  const handleWhatsappClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    let freshWallet = walletCashNumber;
+    let freshBank = bankAccountNumber;
+    try {
+      const fetched = await fetchWalletNumberFromSheet();
+      if (fetched) {
+        freshWallet = fetched.wallet;
+        freshBank = fetched.bank;
+      }
+    } catch (err) {
+      console.warn("Error refreshing wallet/bank number on WhatsApp click:", err);
+    }
+    const finalHref = getWhatsappHref(freshWallet, freshBank);
+    window.open(finalHref, '_blank', 'noopener,noreferrer');
+  };
   const [weightInput, setWeightInput] = useState('');
   const [humidityTotalBirds, setHumidityTotalBirds] = useState('360');
   const [humidityAvgWeight, setHumidityAvgWeight] = useState('180');
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fetchPackagesFromSheet = useCallback(async () => {
-    const url = "https://script.google.com/macros/s/AKfycbwi6ULcFjjzm204cQQG8pzMgx16lzsscfbiBab2NVFGBZNZg7Qq7jSEglnL2kTDSTnEEA/exec";
+    const directUrl = "https://script.google.com/macros/s/AKfycbwi6ULcFjjzm204cQQG8pzMgx16lzsscfbiBab2NVFGBZNZg7Qq7jSEglnL2kTDSTnEEA/exec";
     setPackagesLoading(true);
     setPackagesError(null);
     try {
-      const response = await fetch(url);
+      let response = await smartFetch("/api/packages-sheet");
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        response = await smartFetch(directUrl);
+      }
+      if (!response.ok) {
+        console.warn(`[Packages Sheet] Fetch returned non-ok status: ${response.status}`);
+        setPackages(DEFAULT_PACKAGES);
+        setPackagesError("تعذر الاتصال بجدول الباقات المباشر. تم تحميل الباقات الافتراضية.");
+        return;
       }
       const json = await response.json();
       if (json && json.status === "success" && Array.isArray(json.packages) && json.packages.length > 0) {
-        const mapped = json.packages.map((pkg: any, idx: number) => {
+        const mapped = json.packages.map((rawPkg: any, idx: number) => {
           const finalId = idx === 0 ? '45_days' : idx === 1 ? '3_months' : idx === 2 ? '6_months' : idx === 3 ? '1_year' : `pkg-${idx}`;
           
-          // Google Sheets mapping:
-          // Column A (اسم الباقة): mapped by GAS as `id`
-          // Column B (مدة الباقة): mapped by GAS as `name`
-          // Column E (نص العرض): mapped by GAS as `duration`
-          // Let's remap them to the expected UI fields:
-          const finalName = pkg.id !== undefined && pkg.id !== null ? String(pkg.id) : '';
-          const finalDuration = pkg.name !== undefined && pkg.name !== null ? String(pkg.name) : '';
-          const finalOfferText = pkg.duration !== undefined && pkg.duration !== null ? String(pkg.duration) : '';
+          const strId = String(rawPkg.id || '').trim();
+          const strName = String(rawPkg.name || rawPkg.title || '').trim();
+          const strDuration = String(rawPkg.duration || '').trim();
+          const strOffer = String(rawPkg.offerText || '').trim();
           
-          let desc = pkg.desc;
-          if (!desc) {
-            if (idx === 0 || finalDuration.includes('45') || finalName.includes('دورة')) {
-              desc = 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.';
-            } else if (idx === 1 || finalDuration.includes('3') || finalName.includes('المميزة') || finalName.includes('مميزة')) {
-              desc = 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.';
-            } else if (idx === 2 || finalDuration.includes('6') || finalName.includes('طلبا') || finalName.includes('طلب')) {
-              desc = 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.';
-            } else if (idx === 3 || finalDuration.includes('سنة') || finalDuration.includes('1') || finalName.includes('الذهبية')) {
-              desc = 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.';
-            } else {
-              desc = 'تمتع بكافة مميزات البرنامج وخدمات الذكاء الاصطناعي طوال فترة الصلاحية.';
-            }
+          const allProps = [strId, strName, strDuration, strOffer].filter(Boolean);
+          
+          // 1. Title detection (must be Arabic title like "الباقة الاقتصادية")
+          let finalName = allProps.find(s => s.includes('باقة') || s.includes('اقتصاد') || s.includes('فض') || s.includes('ذهب') || s.includes('بلاتين') || s.includes('مستوى')) || '';
+          if (!finalName || finalName.toLowerCase() === '45_days' || finalName.toLowerCase() === '3_months' || finalName.toLowerCase() === '6_months' || finalName.toLowerCase() === '1_year') {
+            finalName = idx === 0 ? 'الباقة الاقتصادية' : idx === 1 ? 'الباقة الفضية' : idx === 2 ? 'الباقة الذهبية' : 'الباقة البلاتينية';
+          }
+
+          // 2. Duration detection (e.g. "45 يوم", "3 شهور", "6 شهور", "1 سنة")
+          let finalDuration = allProps.find(s => s.includes('يوم') || s.includes('شهر') || s.includes('شهور') || s.includes('سنة') || s.includes('عام')) || '';
+          if (!finalDuration) {
+            finalDuration = idx === 0 ? '45 يوم' : idx === 1 ? '3 شهور' : idx === 2 ? '6 شهور' : '1 سنة';
+          }
+
+          // 3. Offer text detection (e.g. "خصم 50% لفترة محدودة")
+          let finalOfferText = allProps.find(s => s.includes('خصم') || s.includes('%') || s.includes('عرض') || s.includes('توفير') || s.includes('محدود')) || '';
+          if (!finalOfferText && strOffer) finalOfferText = strOffer;
+
+          // 4. Description
+          let desc = rawPkg.desc || rawPkg.description || '';
+          if (!desc || desc.trim().length < 5) {
+            if (idx === 0) desc = 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.';
+            else if (idx === 1) desc = 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.';
+            else if (idx === 2) desc = 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.';
+            else if (idx === 3) desc = 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.';
+            else desc = 'تمتع بكافة مميزات البرنامج وخدمات الذكاء الاصطناعي طوال فترة الصلاحية.';
           }
 
           return {
-            ...pkg,
+            ...rawPkg,
             id: finalId,
             name: finalName,
             duration: finalDuration,
@@ -3761,10 +3922,11 @@ export default function App() {
   }, [selectedPlanId]);
 
   useEffect(() => {
+    fetchWalletNumberFromSheet();
     if (isSubscriptionModalOpen) {
       fetchPackagesFromSheet();
     }
-  }, [isSubscriptionModalOpen, fetchPackagesFromSheet]);
+  }, [isSubscriptionModalOpen, fetchPackagesFromSheet, fetchWalletNumberFromSheet]);
 
   // --- Day Navigation Logic ---
   const goToNextDay = () => {
@@ -7502,9 +7664,7 @@ export default function App() {
 
   const handleCloseSubscriptionModal = () => {
     setIsSubscriptionModalOpen(false);
-    if (screen === 'gateway' || screen === 'login') {
-      setScreen('landing');
-    }
+    setScreen('dashboard');
   };
 
   const renderLimitedLoginModal = () => {
@@ -7519,26 +7679,26 @@ export default function App() {
             setIsLimitedLoginModalOpen(false);
             setScreen('landing');
           }}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md limited-login-modal-overlay"
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 20 }}
-          className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl z-[10000] text-right overflow-hidden"
+          className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl z-[10000] text-right overflow-hidden limited-login-modal-card"
         >
           {/* Top Accent Line */}
           <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-amber-500" />
           
           {/* Header Icon & Title */}
           <div className="flex flex-col items-center text-center gap-3.5 mb-5">
-            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner limited-login-modal-icon">
               <Lock size={32} className="animate-pulse" />
             </div>
-            <h3 className="text-lg sm:text-xl font-black text-white leading-snug">
+            <h3 className="text-lg sm:text-xl font-black text-white leading-snug limited-login-modal-title">
               🔒 حسابك غير مُفعل: أنت تستخدم النسخة المحدودة
             </h3>
-            <p className="text-slate-400 font-bold text-xs sm:text-sm leading-relaxed max-w-md">
+            <p className="text-slate-400 font-bold text-xs sm:text-sm leading-relaxed max-w-md limited-login-modal-subtitle">
               بيانات تسجيل الدخول التي أدخلتها غير مسجلة كعضوية نشطة، سيتم منحك إذن الدخول بوضع النسخة المحدودة لتجربة واستكشاف مميزات البرنامج.
             </p>
           </div>
@@ -7552,7 +7712,7 @@ export default function App() {
                 setIsSubscriptionModalOpen(true);
                 fetchPackagesFromSheet();
               }}
-              className="w-full sm:flex-1 py-4 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:flex-1 py-4 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer limited-login-modal-submit"
             >
               <CreditCard size={18} />
               اشترك الآن
@@ -7564,7 +7724,7 @@ export default function App() {
                 setIsLimitedLoginModalOpen(false);
                 setScreen('landing');
               }}
-              className="w-full sm:flex-1 py-4 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold rounded-2xl border border-white/10 transition-all active:scale-95 text-xs sm:text-sm text-center cursor-pointer"
+              className="w-full sm:flex-1 py-4 px-5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-bold rounded-2xl border border-white/10 transition-all active:scale-95 text-xs sm:text-sm text-center cursor-pointer limited-login-modal-cancel"
             >
               متابعة بالنسخة المحدودة
             </button>
@@ -7575,42 +7735,76 @@ export default function App() {
   };
 
   const renderSubscriptionModal = () => {
-    const isLockedScreen = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen);
+    const isLockedScreen = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen);
     if (!isSubscriptionModalOpen && !isLockedScreen) return null;
+
+    const isDaylight = Boolean(
+      isDaylightMode || 
+      (typeof localStorage !== 'undefined' && localStorage.getItem('is_daylight_mode') === 'true') ||
+      (typeof document !== 'undefined' && (
+        document.body?.classList?.contains('daylight-mode') ||
+        document.documentElement?.classList?.contains('daylight-mode')
+      ))
+    );
+
     return (
-      <div className="fixed inset-0 z-[10000] w-full h-full bg-slate-900 flex flex-col overflow-hidden" dir="rtl">
+      <div className={cn(
+        "fixed inset-0 z-[10000] w-full h-full flex flex-col overflow-hidden subscription-modal-wrapper",
+        isDaylight ? "bg-slate-100 daylight-mode" : "bg-slate-900 night-mode"
+      )} dir="rtl">
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleCloseSubscriptionModal}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+          className={cn(
+            "fixed inset-0 backdrop-blur-md subscription-modal-overlay",
+            isDaylight ? "bg-slate-900/40" : "bg-slate-950/85"
+          )}
         />
         <motion.div
           initial={{ opacity: 0, scale: 0.99 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.99 }}
-          className="relative w-full h-full bg-slate-900 flex flex-col z-[10001] overflow-hidden"
+          className={cn(
+            "relative w-full h-full flex flex-col z-[10001] overflow-hidden subscription-modal-card",
+            isDaylight ? "bg-slate-50 daylight-mode text-slate-900" : "bg-slate-900 night-mode text-white"
+          )}
           dir="rtl"
         >
           <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 z-20" />
           
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-slate-900/95 backdrop-blur-md z-10 shadow-md">
+          <div className={cn(
+            "p-4 sm:p-6 border-b flex items-center justify-between flex-shrink-0 backdrop-blur-md z-10 shadow-md subscription-modal-header",
+            isDaylight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900/95 border-white/10 text-white"
+          )}>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className={cn(
+                "w-11 h-11 rounded-2xl border flex items-center justify-center",
+                isDaylight ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+              )}>
                 <Sparkles size={22} className="animate-pulse" />
               </div>
               <div className="text-right">
-                <h3 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                <h3 className={cn(
+                  "text-xl sm:text-2xl font-black flex items-center gap-2 subscription-modal-title",
+                  isDaylight ? "text-slate-900" : "text-white"
+                )} style={{ color: isDaylight ? '#0f172a' : undefined }}>
                   باقات الاشتراك 👑
                   {isLockedScreen && (
-                    <span className="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                    <span className={cn(
+                      "text-xs px-2.5 py-0.5 rounded-full font-bold subscription-modal-badge border",
+                      isDaylight ? "bg-red-50 text-red-600 border-red-300" : "bg-red-500/20 text-red-400 border-red-500/30"
+                    )} style={{ color: isDaylight ? '#dc2626' : undefined }}>
                       شاشة مغلقة 🔒
                     </span>
                   )}
                 </h3>
-                <p className="text-slate-400 text-xs sm:text-sm font-bold mt-1">
+                <p className={cn(
+                  "text-xs sm:text-sm font-black mt-1 subscription-modal-subtitle",
+                  isDaylight ? "text-slate-700" : "text-slate-400"
+                )} style={{ color: isDaylight ? '#334155' : undefined }}>
                   {isLockedScreen
                     ? 'عذراً، هذه الشاشة تتطلب اشتراكاً نشطاً. اختر الباقة المناسبة لتفعيل كافة الخصائص وإدارة عنبرك بالكامل.'
                     : 'اختر الباقة المناسبة لتفعيل كافة الخصائص، والأنظمة المتقدمة، وإدارة عنبرك بالكامل'}
@@ -7619,18 +7813,21 @@ export default function App() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  setIsSubscriptionModalOpen(false);
-                  setScreen('landing');
-                }}
-                className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer border border-white/10 shadow-sm"
+                onClick={handleCloseSubscriptionModal}
+                className={cn(
+                  "py-2 px-3 font-bold rounded-xl transition-all active:scale-95 flex items-center gap-1.5 text-xs cursor-pointer border shadow-sm subscription-modal-btn",
+                  isDaylight ? "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/10"
+                )}
               >
                 <RefreshCw size={13} />
                 <span className="hidden sm:inline">العودة للرئيسية</span>
               </button>
               <button 
                 onClick={handleCloseSubscriptionModal}
-                className="w-11 h-11 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center active:scale-95 cursor-pointer shadow-md"
+                className={cn(
+                  "w-11 h-11 rounded-2xl border transition-all flex items-center justify-center active:scale-95 cursor-pointer shadow-md subscription-modal-close",
+                  isDaylight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700 hover:text-slate-900" : "bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-white"
+                )}
                 title="إغلاق والعودة للرئيسية"
               >
                 <X size={22} />
@@ -7641,8 +7838,11 @@ export default function App() {
           {/* Scrollable Content */}
           <div className="p-4 sm:p-8 overflow-y-auto space-y-8 flex-grow">
             {packagesError && (
-              <div className="bg-amber-500/10 px-5 py-3.5 rounded-2xl border border-amber-500/20 mb-6 text-right flex items-center justify-between" dir="rtl">
-                <span className="text-[11px] text-amber-500 font-bold">
+              <div className={cn(
+                "px-5 py-3.5 rounded-2xl border mb-6 text-right flex items-center justify-between",
+                isDaylight ? "bg-amber-50 border-amber-300 text-amber-800" : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+              )} dir="rtl">
+                <span className="text-[11px] font-bold">
                   ⚠️ {packagesError}
                 </span>
               </div>
@@ -7650,104 +7850,238 @@ export default function App() {
 
             <div className="space-y-4 animate-fade-in">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {packages.map((item, idx) => {
+                {((packages && packages.length > 0) ? packages : DEFAULT_PACKAGES).map((item, idx) => {
                   const { hasOffer, originalPrice, displayPrice } = getPackagePriceInfo(item);
                   const isSelected = selectedPlanId === item.id;
 
-                  const nameLower = (item.name || '').toLowerCase();
+                  const nameRaw = (item.name || '').trim();
+                  const descRaw = (item.desc || item.description || '').trim();
+                  const durationRaw = (item.duration || '').trim();
                   const idLower = (item.id || '').toLowerCase();
 
-                  const isEconomic = idx === 0 || idLower === '45_days' || nameLower.includes('اقتصاد');
-                  const isSilver = idx === 1 || idLower === '3_months' || nameLower.includes('فض') || nameLower.includes('مميز');
-                  const isGold = idx === 2 || idLower === '6_months' || nameLower.includes('ذهب') || nameLower.includes('طلب');
-                  const isPlatinum = idx === 3 || idLower === '1_year' || nameLower.includes('بلاتين') || nameLower.includes('سنو') || nameLower.includes('عام');
+                  const isEconomic = idx === 0 || idLower === '45_days' || nameRaw.includes('اقتصاد');
+                  const isSilver = idx === 1 || idLower === '3_months' || nameRaw.includes('فض') || nameRaw.includes('مميز');
+                  const isGold = idx === 2 || idLower === '6_months' || nameRaw.includes('ذهب') || nameRaw.includes('طلب');
+                  const isPlatinum = idx === 3 || idLower === '1_year' || nameRaw.includes('بلاتين') || nameRaw.includes('سنو') || nameRaw.includes('عام');
 
-                  let titleClass = "";
-                  if (isSelected) {
-                    titleClass = "text-emerald-400 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(52,211,153,0.9)]";
-                  } else if (isEconomic) {
-                    titleClass = "text-white font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]";
-                  } else if (isSilver) {
-                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-slate-300 to-slate-100 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_10px_rgba(226,232,240,0.7)]";
-                  } else if (isGold) {
-                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-300 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(245,158,11,0.85)]";
-                  } else if (isPlatinum) {
-                    titleClass = "text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-cyan-200 to-teal-200 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all drop-shadow-[0_0_12px_rgba(186,230,253,0.85)]";
-                  } else {
-                    titleClass = "text-slate-100 font-black text-base sm:text-lg tracking-tight mb-1.5 transition-all";
+                  // Guarantee robust Arabic Title fallback
+                  let pkgTitle = 'الباقة الاقتصادية';
+                  if (isSilver) pkgTitle = 'الباقة الفضية';
+                  else if (isGold) pkgTitle = 'الباقة الذهبية';
+                  else if (isPlatinum) pkgTitle = 'الباقة البلاتينية';
+                  else if (isEconomic) pkgTitle = 'الباقة الاقتصادية';
+
+                  if (nameRaw && (nameRaw.includes('باقة') || nameRaw.includes('الباقة')) && !nameRaw.includes('_')) {
+                    pkgTitle = nameRaw;
                   }
+
+                  // Guarantee robust Duration Tag fallback
+                  let pkgDuration = isEconomic ? '45 يوم' : isSilver ? '3 شهور' : isGold ? '6 شهور' : '1 سنة';
+                  if (durationRaw && (durationRaw.includes('يوم') || durationRaw.includes('شهر') || durationRaw.includes('شهور') || durationRaw.includes('سنة') || durationRaw.includes('عام'))) {
+                    pkgDuration = durationRaw;
+                  }
+
+                  // Guarantee robust Description fallback
+                  let pkgDesc = isEconomic 
+                    ? 'صممت لتجربة المنظومة بالكامل وإدارة دورة تربية واحدة بكفاءة تامة.' 
+                    : isSilver 
+                    ? 'مثالية لمتابعة وتجهيز دورات الإنتاج والاستفادة من التحليلات والتقارير المالية.' 
+                    : isGold 
+                    ? 'الخيار الموصى به لتوفير مالي مستمر وحماية فنية متكاملة لعنبرك.' 
+                    : 'تحديثات مستمرة للأنظمة مع الدعم المباشر على مدار العام.';
+
+                  if (descRaw && descRaw.length >= 8 && !descRaw.includes('_')) {
+                    pkgDesc = descRaw;
+                  }
+
+                  const titleColor = isDaylight
+                    ? (isSelected ? '#047857' : '#0f172a')
+                    : (isSelected ? '#34d399' : '#ffffff');
+
+                  const descColor = isDaylight
+                    ? '#1e293b'
+                    : (isSelected ? '#e2e8f0' : '#cbd5e1');
+
+                  const durationColor = isDaylight
+                    ? (isSelected ? '#047857' : '#1d4ed8')
+                    : (isSelected ? '#6ee7b7' : '#60a5fa');
+
+                  const durationBg = isDaylight
+                    ? (isSelected ? '#ecfdf5' : '#eff6ff')
+                    : (isSelected ? '#064e3b' : '#1e293b');
+
+                  const durationBorder = isDaylight
+                    ? (isSelected ? '#a7f3d0' : '#93c5fd')
+                    : (isSelected ? '#10b981' : '#3b82f6');
+
+                  const priceLabelColor = isDaylight
+                    ? (isSelected ? '#059669' : '#1d4ed8')
+                    : (isSelected ? '#34d399' : '#fbbf24');
+
+                  const priceColor = isDaylight
+                    ? '#059669'
+                    : '#34d399';
+
+                  const cardBg = isDaylight
+                    ? (isSelected ? '#ffffff' : '#ffffff')
+                    : (isSelected ? '#022c22' : '#0f172a');
+
+                  const cardBorder = isDaylight
+                    ? (isSelected ? '#059669' : '#cbd5e1')
+                    : (isSelected ? '#34d399' : 'rgba(255, 255, 255, 0.2)');
+
+                  const cardShadow = isDaylight
+                    ? (isSelected ? '0 10px 30px rgba(5, 150, 105, 0.25)' : '0 4px 12px rgba(15, 23, 42, 0.08)')
+                    : (isSelected ? '0 0 30px rgba(16, 185, 129, 0.35)' : undefined);
 
                   return (
                     <div
                       key={item.id}
                       onClick={() => setSelectedPlanId(item.id)}
                       className={cn(
-                        "relative rounded-3xl p-6 border transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none min-h-[220px]",
+                        "relative rounded-3xl p-6 border transition-all duration-300 cursor-pointer flex flex-col justify-between text-right select-none min-h-[230px] subscription-package-card",
                         isSelected
-                          ? "bg-slate-900 border-emerald-400 ring-2 ring-emerald-400/60 shadow-[0_0_35px_rgba(16,185,129,0.45)] translate-y-[-4px] scale-[1.02]"
-                          : "bg-slate-950/40 border-white/20 hover:border-white/50 hover:bg-slate-950/60 hover:translate-y-[-2px]"
+                          ? "ring-2 ring-emerald-500/60 translate-y-[-4px] scale-[1.02] subscription-package-card-selected" 
+                          : "hover:translate-y-[-2px]"
                       )}
+                      style={{
+                        backgroundColor: cardBg,
+                        borderColor: cardBorder,
+                        boxShadow: cardShadow
+                      }}
                     >
                       {isSelected ? (
-                        <div className="absolute inset-0 bg-emerald-500/10 rounded-3xl pointer-events-none ring-1 ring-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.2)]" />
+                        <div className={cn(
+                          "absolute inset-0 rounded-3xl pointer-events-none ring-1",
+                          isDaylight ? "bg-emerald-500/5 ring-emerald-500/20" : "bg-emerald-500/10 ring-emerald-500/30"
+                        )} />
                       ) : (
-                        <div className="absolute inset-0 bg-white/[0.01] rounded-3xl pointer-events-none" />
+                        <div className="absolute inset-0 rounded-3xl pointer-events-none" />
                       )}
                       
                       {item.offerText ? (
                         <div 
-                          className="absolute top-4 left-4 bg-amber-400/10 border border-amber-400/30 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(251,191,36,0.15)]"
-                          style={{ color: '#FBBF24' }}
+                          className={cn(
+                            "absolute top-4 left-4 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 subscription-offer-badge shadow-sm border",
+                            isDaylight ? "bg-red-50 border-red-300 text-red-600" : "bg-amber-400/10 border-amber-400/30 text-amber-400"
+                          )}
+                          style={{
+                            color: isDaylight ? '#dc2626' : '#FBBF24',
+                            backgroundColor: isDaylight ? '#fef2f2' : 'rgba(251, 191, 36, 0.1)',
+                            borderColor: isDaylight ? '#fca5a5' : 'rgba(251, 191, 36, 0.3)'
+                          }}
                         >
-                          <Sparkles size={10} className="animate-pulse" style={{ color: '#FBBF24' }} />
+                          <Sparkles size={10} className="animate-pulse" style={{ color: isDaylight ? '#dc2626' : '#FBBF24' }} />
                           {item.offerText}
                         </div>
                       ) : isSelected ? (
-                        <div className="absolute top-4 left-4 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.4)] animate-pulse">
-                          <Check size={10} strokeWidth={3} className="text-emerald-400" />
-                          <span>محددة</span>
+                        <div 
+                          className={cn(
+                            "absolute top-4 left-4 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 animate-pulse subscription-selected-badge shadow-sm border",
+                            isDaylight ? "bg-emerald-600 border-emerald-700 text-white" : "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                          )}
+                          style={{
+                            color: isDaylight ? '#ffffff' : '#6ee7b7',
+                            backgroundColor: isDaylight ? '#059669' : 'rgba(16, 185, 129, 0.2)'
+                          }}
+                        >
+                          <Check size={10} strokeWidth={3} className={isDaylight ? "text-white" : "text-emerald-400"} />
+                          <span>محددة ⚡</span>
                         </div>
                       ) : null}
 
-                      <div className="pt-4">
-                        <h4 className={titleClass}>{item.name}</h4>
+                      <div className="pt-3">
+                        <h4 
+                          className="subscription-package-title text-base sm:text-lg font-black tracking-tight mb-2 transition-all"
+                          style={{
+                            color: titleColor,
+                            WebkitTextFillColor: titleColor,
+                            opacity: 1
+                          }}
+                        >
+                          {pkgTitle}
+                        </h4>
                         
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-white/5 text-[10px] font-black text-slate-300 mb-3 shadow-inner">
+                        <div 
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black mb-3 shadow-sm subscription-package-duration border"
+                          style={{
+                            color: durationColor,
+                            WebkitTextFillColor: durationColor,
+                            backgroundColor: durationBg,
+                            borderColor: durationBorder,
+                            opacity: 1
+                          }}
+                        >
                           <span className={cn(
                             "w-1.5 h-1.5 rounded-full animate-pulse",
-                            isSelected ? "bg-emerald-400" : "bg-sky-400"
-                          )} />
-                          <span>الصلاحية: {item.duration || 'غير محددة'}</span>
+                            isDaylight ? "bg-emerald-600" : (isSelected ? "bg-emerald-400" : "bg-sky-400")
+                          )} style={{ backgroundColor: isDaylight ? '#059669' : (isSelected ? '#34d399' : '#38bdf8') }} />
+                          <span style={{ color: durationColor, WebkitTextFillColor: durationColor, fontWeight: 900 }}>الصلاحية: {pkgDuration}</span>
                         </div>
 
-                        <p className="text-xs text-slate-300 font-bold leading-relaxed min-h-[44px] line-clamp-3">
-                          {item.desc || `تمتع بكافة مميزات البرنامج وخدمات الذكاء الاصطناعي طوال فترة الصلاحية.`}
+                        <p 
+                          className="text-xs leading-relaxed min-h-[44px] line-clamp-3 subscription-package-desc font-bold"
+                          style={{
+                            color: descColor,
+                            WebkitTextFillColor: descColor,
+                            opacity: 1
+                          }}
+                        >
+                          {pkgDesc}
                         </p>
                       </div>
 
                       <div className={cn(
                         "border-t pt-4 mt-4 flex items-center justify-between flex-row-reverse transition-colors",
-                        isSelected ? "border-emerald-500/30" : "border-white/10"
+                        isDaylight ? (isSelected ? "border-emerald-300" : "border-slate-200") : (isSelected ? "border-emerald-500/30" : "border-white/10")
                       )}>
-                        <div className="text-[10px] text-slate-400 font-black tracking-wider">قيمة الاشتراك</div>
+                        <div 
+                          className="text-[10px] font-black tracking-wider subscription-package-price-label"
+                          style={{
+                            color: priceLabelColor,
+                            WebkitTextFillColor: priceLabelColor,
+                            opacity: 1
+                          }}
+                        >
+                          قيمة الاشتراك
+                        </div>
                         <div className="flex items-center gap-2 flex-row-reverse">
                           {hasOffer && (
-                            <span className="relative text-xs text-slate-400 font-bold opacity-90 inline-block px-1">
+                            <span 
+                              className={cn(
+                                "relative text-xs font-bold inline-block px-1 subscription-package-old-price",
+                                isDaylight ? "text-red-600 font-black" : "text-slate-400 opacity-90"
+                              )}
+                              style={{ color: isDaylight ? '#dc2626' : '#94a3b8' }}
+                            >
                               {originalPrice} ج.م
-                              <span className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-red-500/90 -rotate-12 transform origin-center rounded-full pointer-events-none shadow-[0_0_4px_rgba(239,68,68,0.5)]" />
+                              <span 
+                                className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] -rotate-12 transform origin-center rounded-full pointer-events-none bg-red-600 shadow-sm" 
+                                style={{ backgroundColor: '#dc2626' }}
+                              />
                             </span>
                           )}
                           <div className="flex items-baseline gap-0.5 flex-row-reverse">
-                            <span className={cn(
-                              "text-lg sm:text-xl font-black transition-colors tracking-tight",
-                              isSelected ? "text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]" : "text-emerald-500"
-                            )}>
+                            <span 
+                              className="text-lg sm:text-xl font-black transition-colors tracking-tight subscription-package-price"
+                              style={{
+                                color: priceColor,
+                                WebkitTextFillColor: priceColor,
+                                opacity: 1
+                              }}
+                            >
                               {displayPrice}
                             </span>
-                            <span className={cn(
-                              "text-[10px] font-black mr-1",
-                              isSelected ? "text-emerald-400/90" : "text-emerald-500/90"
-                            )}>ج.م</span>
+                            <span 
+                              className="text-[10px] font-black mr-1 subscription-package-price"
+                              style={{
+                                color: priceColor,
+                                WebkitTextFillColor: priceColor,
+                                opacity: 1
+                              }}
+                            >
+                              ج.م
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -7758,39 +8092,83 @@ export default function App() {
             </div>
 
             {/* Steps and Action CTA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center bg-slate-950/50 border border-white/5 p-6 rounded-3xl text-right">
-              <div className="md:col-span-2 space-y-3">
-                <div className="flex items-center gap-2 text-amber-400 font-black text-sm">
-                  <Wallet size={16} className="animate-pulse text-amber-400" />
+            <div className={cn(
+              "grid grid-cols-1 md:grid-cols-3 gap-6 items-center border p-6 rounded-3xl text-right subscription-steps-card",
+              isDaylight ? "bg-white border-slate-300 text-slate-900 shadow-md" : "bg-slate-950/50 border-white/5 text-slate-300"
+            )}>
+              <div className="md:col-span-2 space-y-4">
+                <div className={cn(
+                  "flex items-center gap-2.5 font-black text-sm sm:text-base subscription-steps-title",
+                  isDaylight ? "text-emerald-800" : "text-amber-400"
+                )}>
+                  <div className={cn(
+                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border",
+                    isDaylight ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-amber-400/10 text-amber-400 border-amber-400/20"
+                  )}>
+                    <Wallet size={18} className="animate-pulse" />
+                  </div>
                   <span>خطوات إتمام الاشتراك والتفعيل الفوري:</span>
                 </div>
-                <p className="text-[11px] text-slate-300 font-bold leading-relaxed space-y-1">
-                  ١. حدد الباقة المفضلة من العروض الحيّة الموضحة بالأعلى.<br />
-                  ٢. اضغط على الزر الأخضر بالأسفل للتواصل عبر واتساب مع خدمة العملاء والمبيعات.<br />
-                  ٣. إرسال البريد الإلكتروني الخاص بك عبر واتساب، وصورة تحويل الاشتراك على الرقم المذكور في واتساب.<br />
-                  ٤. ستقوم خدمة العملاء بتفعيل البريد الإلكتروني، وإرسال كود التفعيل لتنشيط الحساب والتمتع بجميع الخدمات داخل تطبيق مدير المزارع الذكي.
-                </p>
-                <div className="flex flex-col gap-1 mt-3">
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-black">
-                    <span className="text-amber-400">●</span>
-                    <span>البريد الإلكتروني الخاص بك الذي سيتم تفعيل حساب عليه:</span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-bold leading-relaxed subscription-steps-text">
+                  <div className={cn(
+                    "p-2.5 rounded-xl border flex items-start gap-2",
+                    isDaylight ? "bg-slate-50 border-slate-300 text-slate-900 font-extrabold" : "bg-slate-900/60 border-white/5 text-slate-300"
+                  )}>
+                    <span className={cn("w-5 h-5 rounded-full font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5", isDaylight ? "bg-emerald-600 text-white" : "bg-emerald-500/20 text-emerald-400")}>١</span>
+                    <span>حدد الباقة المفضلة من العروض الحيّة بالأعلى.</span>
                   </div>
-                  <div className="mr-4 mt-1">
-                    <span className="text-blue-400 select-all font-mono font-black bg-slate-900 px-3 py-1.5 rounded-xl border border-white/5 text-xs inline-block">
-                      {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
-                    </span>
+                  <div className={cn(
+                    "p-2.5 rounded-xl border flex items-start gap-2",
+                    isDaylight ? "bg-slate-50 border-slate-300 text-slate-900 font-extrabold" : "bg-slate-900/60 border-white/5 text-slate-300"
+                  )}>
+                    <span className={cn("w-5 h-5 rounded-full font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5", isDaylight ? "bg-emerald-600 text-white" : "bg-emerald-500/20 text-emerald-400")}>٢</span>
+                    <span>اضغط على الزر الأخضر للتواصل عبر واتساب.</span>
                   </div>
+                  <div className={cn(
+                    "p-2.5 rounded-xl border flex items-start gap-2",
+                    isDaylight ? "bg-slate-50 border-slate-300 text-slate-900 font-extrabold" : "bg-slate-900/60 border-white/5 text-slate-300"
+                  )}>
+                    <span className={cn("w-5 h-5 rounded-full font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5", isDaylight ? "bg-emerald-600 text-white" : "bg-emerald-500/20 text-emerald-400")}>٣</span>
+                    <span>أرسل البريد الإلكتروني وصورة التحويل على واتساب.</span>
+                  </div>
+                  <div className={cn(
+                    "p-2.5 rounded-xl border flex items-start gap-2",
+                    isDaylight ? "bg-slate-50 border-slate-300 text-slate-900 font-extrabold" : "bg-slate-900/60 border-white/5 text-slate-300"
+                  )}>
+                    <span className={cn("w-5 h-5 rounded-full font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5", isDaylight ? "bg-emerald-600 text-white" : "bg-emerald-500/20 text-emerald-400")}>٤</span>
+                    <span>استلم كود التفعيل لتنشيط كافة خدمات التطبيق فوراً.</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className={cn("text-xs font-black flex items-center gap-1.5", isDaylight ? "text-slate-900" : "text-slate-400")}>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    بريد التفعيل الخاص بك:
+                  </span>
+                  <span className={cn(
+                    "select-all font-mono font-black px-3 py-1 rounded-xl border text-xs inline-block subscription-email-pill shadow-sm",
+                    isDaylight ? "bg-blue-50 text-blue-700 border-blue-300" : "bg-slate-900 text-blue-400 border-white/10"
+                  )}>
+                    {localCurrentUser?.email || 'لم يتم تسجيل بريد'}
+                  </span>
                 </div>
               </div>
 
-              <div className="w-full flex justify-end">
+              <div className="w-full flex justify-end md:self-center">
                 <a
                   href={getWhatsappHref()}
+                  onClick={handleWhatsappClick}
                   target="_blank"
                   referrerPolicy="no-referrer"
-                  className="w-full py-4 px-5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black text-xs rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 active:scale-95 cursor-pointer"
+                  className={cn(
+                    "w-full py-4 px-5 font-black text-xs sm:text-sm rounded-2xl transition-all flex items-center justify-center gap-2.5 shadow-xl active:scale-95 cursor-pointer subscription-whatsapp-btn",
+                    isDaylight 
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30" 
+                      : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 shadow-emerald-500/15"
+                  )}
                 >
-                  <Sparkles size={16} className="animate-pulse" />
+                  <Sparkles size={18} className="animate-pulse" />
                   تفعيل الباقة المحددة الآن عبر واتساب 💬
                 </a>
               </div>
@@ -9257,7 +9635,7 @@ export default function App() {
                 key={link.id} 
                 {...link} 
                 activeId={screen as string} 
-                isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
+                isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
               />
             ))}
           </nav>
@@ -9314,7 +9692,7 @@ export default function App() {
                       key={link.id} 
                       {...link} 
                       activeId={screen as string} 
-                      isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
+                      isLocked={localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(link.id)}
                       onClick={() => {
                         link.onClick();
                         setIsSidebarOpen(false);
@@ -9597,13 +9975,13 @@ export default function App() {
 
       <div className="relative w-full">
          <div className={cn(
-          (localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen))
+          (localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(screen))
             ? "filter blur-[8px] opacity-35 pointer-events-none select-none transition-all duration-300"
             : "transition-all duration-300"
         )}>
           {/* Trial Notice Banner right at the beginning/top of screens */}
           {localCurrentUser?.isUnsubscribed && (
-            <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-2 border-amber-500/20 p-4 rounded-3xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in text-right">
+            <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-2 border-amber-500/20 p-4 rounded-3xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in text-right subscription-trial-banner">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
                   <Lock size={20} className="animate-pulse" />
@@ -9617,7 +9995,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setIsSubscriptionModalOpen(true)}
-                className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-lg shadow-amber-500/10 whitespace-nowrap cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-lg shadow-amber-500/10 whitespace-nowrap cursor-pointer subscription-trial-btn"
               >
                 <Sparkles size={12} />
                 اشترك الآن لتفعيل كافة الميزات
@@ -17367,7 +17745,7 @@ export default function App() {
                         { id: 'battery', label: 'إدارة الأدوار', desc: 'تنظيم البطاريات والتشغيل بالأدوار', icon: Layers }
                       ] : []),
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
                       const isActive = screen === item.id;
                       return (
                         <button
@@ -17428,7 +17806,7 @@ export default function App() {
                       { id: 'weather', label: 'الطقس والأرصاد الجوية', desc: 'تحسس درجات THI ومقارنتها بالخلايا الخارجية', icon: Cloud },
                       { id: 'environmental_load', label: 'الحمل الحراري', desc: 'حساب معامل التبخر وحرارة الطيور الفسيولوجية', icon: Activity },
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
                       const isActive = screen === item.id;
                       return (
                         <button
@@ -17490,7 +17868,7 @@ export default function App() {
                       { id: 'profile', label: 'بيانات الحساب الشخصي', desc: 'تفاصيل الدخول وصلاحيات الاشتراك المعتمدة', icon: User },
                       { id: 'disclaimer', label: 'إخلاء المسؤولية', desc: 'شروط الاستخدام وإخلاء المسؤولية القانونية والبيطرية', icon: ShieldAlert },
                     ].map((item) => {
-                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'charts', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
+                      const isLocked = localCurrentUser?.isUnsubscribed && !['landing', 'dashboard', 'barn_readings', 'market', 'weather', 'workshop', 'profile', 'battery', 'disclaimer'].includes(item.id);
                       const isActive = screen === item.id;
                       return (
                         <button

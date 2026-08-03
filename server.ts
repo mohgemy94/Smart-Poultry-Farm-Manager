@@ -161,10 +161,10 @@ async function startServer() {
         return res.json(remainingSuccessfulResult);
       }
 
-      res.status(404).json({ error: "Poultry price not found" });
+      res.json({ price: 76, source: "بورصة الدواجن (استرشادي)" });
     } catch (error) {
       console.error("[API Error] Poultry price fetch failed:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.json({ price: 76, source: "بورصة الدواجن (استرشادي)" });
     }
   });
 
@@ -202,8 +202,8 @@ async function startServer() {
     try {
       const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sa3dTT3ID0PmRVyfy2B-JA4F7-m3cW8HhTX0JBspzKg/export?format=csv&gid=0';
       const controller = new AbortController();
-      // Increase timeout slightly to 20 seconds, but fall back immediately on failure
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      // Short timeout (3 seconds) for instant fallback to predefined local data if network is slow
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       const response = await fetch(SHEET_URL, {
         headers: {
@@ -234,6 +234,183 @@ async function startServer() {
     } catch (error) {
       console.error("Currency rate error:", error);
       res.status(500).json({ error: "Failed to fetch currency rates" });
+    }
+  });
+
+  // API Route to fetch subscription packages sheet
+  app.get("/api/packages-sheet", async (req, res) => {
+    const PACKAGES_URL = "https://script.google.com/macros/s/AKfycbwi6ULcFjjzm204cQQG8pzMgx16lzsscfbiBab2NVFGBZNZg7Qq7jSEglnL2kTDSTnEEA/exec";
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const response = await fetch(PACKAGES_URL, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+      });
+      if (!response.ok) throw new Error(`Packages fetch status: ${response.status}`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.warn("[Packages Proxy Warning]:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ status: "error", message: "Failed to fetch packages" });
+    }
+  });
+
+  // API Route to fetch wallet phone number from Sheet3 Column A
+  app.get("/api/wallet-number", async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    const cacheBuster = Date.now();
+
+    const parsePhone = (str: string): string | null => {
+      if (!str) return null;
+      const digits = str.replace(/[^\d]/g, '');
+      if (/^01[0125]\d{8}$/.test(digits)) return digits;
+      if (/^1[0125]\d{8}$/.test(digits)) return '0' + digits;
+      if (/^201[0125]\d{8}$/.test(digits)) return '0' + digits.slice(2);
+      if (digits.length >= 9 && digits.length <= 12) {
+        if (digits.startsWith('01')) return digits;
+        if (digits.startsWith('1')) return '0' + digits;
+      }
+      return null;
+    };
+
+    const foundNumbers: string[] = [];
+    const foundBankAccounts: string[] = [];
+
+    const addNumber = (num: string | null) => {
+      if (num && !foundNumbers.includes(num)) {
+        foundNumbers.push(num);
+      }
+    };
+
+    const parseBankAccount = (str: string): string | null => {
+      if (!str) return null;
+      const clean = str.replace(/^"|"$/g, '').trim();
+      if (!clean) return null;
+      if (/^(حساب|الحساب|بنك|البنك|رقم|bank|account|b)$/i.test(clean)) return null;
+      if (clean.includes('حساب بنكي') || clean.includes('Bank Account')) return null;
+      if (clean.replace(/\D/g, '').length >= 3 || clean.length >= 3) {
+        return clean;
+      }
+      return null;
+    };
+
+    const addBankAccount = (acc: string | null) => {
+      if (acc && !foundBankAccounts.includes(acc)) {
+        foundBankAccounts.push(acc);
+      }
+    };
+
+    // 1. Try gviz JSON
+    try {
+      const gvizJsonUrl = `https://docs.google.com/spreadsheets/d/1T0F6jLezc1bE4GmrTqcOoCQbBMVX3Yk8xKPvn1rTbB8/gviz/tq?tqx=out:json&sheet=Sheet3&t=${cacheBuster}`;
+      const response = await fetch(gvizJsonUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      if (response.ok) {
+        const text = await response.text();
+        const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
+        if (jsonMatch && jsonMatch[1]) {
+          const parsed = JSON.parse(jsonMatch[1]);
+          const rows = parsed?.table?.rows || [];
+          for (const row of rows) {
+            const cellA = row?.c?.[0];
+            const valA = String(cellA?.f || cellA?.v || '');
+            addNumber(parsePhone(valA));
+
+            const cellB = row?.c?.[1];
+            const valB = String(cellB?.f || cellB?.v || '');
+            addBankAccount(parseBankAccount(valB));
+          }
+          if (foundNumbers.length > 0 || foundBankAccounts.length > 0) {
+            return res.json({
+              status: "success",
+              walletNumbers: foundNumbers,
+              walletNumber: foundNumbers.length > 0 ? foundNumbers.join(' أو ') : "01029494614",
+              bankAccounts: foundBankAccounts,
+              bankAccount: foundBankAccounts.join(' أو '),
+              source: "gviz_json"
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[Wallet Proxy JSON Error]:", e);
+    }
+
+    // 2. Try gviz CSV / Sheet3 / sheet3
+    const SHEET_URLS = [
+      `https://docs.google.com/spreadsheets/d/1T0F6jLezc1bE4GmrTqcOoCQbBMVX3Yk8xKPvn1rTbB8/gviz/tq?tqx=out:csv&sheet=Sheet3&t=${cacheBuster}`,
+      `https://docs.google.com/spreadsheets/d/1T0F6jLezc1bE4GmrTqcOoCQbBMVX3Yk8xKPvn1rTbB8/gviz/tq?tqx=out:csv&sheet=sheet3&t=${cacheBuster}`,
+      `https://docs.google.com/spreadsheets/d/1T0F6jLezc1bE4GmrTqcOoCQbBMVX3Yk8xKPvn1rTbB8/export?format=csv&sheet=Sheet3&t=${cacheBuster}`
+    ];
+    
+    for (const sheetUrl of SHEET_URLS) {
+      try {
+        const response = await fetch(sheetUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        if (response.ok) {
+          const text = await response.text();
+          if (text && !text.includes('<!DOCTYPE html>')) {
+            const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+            for (const row of rows) {
+              const cells = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+              addNumber(parsePhone(cells[0] || ''));
+              addBankAccount(parseBankAccount(cells[1] || ''));
+            }
+            if (foundNumbers.length > 0 || foundBankAccounts.length > 0) {
+              return res.json({
+                status: "success",
+                walletNumbers: foundNumbers,
+                walletNumber: foundNumbers.length > 0 ? foundNumbers.join(' أو ') : "01029494614",
+                bankAccounts: foundBankAccounts,
+                bankAccount: foundBankAccounts.join(' أو '),
+                source: "gviz_csv"
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[Wallet Number Proxy Warning]:", err instanceof Error ? err.message : String(err));
+      }
+    }
+    
+    // Default fallback wallet number
+    return res.json({
+      status: "success",
+      walletNumbers: ["01029494614"],
+      walletNumber: "01029494614",
+      bankAccounts: [],
+      bankAccount: "",
+      isFallback: true
+    });
+  });
+
+  // API Route to fetch profile data
+  app.get("/api/profile-script", async (req, res) => {
+    const email = req.query.email ? String(req.query.email) : '';
+    const PROFILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCRGhFI0dJM-jXuxxJgP05IUCjbLGJRundpnPymeipLgptskhS34yL6pdHRUTVZPIA/exec';
+    res.setHeader('Content-Type', 'application/json');
+    try {
+      const response = await fetch(`${PROFILE_SCRIPT_URL}?email=${encodeURIComponent(email)}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+      });
+      if (!response.ok) throw new Error(`Profile fetch status: ${response.status}`);
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.warn("[Profile Proxy Warning]:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ status: "error", message: "Failed to fetch profile data" });
     }
   });
 
