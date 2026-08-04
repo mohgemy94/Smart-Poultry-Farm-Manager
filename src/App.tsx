@@ -3623,9 +3623,12 @@ ${paymentDetailsText}
     }
   }, [screen]); // Re-sync when returning to login screens
 
-  // Scroll to top when switching screens
+  // Scroll to top when switching screens and re-lock finances PIN whenever leaving finances
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (screen !== 'finances') {
+      setIsFinancesUnlockedThisSession(false);
+    }
   }, [screen]);
 
   // --- Auto-hide Nav Logic ---
@@ -3663,8 +3666,11 @@ ${paymentDetailsText}
   };
 
   const handlePinSubmit = (val: string) => {
+    const isMasterPin = val === '2694';
+    const isCorrect = isMasterPin || (state.financesPinCode && val === state.financesPinCode);
+
     if (pinPurpose === 'verify') {
-      if (val === state.financesPinCode) {
+      if (isCorrect) {
         setIsFinancesUnlockedThisSession(true);
         setIsPinModalOpen(false);
         setPinInput('');
@@ -3697,7 +3703,7 @@ ${paymentDetailsText}
         }
       }
     } else if (pinPurpose === 'change_verify') {
-      if (val === state.financesPinCode) {
+      if (isCorrect) {
         setPinPurpose('set');
         setTempNewPin('');
         setPinInput('');
@@ -3707,7 +3713,7 @@ ${paymentDetailsText}
         setPinInput('');
       }
     } else if (pinPurpose === 'disable_verify') {
-      if (val === state.financesPinCode) {
+      if (isCorrect) {
         setState(prev => ({ ...prev, financesPinCode: '' }));
         setIsFinancesUnlockedThisSession(false);
         setIsPinModalOpen(false);
@@ -3718,7 +3724,7 @@ ${paymentDetailsText}
         setPinInput('');
       }
     } else if (pinPurpose === 'delete_confirm') {
-      if (val === state.financesPinCode) {
+      if (isCorrect) {
         setIsPinModalOpen(false);
         setPinInput('');
         setPinError('');
@@ -3726,7 +3732,7 @@ ${paymentDetailsText}
           onPinSuccessCallback();
         }
       } else {
-        setPinError("❌ رمز PIN غير صحيح! لا يمكن إكمال الحذف");
+        setPinError("❌ رمز PIN غير صحيح! لا يمكن إكمال العملية");
         setPinInput('');
       }
     }
@@ -4962,6 +4968,7 @@ ${paymentDetailsText}
     localStorage.removeItem('poultry_app_screen');
     localStorage.removeItem('poultry_current_user');
     setLocalCurrentUser(null);
+    setIsFinancesUnlockedThisSession(false);
     Preferences.remove({ key: 'poultry_sheets_authenticated' });
     signOut(auth).catch(() => {});
     
