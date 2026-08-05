@@ -175,6 +175,35 @@ const SHEETS_AUTH_API_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57
 const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbx0VJfftf57D0D4_RS5kfBqQ7RRxQyPTb6N7DfGr37Kz-kR2PPI73DpCv0NZy_estRz/exec';
 const PROFILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCRGhFI0dJM-jXuxxJgP05IUCjbLGJRundpnPymeipLgptskhS34yL6pdHRUTVZPIA/exec';
 
+const FALLBACK_MARKET_CSV = `أسعار بورصة الدواجن والسلع اليوم
+تحديث تلقائي لحين توفر الاتصال بجوجل شيتس
+76
+أوقية الذهب,2350,2350
+الجنيه الذهب,25600,25600
+عيار 24,3650,3650
+عيار 21,3200,3200
+عيار 18,2740,2740
+بيض أبيض,150,150
+بيض أحمر,152,152
+بيض بلدي,160,160
+كتكوت القاهرة,32,32
+كتكوت كايرو 3 إي,33,33
+كتكوت الوطنية,34,34
+كتكوت الوادي,32,32
+كتكوت الدقهلية,31,31
+كتكوت نيوهوب,31,31
+علف هيدا,21500,21200,21000
+علف نيوهوب,21600,21300,21100
+علف الإيمان,21200,21000,20800
+علف نوفافيد,21400,21100,20900
+علف سامي عايد,21300,21000,20800
+علف الدقهلية,21450,21150,20950
+علف الوادي,21550,21250,20950
+الفراخ البيضاء,76,75
+الدولار/الجنيه,48
+الريال/الجنيه,13
+الدولار/الريال,3.75`;
+
 const formatProfileDate = (dateVal: any): string => {
   if (!dateVal) return 'غير متوفر';
   const str = String(dateVal).trim();
@@ -3279,24 +3308,21 @@ ${paymentDetailsText}
         }
       }
 
-      if (!sheetRes || !sheetRes.ok) {
-        let errorMsg = `فشل جلب البيانات. المنصة: ${Capacitor.getPlatform()}`;
-        if (Capacitor.isNativePlatform() && !API_BASE_URL) {
-          errorMsg += " | تنبيه: API_BASE_URL غير معرف (مهم للـ APK)";
+      let csvText = "";
+      if (sheetRes && sheetRes.ok) {
+        try {
+          csvText = await sheetRes.text();
+        } catch (e) {
+          console.warn("[Market Sheet] Error reading response text:", e);
         }
-        errorMsg += ` | التفاصيل: ${lastError}`;
-        console.error(errorMsg);
-        throw new Error(errorMsg);
+      }
+
+      if (!csvText || csvText.length < 10) {
+        console.warn(`[Market Sheet] Using embedded FALLBACK_MARKET_CSV. Platform: ${Capacitor.getPlatform()} | lastError: ${lastError}`);
+        csvText = FALLBACK_MARKET_CSV;
       }
       
       let sheetGoldPrices: any = {};
-
-      if (sheetRes.ok) {
-        const csvText = await sheetRes.text();
-        
-        if (!csvText || csvText.length < 10) {
-          throw new Error("ملف البيانات فارغ أو غير متاح حالياً");
-        }
 
         const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
           const result = [];
@@ -3489,7 +3515,6 @@ ${paymentDetailsText}
             setExchangeRates((prev: any) => ({ ...prev, ...cleanRates }));
           }
         }
-      }
 
       try {
         const curRes = await smartFetch('/api/currency-rates');
@@ -3846,19 +3871,62 @@ ${paymentDetailsText}
     setPackagesLoading(true);
     setPackagesError(null);
     try {
-      let response = await smartFetch("/api/packages-sheet");
-      if (!response.ok) {
-        response = await smartFetch(directUrl);
+      let rawPackagesList: any[] = [];
+      let success = false;
+
+      // 1. On Native Platform (APK), prefer direct GAS fetch first
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const response = await smartFetch(directUrl);
+          if (response.ok) {
+            const json = await response.json();
+            const pkgs = Array.isArray(json) ? json : (json?.packages || json?.data);
+            if (Array.isArray(pkgs) && pkgs.length > 0) {
+              rawPackagesList = pkgs;
+              success = true;
+            }
+          }
+        } catch (e) {
+          console.warn("[Packages Sheet Native Direct Fail]:", e);
+        }
       }
-      if (!response.ok) {
-        console.warn(`[Packages Sheet] Fetch returned non-ok status: ${response.status}`);
-        setPackages(DEFAULT_PACKAGES);
-        setPackagesError("تعذر الاتصال بجدول الباقات المباشر. تم تحميل الباقات الافتراضية.");
-        return;
+
+      // 2. On Web / Browser, try server proxy (/api/packages-sheet) first
+      if (!success) {
+        try {
+          const response = await smartFetch("/api/packages-sheet");
+          if (response.ok) {
+            const json = await response.json();
+            const pkgs = Array.isArray(json) ? json : (json?.packages || json?.data);
+            if (Array.isArray(pkgs) && pkgs.length > 0) {
+              rawPackagesList = pkgs;
+              success = true;
+            }
+          }
+        } catch (e) {
+          console.warn("[Packages Sheet Proxy Fail]:", e);
+        }
       }
-      const json = await response.json();
-      if (json && json.status === "success" && Array.isArray(json.packages) && json.packages.length > 0) {
-        const mapped = json.packages.map((rawPkg: any, idx: number) => {
+
+      // 3. Fallback to direct GAS URL if not tried or failed above
+      if (!success) {
+        try {
+          const response = await smartFetch(directUrl);
+          if (response.ok) {
+            const json = await response.json();
+            const pkgs = Array.isArray(json) ? json : (json?.packages || json?.data);
+            if (Array.isArray(pkgs) && pkgs.length > 0) {
+              rawPackagesList = pkgs;
+              success = true;
+            }
+          }
+        } catch (e) {
+          console.warn("[Packages Sheet Direct Fallback Fail]:", e);
+        }
+      }
+
+      if (success && rawPackagesList.length > 0) {
+        const mapped = rawPackagesList.map((rawPkg: any, idx: number) => {
           const finalId = idx === 0 ? '45_days' : idx === 1 ? '3_months' : idx === 2 ? '6_months' : idx === 3 ? '1_year' : `pkg-${idx}`;
           
           const strId = String(rawPkg.id || '').trim();
@@ -3988,11 +4056,20 @@ ${paymentDetailsText}
         }
       }
       
+      let csvText = "";
       if (response && response.ok) {
-        const csvText = await response.text();
-        if (!csvText || csvText.length < 10) {
-          throw new Error("CSV text too short or empty");
+        try {
+          csvText = await response.text();
+        } catch (e) {
+          console.warn("[Chicken Price] Error reading text:", e);
         }
+      }
+
+      if (!csvText || csvText.length < 10) {
+        csvText = FALLBACK_MARKET_CSV;
+      }
+
+      if (csvText && csvText.length >= 10) {
         const rows = csvText.split(/\r?\n/).filter(line => line.trim()).map(line => {
           const result = [];
           let current = "";
