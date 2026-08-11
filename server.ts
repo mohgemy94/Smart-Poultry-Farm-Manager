@@ -256,6 +256,85 @@ async function startServer() {
     }
   });
 
+  // API Route for WhatsApp Activation Script & Google Doc Text
+  app.get("/api/google-doc-text", async (req, res) => {
+    const docExportUrl = 'https://docs.google.com/document/d/1BJWaREMfBN2CCy4TheQYwsQfcBPYsmEHJ8z-hDhodOc/export?format=txt';
+    try {
+      const response = await fetch(docExportUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+      });
+      if (!response.ok) throw new Error(`Google Doc fetch status: ${response.status}`);
+      const text = await response.text();
+      res.json({ status: "success", text });
+    } catch (error) {
+      console.warn("[Google Doc Proxy Warning]:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ status: "error", error: "Failed to fetch Google Doc text" });
+    }
+  });
+
+  app.get("/api/whatsapp-activation", async (req, res) => {
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbznxSb7konlhlvEAtz1OdmMopAHn0-oZ934piw-1LqI6NplepKAKy0sWVU-4GCY2uafZw/exec';
+    const docExportUrl = 'https://docs.google.com/document/d/1BJWaREMfBN2CCy4TheQYwsQfcBPYsmEHJ8z-hDhodOc/export?format=txt';
+    res.setHeader('Content-Type', 'application/json');
+
+    const packageName = String(req.query.packageName || '');
+    const price = String(req.query.price || '');
+    const email = String(req.query.email || '');
+
+    try {
+      const params = new URLSearchParams({ packageName, price, email });
+      const response = await fetch(`${scriptUrl}?${params.toString()}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+      });
+
+      if (response.ok) {
+        const rawText = await response.text();
+        if (rawText && !rawText.startsWith("<!DOCTYPE") && !rawText.includes("<html")) {
+          try {
+            const data = JSON.parse(rawText);
+            if (data && (data.status === 'success' || data.message || data.text)) {
+              return res.json(data);
+            }
+          } catch (_) {
+            return res.json({ status: "success", message: rawText });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[WhatsApp Activation Script Warning]:", error instanceof Error ? error.message : String(error));
+    }
+
+    // Fallback directly to fetching from Google Doc text export URL
+    try {
+      const docRes = await fetch(docExportUrl);
+      if (docRes.ok) {
+        let docText = await docRes.text();
+        if (docText && docText.trim()) {
+          // Inject dynamic fields if present in Google Doc
+          if (packageName && !docText.includes(packageName)) {
+            docText = docText.replace(/الباقة المطلوبة:\s*/g, `الباقة المطلوبة: ${packageName}\n`);
+          }
+          if (price && !docText.includes(price)) {
+            docText = docText.replace(/السعر:\s*\d*/g, `السعر: ${price}`);
+          }
+          if (email && !docText.includes(email)) {
+            docText = docText.replace(/بريدي الإلكتروني المسجل:\s*/g, `بريدي الإلكتروني المسجل: ${email}\n`);
+          }
+          return res.json({ status: "success", message: docText.trim() });
+        }
+      }
+    } catch (docErr) {
+      console.warn("[Google Doc Fallback Error]:", docErr);
+    }
+
+    // If Google Doc is empty or there is a connection error, return an empty message
+    return res.json({ status: "success", message: "" });
+  });
+
   // API Route to fetch wallet phone number from Sheet3 Column A
   app.get("/api/wallet-number", async (req, res) => {
     res.setHeader('Content-Type', 'application/json');

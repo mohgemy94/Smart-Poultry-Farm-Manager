@@ -3845,21 +3845,113 @@ ${paymentDetailsText}
     return null;
   }, [walletCashNumber]);
 
+  const handleWhatsAppActivation = async (selectedPackage?: any, userEmail?: string) => {
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbznxSb7konlhlvEAtz1OdmMopAHn0-oZ934piw-1LqI6NplepKAKy0sWVU-4GCY2uafZw/exec';
+    const supportNumber = "201115127032";
+
+    const activePkg = selectedPackage || packages.find(p => p.id === selectedPlanId) || packages[0] || DEFAULT_PACKAGES[2];
+    const { currentPrice, displayPrice } = getPackagePriceInfo(activePkg);
+    const pkgPrice = activePkg.discountPrice || currentPrice || displayPrice || activePkg.currentPrice || activePkg.originalPrice || '';
+    const emailVal = userEmail || localCurrentUser?.email || 'لم يتم تسجيل بريد';
+
+    let fetchedMessage = "";
+
+    try {
+      const params = new URLSearchParams({
+        packageName: String(activePkg.name || ''),
+        price: String(pkgPrice),
+        email: String(emailVal)
+      });
+
+      let response: any = null;
+
+      // 1. On Native Platform (APK), try direct GAS URL first
+      if (Capacitor.isNativePlatform()) {
+        try {
+          response = await smartFetch(`${scriptUrl}?${params.toString()}`);
+        } catch (e) {
+          console.warn("Direct GAS fetch failed on native:", e);
+        }
+      }
+
+      // 2. On Web / Browser, try proxy URL (/api/whatsapp-activation)
+      if (!response || !response.ok) {
+        try {
+          response = await smartFetch(`/api/whatsapp-activation?${params.toString()}`);
+        } catch (e) {
+          console.warn("Proxy fetch failed:", e);
+        }
+      }
+
+      // 3. Fallback to direct script URL
+      if (!response || !response.ok) {
+        try {
+          response = await smartFetch(`${scriptUrl}?${params.toString()}`);
+        } catch (e) {
+          console.warn("Direct GAS fallback fetch failed:", e);
+        }
+      }
+
+      if (response && response.ok) {
+        const textResult = await response.text();
+        try {
+          const data = JSON.parse(textResult);
+          if (data && data.status === 'success' && (data.message || data.text)) {
+            fetchedMessage = data.message || data.text || "";
+          } else if (data && (data.message || data.text || data.content)) {
+            fetchedMessage = data.message || data.text || data.content || "";
+          }
+        } catch (_) {
+          if (textResult && textResult.trim().length > 5 && !textResult.startsWith("<!DOCTYPE") && !textResult.includes("<html")) {
+            fetchedMessage = textResult.trim();
+          }
+        }
+      }
+
+      // 4. Try direct Google Doc export text URL if message is still empty
+      if (!fetchedMessage) {
+        try {
+          const docUrl = 'https://docs.google.com/document/d/1BJWaREMfBN2CCy4TheQYwsQfcBPYsmEHJ8z-hDhodOc/export?format=txt';
+          const docRes = await smartFetch(docUrl);
+          if (docRes.ok) {
+            let docText = await docRes.text();
+            if (docText && docText.trim() && !docText.startsWith("<!DOCTYPE")) {
+              if (activePkg?.name && !docText.includes(activePkg.name)) {
+                docText = docText.replace(/الباقة المطلوبة:\s*/g, `الباقة المطلوبة: ${activePkg.name}\n`);
+              }
+              if (pkgPrice && !docText.includes(String(pkgPrice))) {
+                docText = docText.replace(/السعر:\s*\d*/g, `السعر: ${pkgPrice}`);
+              }
+              if (emailVal && !docText.includes(emailVal)) {
+                docText = docText.replace(/بريدي الإلكتروني المسجل:\s*/g, `بريدي الإلكتروني المسجل: ${emailVal}\n`);
+              }
+              fetchedMessage = docText.trim();
+            }
+          }
+        } catch (docErr) {
+          console.warn("Direct Google Doc fetch failed:", docErr);
+        }
+      }
+    } catch (error) {
+      console.error("Error connecting to activation server:", error);
+    }
+
+    if (fetchedMessage && fetchedMessage.trim()) {
+      const encodedMessage = encodeURIComponent(fetchedMessage.trim());
+      const whatsappUrl = `https://wa.me/${supportNumber}?text=${encodedMessage}`;
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // If Google Doc is empty or connection fails, open WhatsApp with empty message
+    const emptyWhatsappUrl = `https://wa.me/${supportNumber}`;
+    window.open(emptyWhatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const handleWhatsappClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    let freshWallet = walletCashNumber;
-    let freshBank = bankAccountNumber;
-    try {
-      const fetched = await fetchWalletNumberFromSheet();
-      if (fetched) {
-        freshWallet = fetched.wallet;
-        freshBank = fetched.bank;
-      }
-    } catch (err) {
-      console.warn("Error refreshing wallet/bank number on WhatsApp click:", err);
-    }
-    const finalHref = getWhatsappHref(freshWallet, freshBank);
-    window.open(finalHref, '_blank', 'noopener,noreferrer');
+    const activePkg = packages.find(p => p.id === selectedPlanId) || packages[0] || DEFAULT_PACKAGES[2];
+    await handleWhatsAppActivation(activePkg, localCurrentUser?.email);
   };
   const [weightInput, setWeightInput] = useState('');
   const [humidityTotalBirds, setHumidityTotalBirds] = useState('360');
@@ -3974,13 +4066,14 @@ ${paymentDetailsText}
 
         setPackages(mapped);
         
-        const hasCurrent = mapped.some((p: any) => p.id === selectedPlanId);
-        if (!hasCurrent) {
-          const defaultPkg = mapped.find((p: any) => p.id === '6_months') || mapped[2] || mapped[0];
-          if (defaultPkg) {
-            setSelectedPlanId(defaultPkg.id);
+        setSelectedPlanId(prevId => {
+          const hasCurrent = mapped.some((p: any) => p.id === prevId);
+          if (!hasCurrent) {
+            const defaultPkg = mapped.find((p: any) => p.id === '6_months') || mapped[2] || mapped[0];
+            return defaultPkg ? defaultPkg.id : prevId;
           }
-        }
+          return prevId;
+        });
         setPackagesError(null);
       } else {
         setPackages(DEFAULT_PACKAGES);
@@ -3993,7 +4086,7 @@ ${paymentDetailsText}
     } finally {
       setPackagesLoading(false);
     }
-  }, [selectedPlanId]);
+  }, []);
 
   useEffect(() => {
     fetchWalletNumberFromSheet();
@@ -8043,7 +8136,14 @@ ${paymentDetailsText}
                         <div className="absolute inset-0 rounded-3xl pointer-events-none" />
                       )}
                       
-                      {item.offerText ? (
+                      {packagesLoading ? (
+                        <div 
+                          className={cn(
+                            "absolute top-4 left-4 h-5 w-20 rounded-full animate-pulse",
+                            isDaylight ? "bg-slate-200" : "bg-slate-700/80"
+                          )}
+                        />
+                      ) : item.offerText ? (
                         <div 
                           className={cn(
                             "absolute top-4 left-4 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 subscription-offer-badge shadow-sm border",
@@ -8130,43 +8230,64 @@ ${paymentDetailsText}
                           قيمة الاشتراك
                         </div>
                         <div className="flex items-center gap-2 flex-row-reverse">
-                          {hasOffer && (
-                            <span 
-                              className={cn(
-                                "relative text-xs font-bold inline-block px-1 subscription-package-old-price",
-                                isDaylight ? "text-red-600 font-black" : "text-slate-400 opacity-90"
-                              )}
-                              style={{ color: isDaylight ? '#dc2626' : '#94a3b8' }}
-                            >
-                              {originalPrice} ج.م
-                              <span 
-                                className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] -rotate-12 transform origin-center rounded-full pointer-events-none bg-red-600 shadow-sm" 
-                                style={{ backgroundColor: '#dc2626' }}
+                          {packagesLoading ? (
+                            <div className="flex items-center gap-2 flex-row-reverse animate-pulse py-0.5">
+                              {/* Skeleton screen for current price & currency */}
+                              <div 
+                                className={cn(
+                                  "h-6 w-16 rounded-md shadow-sm",
+                                  isDaylight ? "bg-slate-200" : "bg-slate-700/80"
+                                )} 
                               />
-                            </span>
+                              {/* Skeleton screen for old/offer price */}
+                              <div 
+                                className={cn(
+                                  "h-4 w-10 rounded-md shadow-sm opacity-75",
+                                  isDaylight ? "bg-slate-200" : "bg-slate-700/80"
+                                )} 
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              {hasOffer && (
+                                <span 
+                                  className={cn(
+                                    "relative text-xs font-bold inline-block px-1 subscription-package-old-price",
+                                    isDaylight ? "text-red-600 font-black" : "text-slate-400 opacity-90"
+                                  )}
+                                  style={{ color: isDaylight ? '#dc2626' : '#94a3b8' }}
+                                >
+                                  {originalPrice} ج.م
+                                  <span 
+                                    className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] -rotate-12 transform origin-center rounded-full pointer-events-none bg-red-600 shadow-sm" 
+                                    style={{ backgroundColor: '#dc2626' }}
+                                  />
+                                </span>
+                              )}
+                              <div className="flex items-baseline gap-0.5 flex-row-reverse">
+                                <span 
+                                  className="text-lg sm:text-xl font-black transition-colors tracking-tight subscription-package-price"
+                                  style={{
+                                    color: priceColor,
+                                    WebkitTextFillColor: priceColor,
+                                    opacity: 1
+                                  }}
+                                >
+                                  {displayPrice}
+                                </span>
+                                <span 
+                                  className="text-[10px] font-black mr-1 subscription-package-price"
+                                  style={{
+                                    color: priceColor,
+                                    WebkitTextFillColor: priceColor,
+                                    opacity: 1
+                                  }}
+                                >
+                                  ج.م
+                                </span>
+                              </div>
+                            </>
                           )}
-                          <div className="flex items-baseline gap-0.5 flex-row-reverse">
-                            <span 
-                              className="text-lg sm:text-xl font-black transition-colors tracking-tight subscription-package-price"
-                              style={{
-                                color: priceColor,
-                                WebkitTextFillColor: priceColor,
-                                opacity: 1
-                              }}
-                            >
-                              {displayPrice}
-                            </span>
-                            <span 
-                              className="text-[10px] font-black mr-1 subscription-package-price"
-                              style={{
-                                color: priceColor,
-                                WebkitTextFillColor: priceColor,
-                                opacity: 1
-                              }}
-                            >
-                              ج.م
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
