@@ -492,6 +492,19 @@ const WeatherScreen = ({
     </div>
   );
 
+  if (!weather || !weather.current_weather) return (
+    <div className="flex flex-col items-center justify-center p-12 gap-4">
+      <AlertTriangle size={32} className="text-amber-500" />
+      <p className="text-white font-bold text-center">لا تتوفر بيانات الطقس حالياً</p>
+      <button 
+        onClick={onRetry}
+        className="bg-blue-600 px-6 py-2.5 rounded-xl text-white font-black text-xs hover:bg-blue-500 transition-colors"
+      >
+        إعادة المحاولة
+      </button>
+    </div>
+  );
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -731,9 +744,9 @@ const WeatherScreen = ({
 
              <div className="grid gap-3">
                 {getPoultryAdvice(
-                    weather.current_weather.temperature, 
-                    weather.daily.relative_humidity_2m_max[0],
-                    weather.current_weather.windspeed,
+                    weather?.current_weather?.temperature ?? 25, 
+                    weather?.daily?.relative_humidity_2m_max?.[0] ?? 60,
+                    weather?.current_weather?.windspeed ?? 10,
                     age
                 ).map((advice, i) => (
                     <motion.div 
@@ -763,7 +776,7 @@ const WeatherScreen = ({
             </div>
 
             <div className="grid gap-3">
-              {weather?.daily?.time.map((date: string, i: number) => (
+              {weather?.daily?.time?.map((date: string, i: number) => (
                 <motion.div 
                   whileHover={{ scale: 1.02 }}
                   key={`${date}-${i}`} 
@@ -771,26 +784,26 @@ const WeatherScreen = ({
                 >
                   <div className="flex items-center gap-6 text-left shrink-0">
                     <div className="flex flex-col items-center">
-                       <span className="text-white font-black text-lg tabular-nums drop-shadow-sm">{Math.round(weather.daily.temperature_2m_max[i])}°</span>
+                       <span className="text-white font-black text-lg tabular-nums drop-shadow-sm">{Math.round(weather?.daily?.temperature_2m_max?.[i] ?? 0)}°</span>
                        <span className="text-slate-600 font-bold text-[10px] tracking-widest uppercase">عظمى</span>
                     </div>
                     <div className="flex flex-col items-center border-l border-white/5 pl-6">
-                       <span className="text-slate-500 font-bold text-lg tabular-nums">{Math.round(weather.daily.temperature_2m_min[i])}°</span>
+                       <span className="text-slate-500 font-bold text-lg tabular-nums">{Math.round(weather?.daily?.temperature_2m_min?.[i] ?? 0)}°</span>
                        <span className="text-slate-600 font-bold text-[10px] tracking-widest uppercase">صغرى</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-5">
                     <div className="text-right hidden sm:block">
-                       <span className="text-blue-400 font-black text-[10px] uppercase tracking-widest block mb-1 opacity-60 group-hover:opacity-100 transition-opacity">{getWeatherLabel(weather.daily.weathercode[i])}</span>
+                       <span className="text-blue-400 font-black text-[10px] uppercase tracking-widest block mb-1 opacity-60 group-hover:opacity-100 transition-opacity">{getWeatherLabel(weather?.daily?.weathercode?.[i] ?? 0)}</span>
                        <div className="flex items-center justify-end gap-1 text-[9px] font-bold text-slate-500">
                           <Droplets size={10} className="text-cyan-400" />
-                          <span>رطوبة {weather.daily.relative_humidity_2m_max[i]}%</span>
+                          <span>رطوبة {weather?.daily?.relative_humidity_2m_max?.[i] ?? 0}%</span>
                        </div>
                     </div>
                     
                     <div className="w-14 h-14 rounded-2xl bg-slate-950/60 border border-white/5 flex items-center justify-center transition-transform group-hover:scale-110">
-                       {getWeatherIcon(weather.daily.weathercode[i], 32)}
+                       {getWeatherIcon(weather?.daily?.weathercode?.[i] ?? 0, 32)}
                     </div>
 
                     <div className="text-right min-w-[100px]">
@@ -3773,6 +3786,227 @@ ${paymentDetailsText}
   const [walletCashNumber, setWalletCashNumber] = useState('01029494614');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
 
+  // -------------------------------------------------------------
+  // Mobile Physical Back Button Handler (تفعيل زر الرجوع من الموبايل)
+  // -------------------------------------------------------------
+  const screenHistoryRef = useRef<Screen[]>([]);
+  const isNavigatingBackRef = useRef<boolean>(false);
+
+  // Sync screen changes with browser history stack
+  useEffect(() => {
+    if (screen === 'gateway') return;
+
+    if (screenHistoryRef.current.length === 0) {
+      screenHistoryRef.current = [screen];
+      try {
+        window.history.replaceState({ type: 'screen', screen }, '');
+      } catch (e) {
+        console.warn("Error replacing initial history state:", e);
+      }
+      return;
+    }
+
+    if (isNavigatingBackRef.current) {
+      isNavigatingBackRef.current = false;
+      return;
+    }
+
+    const currentStack = screenHistoryRef.current;
+    const lastScreen = currentStack[currentStack.length - 1];
+
+    if (lastScreen !== screen) {
+      if (lastScreen === 'battery') {
+        setActiveBatteryGroup(null);
+        setActiveBatteryIdx(null);
+      }
+      screenHistoryRef.current.push(screen);
+      try {
+        window.history.pushState({ type: 'screen', screen }, '');
+      } catch (e) {
+        console.warn("Error pushing screen history state:", e);
+      }
+    }
+  }, [screen]);
+
+  // Sync inner battery steps with browser history stack
+  const prevBatteryRef = useRef<{ group: string | null; idx: number | null }>({
+    group: activeBatteryGroup,
+    idx: activeBatteryIdx,
+  });
+
+  useEffect(() => {
+    if (screen !== 'battery') {
+      prevBatteryRef.current = { group: null, idx: null };
+      return;
+    }
+
+    if (isNavigatingBackRef.current) {
+      isNavigatingBackRef.current = false;
+      prevBatteryRef.current = { group: activeBatteryGroup, idx: activeBatteryIdx };
+      return;
+    }
+
+    const prev = prevBatteryRef.current;
+
+    if (
+      (prev.group === null && activeBatteryGroup !== null) ||
+      (prev.idx === null && activeBatteryIdx !== null)
+    ) {
+      try {
+        window.history.pushState(
+          {
+            type: 'battery_inner',
+            screen: 'battery',
+            group: activeBatteryGroup,
+            idx: activeBatteryIdx,
+          },
+          ''
+        );
+      } catch (e) {
+        console.warn("Error pushing inner battery history state:", e);
+      }
+    }
+
+    prevBatteryRef.current = { group: activeBatteryGroup, idx: activeBatteryIdx };
+  }, [screen, activeBatteryGroup, activeBatteryIdx]);
+
+  // Handle popstate (Physical Mobile Back Button)
+  useEffect(() => {
+    const isAnyOverlayOpen = () => {
+      return (
+        isSidebarOpen ||
+        isCategoriesModalOpen ||
+        showNotificationsModal ||
+        isPinModalOpen ||
+        isWeightModalOpen ||
+        isSubscriptionModalOpen ||
+        isLimitedLoginModalOpen ||
+        isEnvPanelOpen ||
+        !!suggestedMedModal ||
+        !!activationCandidate
+      );
+    };
+
+    const closeAllOverlays = () => {
+      if (isSidebarOpen) setIsSidebarOpen(false);
+      if (isCategoriesModalOpen) setIsCategoriesModalOpen(false);
+      if (showNotificationsModal) setShowNotificationsModal(false);
+      if (isPinModalOpen) setIsPinModalOpen(false);
+      if (isWeightModalOpen) setIsWeightModalOpen(false);
+      if (isSubscriptionModalOpen) setIsSubscriptionModalOpen(false);
+      if (isLimitedLoginModalOpen) setIsLimitedLoginModalOpen(false);
+      if (isEnvPanelOpen) setIsEnvPanelOpen(false);
+      if (suggestedMedModal) setSuggestedMedModal(null);
+      if (activationCandidate) setActivationCandidate(null);
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      // 1. Priority: If any modal or overlay is open, close it first
+      if (isAnyOverlayOpen()) {
+        closeAllOverlays();
+        return;
+      }
+
+      // 2. Priority: Step back inside inner battery levels if in battery screen
+      if (screen === 'battery') {
+        if (activeBatteryIdx !== null) {
+          isNavigatingBackRef.current = true;
+          setActiveBatteryIdx(null);
+          return;
+        }
+        if (activeBatteryGroup !== null) {
+          isNavigatingBackRef.current = true;
+          setActiveBatteryGroup(null);
+          return;
+        }
+      }
+
+      // 3. Priority: Navigate back to the previous screen step-by-step
+      const stack = screenHistoryRef.current;
+
+      if (e.state && e.state.type === 'screen' && e.state.screen) {
+        const targetScreen = e.state.screen as Screen;
+        while (stack.length > 1 && stack[stack.length - 1] !== targetScreen) {
+          stack.pop();
+        }
+        isNavigatingBackRef.current = true;
+        setScreen(targetScreen);
+        setIsNavVisible(true);
+        return;
+      }
+
+      if (stack.length > 1) {
+        stack.pop(); // remove current top screen
+        const prevScreen = stack[stack.length - 1] || 'dashboard';
+        isNavigatingBackRef.current = true;
+        setScreen(prevScreen);
+        setIsNavVisible(true);
+      } else {
+        // Bottom of history stack: navigate to main control panel (dashboard) if not already there
+        if (screen !== 'dashboard') {
+          isNavigatingBackRef.current = true;
+          setScreen('dashboard');
+          setIsNavVisible(true);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    isSidebarOpen,
+    isCategoriesModalOpen,
+    showNotificationsModal,
+    isPinModalOpen,
+    isWeightModalOpen,
+    isSubscriptionModalOpen,
+    isLimitedLoginModalOpen,
+    isEnvPanelOpen,
+    suggestedMedModal,
+    activationCandidate,
+    screen,
+    activeBatteryGroup,
+    activeBatteryIdx
+  ]);
+
+  // Push overlay state when a modal/overlay opens
+  useEffect(() => {
+    const isOverlayOpen = (
+      isSidebarOpen ||
+      isCategoriesModalOpen ||
+      showNotificationsModal ||
+      isPinModalOpen ||
+      isWeightModalOpen ||
+      isSubscriptionModalOpen ||
+      isLimitedLoginModalOpen ||
+      isEnvPanelOpen ||
+      !!suggestedMedModal ||
+      !!activationCandidate
+    );
+
+    if (isOverlayOpen) {
+      try {
+        window.history.pushState({ type: 'overlay', screen }, '');
+      } catch (e) {
+        console.warn("Error pushing overlay history state:", e);
+      }
+    }
+  }, [
+    isSidebarOpen,
+    isCategoriesModalOpen,
+    showNotificationsModal,
+    isPinModalOpen,
+    isWeightModalOpen,
+    isSubscriptionModalOpen,
+    isLimitedLoginModalOpen,
+    isEnvPanelOpen,
+    suggestedMedModal,
+    activationCandidate,
+    screen
+  ]);
+
   const fetchWalletNumberFromSheet = useCallback(async (): Promise<{ wallet: string; bank: string } | null> => {
     const parsePhone = (str: string): string | null => {
       if (!str) return null;
@@ -4382,7 +4616,7 @@ ${paymentDetailsText}
 
   // مزامنة الحرارة الخارجية وحساب فرق الحرارة الفعلي (Delta T) تلقائياً
   useEffect(() => {
-    const extT = weather?.current_weather?.temperature !== undefined 
+    const extT = weather?.current_weather?.temperature !== undefined && weather?.current_weather?.temperature !== null
       ? Math.round(weather.current_weather.temperature)
       : toNum(state.externalTemp ?? 25);
     const ageStr = String(state.age || 1);
@@ -12275,11 +12509,7 @@ ${paymentDetailsText}
                     {activeBatteryGroup && (
                       <button 
                         onClick={() => {
-                          if (activeBatteryIdx !== null) {
-                            setActiveBatteryIdx(null);
-                          } else {
-                            setActiveBatteryGroup(null);
-                          }
+                          window.history.back();
                         }}
                         className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 transition-all ml-1"
                       >
